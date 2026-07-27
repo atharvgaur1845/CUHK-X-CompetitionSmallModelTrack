@@ -1,0 +1,62 @@
+# Python bytecode and tooling caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+
+# Local editor and operating-system files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Local Codex/agent state
+.agents/
+.codex/
+
+# Competition datasets (raw and extracted)
+/Small-Model-Track/
+*.zip
+*.tar
+*.tar.gz
+*.7z
+
+# Generated preprocessing data and experiment outputs
+/cache/
+/checkpoints/
+/submissions/
+/research/artifacts/
+
+# Common ML experiment trackers
+/runs/
+/wandb/
+/lightning_logs/
+/mlruns/
+
+# Model and array artifacts created outside the directories above
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.npz
+*.npy
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
