@@ -2,7 +2,39 @@
 
 <!-- Written BEFORE any model code. Revised at every Stage 9 meta-analysis — keep old versions below, don't overwrite. -->
 
-## Current model (v2 — 2026-07-27, post-profiling; supersedes v1)
+## Current model (v3 — 2026-07-28, post-DA-001 + 15 experiments + 4 submissions; supersedes v2)
+
+**The evidence-backed picture of this competition:**
+1. Test = 4 unseen users, ~train-like class prior (B-012 dead), clips trimmed ~20% (Δ≈1.7 pts), genuine subject shift ≈5-6 pts. CV(micro) − 9 ≈ LB.
+2. No current stream is close to sufficient: skel 53 micro subj (73 in-domain), visual ≤27 macro subj even ImageNet-pretrained (46 random-split), IMU 27 micro. Oracle over streams = 63. (B-013)
+3. The visual DG cliff (−20 pts even pretrained) is the largest unsolved structure; skeleton's cliff is −20 too but from a higher base with a body-normalizable representation.
+4. The metadata game is small: Hungarian ≈ ±1 (parked), cohorts/groups useful mainly for per-user adaptation.
+5. Leader = 0.836; target 0.85. Nothing in our measured space sums there yet — the missing mass must come from compounding: stronger streams × fusion × transduction.
+
+**The plan (each stage gated by measurement):**
+- **S1 Skeleton max-out** (reliable stream): jvb bones (+1.8 measured) + capacity + long training + trunc-aug (running); then multi-stream (joint/bone/motion logits), ST-GCN-lite, mixup, person-selection fix, no-stretch+duration. Goal: 58-62 micro subj-CV.
+- **S2 Visual via legal transfer**: SSL pretraining (masked/temporal pretext) on ALL unlabeled clips (train+test ROI crops — rules-legal, no external weights), then fine-tune; 224 px ROI cache; longer schedules. Goal: 40-50 subj on depth+IR each. If organizers rule ImageNet-init legal, swap in pretrained small backbones immediately (email pending!).
+- **S3 Fusion**: nested-tuned weighted late fusion + modality dropout + TTA. Diversity now includes IMU. Goal: fusion ≥ best+6-8.
+- **S4 Transduction multiplier** (the leader-gap hypothesis): per-user/cohort self-training + feature alignment on the 405 test clips (4 users × ~100). MEASURE FIRST on CV (simulate: adapt on each val user's unlabeled clips). If the simulated multiplier is ≥+5, this is the biggest single lever we have. Must run inside submitted inference code (reproducible; also fine for on-site since it's per-batch).
+- **S5 Package**: distill/ensemble into one ≤100 MB model.pth; efficiency score.
+
+**Assumptions still standing (all previously-attacked ones logged in v2/DA-001):**
+- A14. SSL on 3.3k clips can recover a useful fraction of the ImageNet-init gain (untested — Q-94).
+- A15. Per-user adaptation transfers from CV simulation to LB (untested — Q-91 sim first).
+- A16. Trimming countermeasure (trunc-aug) recovers most of the 1.7-pt trim loss (in wave 3).
+- A17. Skeleton per-frame preprocessing (pelvis-center+floor-align) is survivable; global-motion loss is priced into the 73% in-domain ceiling. Raising that ceiling may require sequence-level re-normalization or multi-person cues — partially explored (tn failed).
+
+**What is probably limiting performance right now?**
+1. Visual stream quality (recipe + DG) — 85%.
+2. Skeleton ceiling (73 in-domain) — 70%.
+3. No transduction — unknown multiplier, potentially decisive — 60%.
+
+**If this fails, why will it have failed?**
+- SSL on 3k clips too weak to matter (small-data SSL is hard); visual stuck ≤35 → fusion caps ~60 LB.
+- Transduction sim doesn't transfer (4 real users ≠ simulated val users).
+- 0.85 target simply exceeds what this data supports cross-subject without pretrained weights; leader may be using something we've ruled out (or breaking rules that reproduction will catch).
+
+## Previous model (v2 — 2026-07-27, post-profiling)
 
 **Why should this approach work?**
 Two independent games are being played:

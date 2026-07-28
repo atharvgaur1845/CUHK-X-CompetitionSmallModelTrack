@@ -17,7 +17,8 @@ from build_cache import TRAIN, TEST, invert_jet, fname_ts  # reuse paths + JET L
 
 ROOT = "/home/atharv/Desktop/projects/KAggle /CUHK-X-CompetitionSmallModelTrack"
 CACHE = os.path.join(ROOT, "cache")
-SIZE = 112
+SIZE = int(os.environ.get("ROI_SIZE", "112"))
+SUFFIX = "_roi" if SIZE == 112 else f"_roi{SIZE}"
 FG_THRESH = 8          # depth-index units
 MIN_BLOB = 40          # px at 120x160
 PAD = 0.15
@@ -118,7 +119,7 @@ def process(job):
 
 def jobs_for(split):
     out = []
-    outdir = os.path.join(CACHE, split + "_roi")
+    outdir = os.path.join(CACHE, split + SUFFIX)
     os.makedirs(outdir, exist_ok=True)
     if split == "train":
         for mod0 in ("Depth_Color",):

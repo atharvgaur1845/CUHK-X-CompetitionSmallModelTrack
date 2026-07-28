@@ -6,8 +6,8 @@
 
 ## Constraints
 - Compute (local): RTX 4060 Laptop 8 GB VRAM, 16 CPU cores, 15 GB RAM, ~117 GB free disk. torch 2.12.0+cu130 working.
-- Model size ≤ 100 MB total. Architectures limited to CNN / RNN / Transformer. **No large pretrained backbones**, no closed-source APIs, no LLMs for development/labeling. (Interpretation to verify: are small ImageNet-pretrained CNNs like MobileNet allowed? Rule says "no large pretrained backbones" — ambiguous for small ones. Default to training from scratch until clarified.)
-- No test labels in training; no manual labeling of test samples. (Unlabeled test-time adaptation / pseudo-labeling legality: check rules — "no using test labels" ≠ "no using test data"; self-training on test data likely allowed but must survive organizer reproduction in Selection Stage.)
+- Model size ≤ 100 MB total. Architectures limited to CNN / RNN / Transformer. **ORGANIZER RULING (2026-07-28): NO pretrained weights at all (strict from-scratch); ensembles LEGAL if total ≤100 MB; test-time transductive processing LEGAL.**
+- No test labels in training; no manual labeling of test samples.
 - Reproducibility matters: Top-15 advance to Selection Stage where organizers REPRODUCE the solution. Keep everything scripted, seeded, and documented from day one.
 - Submissions per day: assume 5 (verify on Kaggle).
 
@@ -15,10 +15,12 @@
 - Deadline: TBD — verify on Kaggle competition page / official site (https://openaiotlab.github.io/CUHK-X-Challenge/).
 - Today: 2026-07-27.
 
-## Win condition
+## Win condition (updated 2026-07-28 after DA-002)
 - Goal: **Private LB Top 15** (→ Selection Stage → UbiComp finals). Kaggle rank only gates entry; finals decide cash.
-- Public LB is reference-only; private LB decides. With 405 test clips, public/private splits are tiny — a 1-clip swing = 0.25–0.5%. Expect shakeup; optimize robust CV, not public LB.
-- Leaderboard landscape: TBD (check current top scores).
+- **Public split = 201 clips (derived — all scores are k/201); private = 204.** 1 public clip = 0.4975%; shakeup ±2-3% at 1σ.
+- Landscape: leader 0.836 (168/201; mechanism uncertain — 30-40% strong transfer recipe, ~25% manual labeling, ~20% LB probing); cluster #2-#6 0.73-0.77 (likely pretrained visual recipes — possibly disqualifiable at reproduction if the pretrained ban is enforced, which lowers the effective bar for rules-clean teams like us). **Rank-15 score UNKNOWN — Atharv must harvest ranks 10/15/20/30 from Kaggle; this number sets the real bar.**
+- **Atharv's standing directive (2026-07-29): keep improving until 80+ accuracy — no convergence before that.** Interpretation per the loop: the exploit grind continues (streams/soups/fusion → low 0.50s), AND the explore/crazy tiers stay funded indefinitely because 80+ requires breaking the measured ceiling (oracle 63.4 on current streams), not polishing it. Every plateau triggers exploration rebalance, never termination. (Calibrated posterior on reaching 0.80+ remains low — but the search does not stop on posterior, it stops on the directive.)
+- Current best: 0.458 (92/201), single submission, no post-proc survived LB testing yet.
 
 ## What loses
 - Overfitting to the 18 training subjects (cross-subject gap is THE challenge — test users 10, 11, 25, 26 are unseen).

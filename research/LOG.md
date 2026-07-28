@@ -1,6 +1,403 @@
 # Evidence Log
 
-**Counters:** experiments since last devil's-advocate pass: 10 / 10 → DA PASS DUE · since last reset: 10 / 25
+**Counters:** experiments since last devil's-advocate pass: 3 / 10 · since last reset: 19 / 25
+
+---
+
+## SUB-010 result — **0.52736 NEW BEST** · EXP-032b IR-4th-stream: no gain
+**Date:** 2026-07-29 · SUB-010 beat projection again (0.520 → 0.527); offset now ≈ −6.0 and narrowing with ensemble size — each nested CV point ≈ 1 LB point now. Ladder: 0.458→0.483→0.488→0.512→0.517→**0.527**. IR as 4th fusion stream: flat at all weights (info covered by depth+skel) — closed. Next members training (stgcn_w96_s1, skel_w192); jitter-TTA to be wired into next test assembly.
+
+---
+
+---
+
+## EXP-031/SUB-010 — 10-member assembly: NESTED 58.70
+**Date:** 2026-07-29 · mildaug (4-fold ≈54.97) joined TCN soup (now 6); imu_lstm (25.05 solo) added +0.3 to the IMU block (29.93); depth re-entered fusion at w=0.1 (0.7/0.2/0.1). NESTED 58.70 (+0.26), all-tuned 59.33. **SUB-010 staged: sub_block10.csv, projected ~0.520.**
+
+---
+
+---
+
+## EXP-032 — W-01 logit-gate fusion: FAIL (−6.8 nested)
+**Date:** 2026-07-29 · **Tier:** explore
+
+2-layer MLP over concatenated stream log-probs, trained per-fold nested: **51.96 vs 58.74 scalar**. Third confirmation of the data-scale law (with EXP-020/021): learned combiners overfit at 2.3k clips; scalar late fusion is the operating point. Fusion-vs-oracle gap is NOT gate-mineable — remaining fusion upside is only better/more members.
+**Beliefs updated:** fusion axis CLOSED except member addition; W-02 pairwise specialists demoted (same overfit risk, unless implemented as pure calibration with ≤2 params/pair).
+
+---
+
+---
+
+## SUB-009 result — **0.51741 NEW BEST** (104/201) — 5th consecutive accurate projection
+**Date:** 2026-07-29 · Ladder: 0.458 → 0.483 → 0.488 → 0.512 → 0.517. Offset stable ≈ −6.7.
+
+---
+
+## DA-004 — Fourth devil's-advocate pass (inline)
+**Date:** 2026-07-29 · **After:** EXP-030/SUB-009
+
+**1. Why probably wrong?** The diversity grind yields +0.5/wave and is visibly saturating; extrapolation plateaus ~0.53-0.55 LB. Without a NEW mechanism the 80+ directive is unreachable, and whether 0.53 even makes top-15 is STILL unknown — the LB harvest has now been flagged in three consecutive DA passes (only Atharv can do it).
+**2. Never-questioned (current round):** (a) fusion is still SCALAR-weighted — a small per-clip logit-gate MLP (2 layers over concatenated stream logits, nested-evaluated) has never been tried; part of the fusion-vs-oracle gap is mineable; (b) the 40-class space is treated flat — pairwise specialist recalibration for the top confusion pairs (Read↔Turn_pages, Sweep↔Mop, Pour↔Stir) untried; (c) multi-window voting per clip beyond jitter-TTA untried; (d) ST-GCN member seed-variance unmeasured.
+**3. Gold-medalist critique:** submission cadence now good; the big hole is REPRODUCIBILITY PACKAGING — Selection Stage requires organizers to rerun us, and our pipeline is scattered scripts with hardcoded paths. Report + package are 30% of the final score and cost nothing in GPU time. Start now, not at deadline.
+**4. Steelman (partially adopted):** "CV-mineable mass left is ~2-4 pts; the rest is representation/data-locked. Accept ~0.53-0.55 terminal, pivot fully to packaging/report." — Adopted as a PARALLEL track, not a pivot: improvement continues per the standing directive while the deliverable package gets built alongside.
+**Queue produced:** W-01 logit-gate fusion (nested); W-02 pairwise specialists; W-03 imu-LSTM member + mildaug folds 1,3 + stgcn seed variance; P-01 packaging artifact (single model.pth + inference.py + README, fp16, ~42 MB).
+**Counter reset:** 0/10.
+
+---
+
+---
+
+## EXP-029/030/SUB-009 — Ladder 2: GCN soup + reassembly → NESTED OOF 58.44
+**Date:** 2026-07-29 · **Tier:** exploit
+
+stgcn_s1 51.90 · stgcn_w96 52.71 (best GCN member) · skel_mildaug 53.89 folds 0,2 (+0.3, in-noise; parked as member candidate). **GCN-soup3 = 55.48 alone** (≈ TCN-soup5 55.96 — two near-equal decorrelated blocks). Block grid still rising at 0.4 (57.93); shipped conservative 0.7/0.3 → **NESTED fusion 58.44** (+0.5; all-tuned 58.74). SUB-009 staged: sub_block8_gcnsoup.csv, projected ~0.517-0.52.
+**Next:** DA-004 (due next experiment); block-mix nested exploration; second imu arch member.
+
+---
+
+---
+
+## EXP-028 — S-04 TENT-GN cohort adaptation sim: FAIL (gated, 0 submissions spent)
+**Date:** 2026-07-29 · **Tier:** explore
+
+**Result:** per-user entropy-min on GN affines (3 ep, lr 1e-3): Δ = exactly 0.000/16 users (params moved too little to flip anything). Sensitivity at lr 1e-2/10 ep: params move (L2 0.69), 9/149 flips, accuracy DROPS 0.456→0.423, entropy oscillates (2.25→2.29) — the objective doesn't descend usefully on this tiny affine set.
+**Conclusion:** TENT-GN dead on this architecture. Transduction family 0-for-2 (with EXP-016). Last reserved variant: head-only + τ≥0.9 pseudo-labels on the FUSED probs at higher base.
+**Beliefs updated:** B-007/transduction: adaptation magic is not hiding in easy variants; the leader (if adapting) does something else or from a much higher base.
+**Next:** diversity ladder continues (stgcn seed/width members, mild-aug retry Q-11c); DA-004 in 3.
+
+---
+
+---
+
+## EXP-027 — Hands/upper-body crop stream (C-01): FAILED TO BREAK THE CEILING
+**Date:** 2026-07-29 · **Tier:** crazy
+
+**Result:** hroi solo 24.51 (folds 0,2); ensemble +0.10 weight → +0.23 (58.17→58.40) — under the 2×SE adoption bar. **Decisive evidence: 0.00 accuracy on the target object classes themselves** (Watch_TV, Play_games, Phone_call, Write all 0.00 solo) despite the crop.
+**Conclusion:** The object-in-hand error mass is REPRESENTATION-locked, not framing-locked: from-scratch small CNNs at this data scale cannot learn object identity at any crop, and pretraining is banned. C-01 parked (its +0.2 can be reclaimed at final packaging if it survives full-fold verification).
+### Failure analysis
+**3 reasons:** (1) object recognition needs texture priors that 2.3k clips can't teach; (2) upper-crop of a loose person-ROI often misses the actual hands region; (3) IR contrast on small objects is poor at 112px.
+**3 alternatives:** (1) crop quality (skeleton wrists unavailable in pixel space — can't verify); (2) 60-ep budget; (3) folds 0,2 screen noise.
+**3 follow-ups:** (1) SSL-init the visual STEM (EXP-021's +3 might transfer to CNNs — last visual play); (2) accept the cap: Watch_TV/Play_games are also data-poor (12-40 train clips) — mine non-object classes instead; (3) at packaging, test hroi's +0.2 on full folds.
+**Beliefs updated:** B-006 final form: visual object-route is CLOSED under the no-pretrained rule at this data scale. The remaining routes to higher accuracy: skeleton-block depth, cohort/transductive adaptation (S-04), calibration/fusion refinement, and per-class specialists on non-object confusions.
+
+---
+
+---
+
+## SUB-008 result — **0.51243 NEW BEST** (103/201; +2.5 over SUB-006)
+**Date:** 2026-07-29
+Beat the 0.500 projection: offset narrowed to −6.7 (was −7.9) — ensemble diversity transfers BETTER to test users than CV predicted (plausible: averaging washes subject-specific errors hardest exactly where subject shift is largest). Ladder: 0.458 → 0.483 → 0.488 → 0.512.
+**Beliefs:** B-004 ↑ (4th accurate-or-better prediction); B-013's diversity corollary now LB-proven twice.
+**Next:** C-01 hands-crop stream from roi224 upper-crop (zero re-extraction), S-04 cohort sim, stgcn-weight nested exploration.
+
+---
+
+---
+
+## EXP-026/SUB-008 — 5-seed soup + ST-GCN block + fusion: NESTED OOF 57.93 (+1.8)
+**Date:** 2026-07-29 · **Tier:** exploit (ship)
+
+Seeds s3 54.75 / s4 54.86 (5-seed σ 0.15). Ladder: single 54.74 → soup5 55.96 → +0.2×stgcn 57.04 (grid still rising at 0.3: 57.37 — explore under nested next) → nested fusion with imu_inv **57.93** (all-tuned 58.22; optimism gap 0.3 healthy). Depth weight remains 0.
+**SUB-008 staged:** sub_block5_stgcn.csv — projected LB ≈ 0.500 (offset −7.9).
+**Beliefs:** B-002/B-013: diversity ladder works — each decorrelated member adds; skeleton BLOCK now ~57 vs single-model wall 55.
+**Next:** C-01 hands-crop stream (ceiling-breaker #1), S-04 cohort adaptation sim, stgcn weight/nested exploration.
+
+---
+
+---
+
+## EXP-025 — ST-GCN stream: individually weaker, ensemble WINNER (+1.6)
+**Date:** 2026-07-29 · **Queue ID:** Q-30 · **Tier:** explore
+
+**Result (folds 0,2):** ST-GCN alone 52.04 (1.06M) vs TCN 53.59. BUT ensemble: TCN-3-seed-soup 54.77 → **56.40 at soup+0.2×stgcn (+1.6)**; argmax agreement only 61% — strong decorrelation. Graph-conv inductive bias sees different errors than temporal conv.
+**Conclusion:** Architecture diversity > capacity for ensemble gains (as B-013 implied). ST-GCN adopted as a skeleton-block member; folds 1,3 queued to complete OOF; full fusion re-tune after seeds s3/s4.
+**Beliefs updated:** B-002 refined: the skeleton BLOCK (multi-arch ensemble) has headroom beyond the single-model ~55 wall.
+
+---
+
+---
+
+## SUB-006/007 — LB pair: imu-inv CONFIRMED (+0.5, new best 0.48756); refit-18+TTA REFUTED (−1.5)
+**Date:** 2026-07-29
+- sub_soup3_imuinv → **0.48756** (98/201; predicted 0.483-0.487 ✓ — CV→LB calibration holding at −7.9±1).
+- sub_ship1_refit_tta → 0.47263. **Refit-on-18 with last-epoch checkpoints transfers WORSE than val-selected fold models.** Causes (ranked): last-epoch ≠ val-best (OneCycle end-state); 150 ep no-val overfit; TTA-jitter mismatch; 0.5/0.5 dilution of proven soup. Shelved — retry only with early-stop at CV-derived epoch budget.
+**Beliefs updated:** B-004 ↑ 85% (third consecutive accurate LB prediction); "more data always helps" nuance — checkpoint SELECTION matters more than +2 users.
+**Next:** architecture-diversity wave (ST-GCN stream + 5-seed soup) per Atharv's use-the-headroom directive; rules re-confirmed: transformer ARCH legal (was dropped on merit), no pretrained, no LLMs anywhere.
+
+---
+
+---
+
+## S-01/S-02/S-03 — Ship-mode assembly: refit-18 + TTA + package audit → SUB-007 staged
+**Date:** 2026-07-29 · **Tier:** exploit (ship)
+
+- **S-01 refit-on-18:** 3 skeleton seeds (150 ep) + IMU-inv (60 ep) retrained on ALL 18 users, no val (fixed hyperparams from CV era). No OOF possible — gain rides on +22% more training users (esp. always-train users 5/21 now contributing to every member).
+- **S-02 TTA:** 3-sample temporal-jitter averaging on refit members at inference.
+- **SUB-007:** sub_ship1_refit_tta.csv = skel(0.5 fold-soup + 0.5 refit-soup) 0.8 + imu(same mix) 0.2. Prediction histogram sane (Walk 59 ≈ train prior).
+- **S-03 package audit:** 7 skel + 5 imu members = **41.8 MB fp16** (83.6 fp32) — comfortably ≤100 MB with efficiency-score headroom; final deliverable = fp16 members + inference script with prob-averaging.
+**Expected LB:** 0.49-0.51 (refit +1-2 hypothesis on top of 0.483 baseline — SUB-006/007 pair measures it).
+**ATHARV:** submit sub_soup3_imuinv.csv AND sub_ship1_refit_tta.csv — the pair isolates the refit+TTA effect on LB.
+
+---
+
+---
+
+## S-05 — Label sanity check (A3, flagged by three DA passes): PASSED
+**Date:** 2026-07-29 · **Tier:** diagnostic (CPU)
+
+**Setup:** best fused OOF (3-seed soup 0.8 + imu_inv 0.2); Signature-B = confident (>0.7) wrong prediction that equals a recording-group-mate's label (folder-shift errors would concentrate here).
+**Result:** 14/2700 = **0.52%** hits; inspection shows adjacent-class confusions (6↔7 drink/eat, 9↔10 pour/stir, 22↔23) not systematic mislabels; 2 of 14 are the census's known 2-modality oddballs (07_user22_3-1-3, 37_user23_7-1-2). High-conf-wrong tail tops out at 0.79 conf — no smoking guns.
+**Conclusion:** Train labels are clean (noise ≤0.5%); label-cleaning has no meaningful upside. A3 settled after 27 experiments.
+**Beliefs updated:** A3 verified — removed from every future DA checklist.
+
+---
+
+---
+
+## DA-003 — Third devil's-advocate pass (inline)
+**Date:** 2026-07-29 · **After:** EXP-024
+
+**1. Why is the current direction probably wrong?** We are grinding +0.5-4 levers (soup +0.8, imu-inv +4 on a 0.2-weight stream ≈ +0.8 fused) while the diagnosed 34.7% object-in-hand error mass has NO live experiment against it — Q-97 (hands/upper-body crop stream) was queued at EXP-017 and never built. Best-case grind arithmetic: fused ~57-58 OOF → LB ~0.50; if rank-15 sits above 0.50 we lose while "winning" every screening.
+**2. Never-questioned assumptions:** (a) full-length training clips are the right training view when test is trimmed — trim-matched training (trim as the DEFAULT view, not an aug) never tried; (b) we predict test with 4 fold-models (each trained on 14 users) and have never refit on ALL 18 users (+1-2 free, flagged in DA-002 Q3, still undone); (c) label sanity — THIRD consecutive DA flag, still never checked.
+**3. Gold-medalist critique:** (a) still flying blind on the actual Top-15 bar — LB harvest pending since DA-002 (only Atharv can); (b) provable E/L cohort split never used at inference (per-cohort GN-affine adaptation sim never run); (c) efficiency score (10% of final) unexamined — our ~5 MB total is likely near-max points, worth confirming and PROTECTING in design decisions; (d) submission cadence wasteful: ~245 available, ~6 used — every honest candidate is cheap calibration.
+**4. Steelman (adopted):** "The campaign is now over-optimized for process, under-optimized for shipping. With ~7 weeks left the highest-EV block is boring: refit best configs on all 18 users, add TTA, soup everything into one ≤100 MB model.pth, submit variants daily, and lock the reproducible Selection-Stage package early. The marginal screening experiment returns <0.5 pts; packaging/refit returns 1-3 guaranteed." Verdict: correct — this week pivots to SHIP MODE, exploration continues only in the crazy tier (hands-crop stream is the one sanctioned moonshot).
+**Queue produced:** S-01 refit-on-18 (all adopted configs); S-02 temporal multi-crop TTA; S-03 soup-everything packaging + efficiency audit; S-04 E/L cohort GN-adaptation sim; S-05 label sanity (finally); C-01 hands/upper-body crop stream (crazy tier).
+**Counter reset:** 0/10.
+
+---
+
+---
+
+## EXP-022/023/024 — Three-lever screening (folds 0,2; paired vs jvb_big 53.59 / imu_aug 24.8)
+**Date:** 2026-07-29 · **Tier:** exploit
+
+- **EXP-022 LS-off:** 52.93 (−0.7) — keep LS=0.1; calibration-blame theory unsupported.
+- **EXP-023 motion-person:** 52.56 (−1.0) — person-0 stays. Mirror reflections move WITH the person → motion energy can't separate them; policy adds switching noise elsewhere. Mirror fix would need depth-consistency cues (parked).
+- **EXP-024 IMU-inv:** **28.94 (+4.1, clear win)** — dropping absolute angle+mag channels (subject/mounting leak), adding |acc|/|gyro|, fixing quat hemisphere. ADOPTED; 4-fold retrain (imu_inv4) launched for the fusion stack. Confirms EXP-003's failure-analysis hypothesis #3 two weeks late — the leak channels were fighting DG the whole time.
+**Beliefs updated:** B-009 ↑ (IMU ceiling higher than 27; orientation-invariance was the blocker); skeleton input-space levers exhausted (B-002 note: remaining skeleton gains = architecture diversity + ensembling).
+
+---
+
+---
+
+## EXP-021 — SSL→fine-tune transformer: GATE FAILED, transformer line closed
+**Date:** 2026-07-29 · **Queue ID:** M-03/Q-94 · **Tier:** explore/crazy
+
+**Result:** cross-modal masked pretrain (40 ep, 3,338 clips incl. test; recon loss 0.30→0.0146) → fine-tune = **48.19%** folds 0,2. vs from-scratch transformer 45.23 (+3.0 from SSL) but vs GATE 56.15 → **−8. Transformer fusion line CLOSED per RESET-001 gate. Late fusion is the permanent architecture.**
+**What survives:** (1) cross-modal SSL demonstrably works at this scale (+3.0) — retained as an option for pretraining per-modality STEMS/encoders later (e.g. init the visual CNN from an SSL objective); (2) M-01 aligned dataset reusable.
+
+### Failure analysis
+**3 reasons:** (1) 2.3k labeled clips cannot polish a 3.8M-token-mixer even with SSL init — the late-fusion streams each exploit stronger inductive bias per parameter; (2) vis stem tokens weak (visual stream itself only ~30%) — transformer can't select good vis information that isn't there; (3) reconstruction pretext may reward low-level smoothness, not class-discriminative structure (loss 0.0146 ≈ trivially predictable signals dominate).
+**3 alternatives:** (1) 60 fine-tune epochs too few for a pretrained trunk (no LLRD/warmup tuning); (2) aux-head weight 0.3 may dominate gradients; (3) fold-0,2 screen ±1.4 SE — but an 8-pt gap is far outside noise.
+**3 follow-ups (parked, low priority):** LLRD fine-tune; contrastive (not reconstructive) pretext; SSL-init only the visual stem inside the LATE fusion stack.
+**Beliefs updated:** B-013 stands; architecture question settled — the campaign is now: better per-modality streams × late fusion × soups (+ gated transduction).
+**Next:** cheap untested exploits — Q-85 LS-off, Q-86 person-selection, IMU orientation fix — paired on screening folds.
+
+---
+
+---
+
+## EXP-020 — Fusion transformer from scratch: BELOW GATE
+**Date:** 2026-07-29 · **Queue ID:** M-02 · **Tier:** explore
+
+**Result:** mmfuse_v1 (3.78M, d256 L4, aligned tokens, modality dropout, aux heads) = **45.23%** folds 0,2 — vs gate 56.15 (nested late fusion) and ~52 for plain skeleton on those folds.
+**Conclusion:** From-scratch transformer fusion loses badly at 2.3k clips, as RESET-001's gate anticipated. NOT dead yet: the design's bet is SSL+transformer; EXP-021 (cross-modal masked pretrain 40 ep on 3,338 clips → fine-tune) is the deciding run. If EXP-021 also < 56.15 → transformer line dies, fall back to late fusion permanently.
+**3 reasons if it fails for good:** (1) data scale below transformer viability even with SSL; (2) vis stem too weak to give the trunk useful tokens (garbage in); (3) aligned-grid pad/mask regime needs longer training than 60 ep.
+
+---
+
+---
+
+## SUB-005 — soup3+imu+droi_big fusion → LB 0.48258 (best yet)
+**Date:** 2026-07-28 · 97/201 public clips (prev best 92). Predicted 0.48-0.49 ✓.
+**Offset calibrated: LB ≈ honest-nested-OOF − 7.9** (56.15 → 48.26). trunc-aug reclaimed ~1 of the original −9. CV→LB tracking is now trustworthy for planning (B-004 ↑ 80%).
+**Beliefs updated:** B-004 ↑; ensemble/soup mechanics verified end-to-end on LB (+2.5 over SUB-001 with same modality set).
+**Next:** M-02 fusion transformer (mine the 56→63 oracle gap), M-03 cross-modal SSL (attack the 35% no-stream-right mass), ST-GCN, person-fix, LS-off.
+
+---
+
+---
+
+## EXP-013b/018/019 — Depth folds, seed replication, soup + nested fusion, SUB-005 prepared
+**Date:** 2026-07-28 · **Tier:** exploit
+
+- droi_big folds 1-3: 28.81 ± 1.6 micro (4-fold ≈ 29.6 with fold0 31.94; +3 over 40-ep recipe). Depth stream ≈ 30.
+- **Seed variance (EXP-018): skel_jvb_big seeds 0/1/2 = 54.75 / 55.08 / 54.67 → seed σ ≈ 0.18%** — training is stable; fold σ (2-3%) dominates; paired deltas ≥1% on 4 folds are meaningful. (Resolves DA-002 Q5's top concern for skeleton; visual seed σ still unmeasured.)
+- 3-seed soup: 54.74 → **55.56** (+0.8, free, ensemble-legal).
+- **Nested fusion OOF: 56.15% micro** (all-tuned 56.63, w=0.6/0.2/0.2 — optimism gap only 0.5). New honest best.
+- SUB-005 file: sub_soup3_fusion.csv (soup + imu + droi_big, all-tuned weights on test). Predicted LB ≈ 0.48-0.49 (offset −8±2 with trunc-aug partially reclaiming trim).
+
+---
+
+## RESET-001 — From-scratch review (scheduled at 25 experiments)
+**Date:** 2026-07-28 · **After:** EXP-019
+
+**"If we started from scratch today, knowing everything, what would we build?"** — answered in full by DA-002 Q3 and ratified here: per-modality stems (keep current TCN-jvb + ROI CNNs) feeding a small temporal fusion transformer on the shared 10 Hz grid (modality-token dropout, duration token, pad+mask not stretch), trained in 2 stages: (A) **cross-modal masked pretraining on all 3,441 unlabeled clips incl. test** — the only legal transfer under the no-pretrained ruling, subsumes distillation; (B) supervised fine-tune with mixup/trunc-aug/modality-dropout. Multi-seed soup (now proven +0.8). Gates: fusion-transformer must beat late fusion by week 3 or fall back; transduction only at ≥60 CV.
+**Gap vs current solution:** current = scalar late fusion, no SSL, stretch-resampling. The 56.15-vs-63.4 oracle gap (per-clip stream selection) and the 34.7% no-stream-right error mass (object-in-hand classes, EXP-017) are exactly what stages A+B target.
+**Migration queued:** M-01 aligned multimodal Dataset (pad+mask+duration), M-02 fusion transformer, M-03 cross-modal masked pretraining, M-04 refit-on-18-users + packaging. Est. ~2 weeks alongside continued stream work.
+**Verified:** metric = micro-OOF with nested tuning (CV↔LB tracking continues); crazy-tier spend ≈ 8% (target 10) — acceptable.
+
+---
+
+---
+
+## RULING — Organizer clarifications received (via Atharv, 2026-07-28)
+1. **NO pretrained weights at all** — strict from-scratch. Consequences: (a) our pipeline already compliant; (b) DA-002's cluster hypothesis (0.73-0.77 ≈ pretrained visual recipes, ~85%) now implies those teams are DISQUALIFIABLE at reproduction → effective private-LB Top-15 bar drops for rules-clean teams; (c) SSL pretraining on competition data (Q-94, no external weights) is THE only visual transfer path — promoted to top priority; (d) pretrained probes (EXP-015/T1) retain only diagnostic value; T1 rerun cancelled.
+2. **Ensembles legal if total ≤100 MB** — multi-stream × multi-seed soups are fair game (we use ~5 MB today; ~20× headroom). Multi-seed averaging promoted (EXP-018 seeds already training).
+3. **Test-time transductive processing legal** — TENT-style/statistics adaptation inside inference code officially allowed. Gated behind base ≥60 CV per EXP-016 discipline.
+**Also:** previous session's background chain died with the process (T1 probe at ep15, droi_big after fold0). droi_big folds 1-3 + skel seeds 1-2 relaunched (chain5).
+**Beliefs updated:** B-005 SETTLED (ensemble counting known); B-006 path fixed to SSL-only; NEW B-016: rules-clean pipeline is a Selection-Stage asset — the private-LB bar for ADVANCING is likely below the public cluster's scores.
+
+---
+
+---
+
+## EXP-017 — First confusion/oracle analysis (DA-002 Q2 item #1)
+**Date:** 2026-07-28 · **Tier:** diagnostic (CPU)
+
+**Setup:** OOF fusion skel_jvb_big(0.6) + imu_aug(0.2) + depth_aug(0.2), fixed weights (no grid → honest-ish). New best fusion: **56.15% micro OOF** (jvb_big OOF alone 54.74).
+**Findings:**
+1. **Worst classes are object-interaction classes** — Watch_TV 0.00 (n=12), Play_games 0.05, Wipe_bowls 0.11, Make_a_phone_call 0.16, Take_and_use_tableware 0.21, Use_a_mobile_phone 0.23, Read_documents 0.23↔Turn_pages 0.26 (mutual confusion), Write 0.28→Tap_keyboard. Pattern: classes separated by WHAT THE HANDS HOLD. Skeleton is structurally blind to it; current visual too weak to supply it. Motion classes excellent: Walk 0.97, Lie_down 0.85, Jumping_jacks 0.83, Jog 0.81.
+2. **Error decomposition:** total err 43.9% = 9.1% fusion-recoverable (some stream right) + **34.7% needs better streams**. Better fusion alone caps at ~65%.
+3. Low-support × hard: Watch_TV/Play_games also have the least train data (12-40) — even their ORACLE coverage is 0-7%.
+**Implication:** The visual stream's specific job is hands+object resolution — favors IR (texture) over depth, favors ROI/resolution/pretraining (T1 tonight), and possibly an upper-body/hands sub-crop stream. This is where the missing ~35 points live.
+**Beliefs updated:** B-013 sharpened: "stream quality" = specifically object-discriminative visual capability.
+**Next:** T1 outcome routes everything; hands-crop stream added to queue (Q-97, explore).
+
+---
+
+---
+
+## DA-002 — Second devil's-advocate pass (5 agents) + immediate follow-ups
+**Date:** 2026-07-28 · **After:** EXP-016
+
+**Q1 — Leader mechanism (KEY DERIVED FACT: public split = 201 clips; every score is k/201; leader = 168/201; private = 204 clips → 1 public clip = 0.4975%, shakeup ±2-3%).** Mechanism posteriors for 0.836: M1 strong transfer-visual recipe (ImageNet-init, possibly rule-gray) 30-40% — our EXP-015 probe was too crippled to refute it (112px/1-ch/25ep); M5 MANUAL TEST LABELING ~25% (IR is a face-visible photo stream; 405 clips = one afternoon; 83.6% sits mid-band of human accuracy; unenforceable on public LB, dies at Selection Stage); M2 public-LB probing ~20% (score granularity reveals exact correct-count; ≤190 subs available; leader needs only +14 clips over cluster base); M3 metadata ~5%; rest ~10%. The 0.73-0.77 CLUSTER is ~85% M1 — likely pretrained visual recipes. **Strategic corollary: if leader = M5/M2, the real competitive bar is ~0.76-0.77, and if pretrained is ruled illegal at reproduction, the effective top-15 bar drops further — our rules-clean pipeline gains free places at Selection Stage.**
+**Kill/confirm tests:** T1 full-recipe transfer probe (224px, 3-ch, ResNet-18, 60-80ep, IR-ROI, random+subject splits; decision: subj ≥55 ⇒ cliff additive, M1 viable AND our own roadmap; subj ≤40 with rand ≥70 ⇒ cliff proportional ⇒ red alert on all visual plans). T2 LB forensics (leader submission count + staircase; GitHub mirror hides counts — ATHARV: read Kaggle LB directly: leader's entry count, score-vs-time shape, and scores at ranks 10/15/20/30 — the rank-15 number converts the campaign target from fantasy to measured bar).
+**Q2 — Still-untested, ranked:** (1) per-class confusion analysis of best fusion — 16 experiments, 4 submissions, NOBODY has looked at a confusion matrix; prices everything else; (2) seed-variance measurement (3 seeds × skel_noaug) — protects all ±1-2 decisions; (3) label sanity via group-distinctness signature (free detector: OOF prediction matching a group-mate's label); (4) LS-off ablation (gates calibration → Hungarian/transduction/fusion); (5) person-0-vs-mirror; (6) IMU orientation/quat fixes (+leak removal); (7) no-stretch+duration (with trim-sim eval); (8) mid-fusion gated on 1+4.
+**Q3 — Reset preview ("what would we build from scratch"):** per-modality stems (keep) + small temporal fusion TRANSFORMER on the shared 10 Hz grid (replace scalar late fusion — the 54.3-vs-63.4 oracle gap is per-clip stream selection that scalars can't express) + cross-modal masked pretraining on ALL 3,441 clips incl. test (legal SSL that subsumes distillation; the only transfer we own) + multi-seed soup + gated TENT-style adaptation. Prediction: 0.58 central, 90% CI 0.50-0.66; P(top-15) ≈ 0.4-0.6. Migration ~2 wks, keeps most code. HARD GATE: fusion transformer must hit ≥60 CV by week 3 or revert to late fusion.
+**Q4 — Retarget steelman: CONFIRMED. P(0.85) < 2-5%.** 0.85 LB needs ~94% subject-CV (offset math) — no published result on this dataset is within 25 pts. OBJECTIVE.md's real win condition was always Top-15 → Selection Stage; the campaign now explicitly optimizes P(top-15), and the rules-clean pipeline is a Selection-Stage asset (cluster disqualification scenario). 245 submissions remain — abundant; GPU-hours are the scarce resource.
+**Q5 — Hygiene audit: most adopted/killed decisions are within noise.** Only "ROI +3.4" clearly survives (2.8σ, 4/4 folds, corroborated). bones +1.8 ≈ 0.6-0.9σ; tn-death <0.5σ (reclassified parked-unmeasured); balanced +1.5 driven by one fold; trunc NEVER measured alone (bundling sin, third offense); EXP-012 +1.7 = p≈0.17 (2/4 folds). NEW DECISION PROTOCOL: paired-delta on same OOF clips (SE≈0.6-0.9%), adopt only if |Δ| > 2×paired-SE or replicated across ≥2 seeds; nested tuning for fusion weights; no bundled changes ever.
+**Follow-ups executed immediately:** (a) leaderboard mirror fetched — top-6 only, counts hidden ('—'), leader last-submission Jul 26, cluster ties at 0.75124 (151/201 — /201 grid makes ties common); (b) M3 within-group class-order check on train (radar-ts grouping, 45 signatures with ≥3 groups): order-consistent only 2/45 → NO fixed script; M3 dead properly (first attempt with mangled keys gave a false 61/62 — re-verification caught it); (c) 224px ROI cache rebuild launched for T1.
+**Counter reset:** DA at 0/10; from-scratch reset review due in 4 experiments (will adopt Q3's design as its base).
+
+---
+
+---
+
+## EXP-016 — Per-user self-training simulation (Q-91 sim): NEGATIVE
+**Date:** 2026-07-28 · **Queue ID:** Q-91 · **Tier:** explore
+
+**Hypothesis:** Per-user pseudo-label fine-tuning on the user's unlabeled clips adds ≥+3% (the "leader's transduction" hypothesis, DA-001 Q1).
+**Setup:** transduction_sim.py — skel_noaug fold checkpoints; per val-user: pseudo-label (τ=0.60), fine-tune copy 15 ep @2e-4, re-evaluate. 16 users.
+**Result:** **mean Δ −3.2% · median −2.5% · helped 2/16 users** · pseudo-label acc 60-93%.
+**Conclusion:** Naive self-training is DESTRUCTIVE at ~50% base accuracy. Do not spend submissions on it. The transduction family is not dead — but the entry bar is a stronger base model and/or gentler adaptation.
+
+### Failure analysis
+**3 reasons:** (1) pseudo-label noise (7-40% wrong) compounds through 15 epochs; (2) confident clips are the already-easy ones — fine-tuning on them shifts decision boundaries away from hard clips (distribution narrowing); (3) full-model fine-tuning on 40-80 clips overfits instantly.
+**3 alternatives:** (1) τ=0.60 too low; (2) lr/epochs too aggressive; (3) skeleton-only sim understates fusion-level transduction (better-calibrated probs).
+**3 follow-ups (parked until base ≥60%):** (1) head-only fine-tune + τ=0.9 + 3 epochs; (2) entropy-minimization/consistency (TENT-style on GN affine params) instead of hard labels; (3) class-balanced pseudo-label selection per user.
+**Beliefs updated:** B-013 reinforced (base model quality gates EVERYTHING downstream: Hungarian, transduction, fusion); "leader uses naive transduction" demoted — if the leader adapts, it's not this way, or their base is already ≥70.
+**Next ideas:** DA-002 due; fusion re-tune with skel_jvb_big when droi_big lands → new submission candidate.
+
+---
+
+---
+
+## EXP-012 — Skeleton scale-up: jvb + width 256 + 150 ep + trunc-aug
+**Date:** 2026-07-28 · **Queue ID:** Q-83 · **Tier:** exploit
+
+**Result:** **54.75% ± 2.89% micro** (4-fold, micro-selected), 2.53M params — new best single stream (+1.7 over skel_noaug 53.04).
+**Conclusion:** Positive but sublinear: 4× params + 2.5× epochs + bones + trunc bought +1.7. The TCN family saturates ≈55 micro subject-CV; the in-domain ceiling (73) is not being approached via capacity. Next skeleton levers must change the inductive bias or the data view: ST-GCN-lite (Q-30), joint/bone/motion multi-stream logit ensemble, person-selection fix (Q-86), mixup (Q-34).
+**Beliefs updated:** B-002: skeleton solid but its DG gap (~18 pts) is not capacity-limited.
+
+---
+
+---
+
+## EXP-015 — Pretrained ResNet-18 probes (Q-84, DIAGNOSTIC — legality pending)
+**Date:** 2026-07-28 · **Tier:** exploit (diagnostic)
+
+**Setup:** probe_pretrained.py — ImageNet ResNet-18, 1-ch conv1 (summed RGB filters), 112×112 ROI crops, 8-frame TSN mean-pool, 25 ep, macro metric.
+**Results (macro):**
+| stream | random-split | subject-fold0 | from-scratch subject ref |
+|---|---|---|---|
+| depth-ROI | 45.0% | 25.9% | ~21 (droi_bal) |
+| IR-ROI | 46.8% | 27.3% | ~17 (iroi_bal) |
+**Conclusions:** (1) ImageNet init ≈ doubles from-scratch visual accuracy → representation matters, and legal SSL pretraining (Q-94) inherits a real prize. (2) BUT even pretrained, cross-subject collapses visual by ~20 pts (46→27) — the visual DG gap is far larger than skeleton's; init does not fix DG. (3) Paper's 90% not approached at 112 px/25 ep/macro — resolution (224+/full-frame context?), 3-ch input, longer training, and micro metric all separate us; a stronger transfer recipe would land higher, but the DG cliff pattern will remain. (4) Strategic: visual streams are worth pushing to the ~40-50 subject range (SSL + res + capacity) as FUSION diversity, not as a backbone that alone reaches 0.85.
+**Caveats:** probe recipe deliberately cheap; treat absolute numbers as lower bounds, the random-vs-subject GAP as the robust finding.
+**Beliefs updated:** B-006 finalized: visual = mid-strength fusion stream, ceiling recipe-and-DG-bound; B-013 reinforced — no single stream reaches target; the road is (max skeleton) + (SSL visual ~45+) + (fusion) + (transduction/self-training multiplier).
+**Next ideas:** Q-94 SSL pretrain (masked/temporal pretext on ALL unlabeled clips incl. test — rules-legal, no external weights); ROI cache at 224 px; Q-91 transduction SIMULATION on CV folds (adapt-per-val-user with pseudo-labels — measures the multiplier without submissions).
+
+---
+
+---
+
+## EXP-008/009/010/011 — Wave 2: balanced skeleton + first visual ROI/IR streams (macro-selected era)
+**Date:** 2026-07-28 · **Queue IDs:** Q-80/81/82 · **Tier:** exploit
+
+**Results (MACRO, 4-fold unless noted):**
+- skel_bal (balanced sampling): **47.6% macro** vs 46.1 skel_noaug macro reference → +1.5 macro. (Micro effect unknown; balanced sampling on hold after B-012 died — test ≈ train prior.)
+- iroi_bal (IR person-ROI, first IR training ever): **17.3% macro** — paper's 90% modality nearly useless from scratch at this recipe.
+- droi_bal (depth person-ROI): **21.1% macro** vs 17.7 full-frame depth macro → ROI +3.4 on depth.
+- ir_bal (full-frame IR, folds 0,2): killed at fold0 ep30 (~12-17%, info value spent — worse than IR-ROI as expected).
+- Feature ablation completions (folds 0,2 macro; jv reference 44.9): **jvb (bones) 46.6 (+1.8)** — adopt; jv+tn (torso-norm) 44.1 (−0.7) — dead.
+**Conclusion:** (1) ROI cropping helps but the from-scratch visual recipe remains the wall — three independent data points (depth-rand 32, iroi 17, droi 21) say representation/training, not modality or crop, is the blocker → pretrained probe (Q-84) is the decisive next diagnostic, self-supervised pretraining (Q-94) the likely legal remedy. (2) Bones adopted into skeleton. (3) Never edit files a running chain imports (crashed 3 ablation runs; re-run cost ~20 min).
+**Beliefs updated:** B-006 unchanged (recipe-gated); B-013 reinforced.
+
+---
+
+## EXP-014 — E1 trim-shift simulation (inference-only)
+**Date:** 2026-07-28 · **Queue ID:** DA-001 E1 · **Tier:** diagnostic
+
+**Setup:** trim_sim.py — quantile-map val skeleton clips onto the TEST frame-count distribution (med 20, p90 41), re-score skel_noaug fold checkpoints on CPU.
+**Result:** OOF 53.04% full → 51.33% trimmed → **Δ_trim = 1.7 pts**.
+**Conclusion:** Offset decomposition: ≈1.7 trimming + ≈1-2 selection/tuning optimism (DA E3, partially fixed) + ≈5-6 genuine subject shift + public-subset noise. Countermeasure shipped: random-truncation augmentation (aug component "trunc") — in all wave-3 runs.
+**Beliefs updated:** B-004: offset now decomposed and mostly attributed to subject shift → DG (B-001) remains the true battle; CV↔LB tracking continues on micro + offset.
+
+---
+
+---
+
+## SUB-003/004 — Prior-corrected submissions: REFUTED B-012
+**Date:** 2026-07-28
+
+**Results:** sub_fuse3_prioradj → **0.39303** (−6.5 vs raw 0.45771); sub_fuse3_sinkhorn → **0.39800** (−6.0).
+**Conclusion:** Test class prior ≈ TRAIN prior (imbalanced), NOT uniform. Both corrections pushed mass toward rare classes (25/26 got ~13% of predictions) and paid for it. The macro-OOF ≈ LB match in DA-001 was coincidence; the −9pt CV→LB offset is therefore GENUINE domain shift (test users harder — per-user OOF spread 42.8-63.4% supports; plus ~20% trim + 10 s cap), not prior mismatch.
+**Metric policy reverted:** micro-OOF is again the primary selection/headline metric (test ≈ train prior); log macro alongside. Balanced sampling: re-evaluate on micro (EXP-008's +1.5 was macro; micro effect unknown — measure OOF).
+**What the pair bought:** B-012 killed with certainty for 2 submissions; without the pair we might have balanced-trained the whole campaign in the wrong direction.
+**Beliefs updated:** B-012 → DEAD (as "uniform test"); B-004 revised again — micro-OOF −9±2 offset with domain-shift attribution; next diagnostic = trim simulation (E1).
+**Next:** E1 trim simulation (inference-only); continue stream-quality wave (B-013 unaffected — governs under any prior).
+
+---
+
+---
+
+## DA-001 — Devil's-advocate pass (5-agent workflow) + zero-GPU diagnostics
+**Date:** 2026-07-28 · **After:** EXP-006 + SUB-001/002
+
+**1. Why is our current direction probably wrong?** The plan's own EV arithmetic tops out ~27 pts short of 0.85: skeleton in-domain ceiling is 73% (EXP-006) — DG cannot exceed it; depth fix + fusion + DG are +1-3% levers on a 46% base. The 0.836 leader implies a categorically different mechanism: pretrained visual backbone (if legal) and/or per-user transduction (4 users × ~100 clips, balanced test). **VERIFIED by oracle probe: pick-best-of-3-streams oracle = 63.4% — current streams structurally cannot reach 0.85. Stream replacement/upgrade is the campaign.** (Any-stream top-5 oracle 87.8% — labels are near the top; calibration/transduction can mine it later.)
+**2. Never-questioned assumptions (code audit):** (top) train-prior≈test-prior — FALSE, see diagnostics below; val-best checkpoint = order-statistic optimism; label smoothing 0.1 distorts Hungarian costs; person-0 skeleton may be the MIRROR in bathroom classes; T=32 stretch-resampling erases duration + gives per-sample velocity units; CV structurally easier than test (always-train users, coverage-maximized folds); depth invalid=0 conflates with near after /255; IMU quaternion double-cover + absolute angle channels = subject/mounting leak; train/eval temporal sampling mismatch; `hash(sid)` seeding not reproducible (PYTHONHASHSEED) — Selection-Stage risk; MENTAL_MODEL claimed class-balanced sampling + EMA that train.py never implemented; Q-54 BN-adaptation impossible — models use GroupNorm.
+**3. Gold-medalist critique:** single seeds; 60-ep budgets; bundled augs (already bitten twice); triple-dipping on OOF (checkpoint selection + fusion weights + Hungarian tuning); no TTA; email drafted but never sent ("DONE" self-deception); 0.66M skeleton = 0.2% of the 100 MB budget — capacity massively underused.
+**4. Steelman verdict:** "The CV is broken and every decision made against it is suspect" — CONFIRMED within hours (see diagnostics).
+**Diagnostics run (da_analysis.py):**
+- **Prior mismatch is THE CV→LB offset:** balanced-mean (macro) OOF = 46.7% vs LB 45.8% — near-exact match; micro-CV 54.3% was the wrong metric. LB 0.458 is at the 0.1th percentile of all C(16,4) user-subset micro accuracies → subject variance CANNOT explain it; prior mismatch CAN. Test behaves ~class-balanced (405 ≈ 40×10). Predicted-class histogram was Walk=60/405 (~15%) vs balanced-expected ~10.
+- Per-user OOF accuracy spread: 42.8% (user6) to 63.4% (user19) — huge subject variance confirms DG remains real too.
+- Actions taken: macro-accuracy is now the checkpoint-selection AND headline metric; --balanced sampler added; last-epoch checkpoints saved; crc32 seeding; prior-adjusted + Sinkhorn submissions written (sub_fuse3_prioradj.csv, sub_fuse3_sinkhorn.csv) for Atharv.
+**Queue entries produced:** pretrained ResNet-18 probe (diagnostic; legality pending email), IR stream (running, EXP-009), transduction tier promoted (balanced-assignment/self-training once base ≥55% macro), label-smoothing ablation, person-selection policy, no-stretch+duration-feature variant, valid-mask channel, LOSO harshness measurement, nested fusion-weight tuning, TTA. Killed: Q-54 as stated (no BN to adapt).
+**Counter reset:** next DA after 10 more experiments; from-scratch reset review still due at 25.
+
+---
+
+## EXP-007 — Skeleton aug component ablation (folds 0,2; micro-selected, pre-macro-change)
+**Date:** 2026-07-28 · **Queue ID:** Q-11b · **Tier:** exploit
+
+**Setup:** one component at a time, magnitudes from EXP-001b; screening folds 0,2 (no-aug reference on same folds = 52.26%).
+**Results:** rot 50.3 (−2.0) · scale 51.1 (−1.2) · jit 50.9 (−1.4) · jdrop 50.7 (−1.5) · tjit 51.0 (−1.2) · rot+jit+tjit 51.9 (−0.3). Feature configs (jvb, jv+tn) crashed due to my mid-chain train.py edit (race — never edit files a running chain imports); re-running in wave 2.
+**Conclusion:** EVERY component hurts individually at these magnitudes; rot worst — consistent with station-anchored orientation being a genuine, transferable prior (don't rotate it away). This aug family is not the skeleton DG lever. Alternatives: normalization/features (jvb/tn — wave 2), mixup, capacity+longer training, subject-adversarial.
+**Confidence:** 70% (screening folds only, single seed, micro metric).
+**Beliefs updated:** B-001 refined — "aggressive geometric aug" is NOT the DG lever for skeleton; station-anchored orientation is signal, not noise.
+
+---
 
 ---
 

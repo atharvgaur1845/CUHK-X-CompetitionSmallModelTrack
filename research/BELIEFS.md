@@ -26,21 +26,39 @@
 - **Experiments that would settle it:** Q-20, Q-21, Q-31.
 - **Last updated:** EXP-000b
 
-## B-004 — Subject-grouped CV on 18 train users predicts private LB
-- **Confidence:** 55% (↓ from 60%)
-- **Importance:** High — load-bearing
-- **Evidence for:** —
-- **Evidence against:** EXP-000b — per-user class coverage is ragged (user5 has 17/40 classes); classes 25/26 missing for most users → some CV folds can't even contain some classes; test users may have full 40-class coverage.
-- **Remaining uncertainty:** CV↔LB correlation unmeasured; fold design must handle coverage raggedness (stratify folds so all 40 classes appear in every val fold).
-- **Experiments that would settle it:** Q-01 + first two submissions.
-- **Last updated:** EXP-000b
+## B-004 — MACRO (balanced) subject-CV predicts LB; micro does not (REWRITTEN by DA-001)
+- **Confidence:** 75%
+- **Importance:** High — load-bearing metric choice
+- **Evidence for:** DA-001 diagnostics — macro-OOF 46.7% vs LB 45.8% (near-exact); micro-OOF 54.3% mispredicted by 9 pts; LB sits at 0.1th percentile of 4-user-subset MICRO distribution (subject variance can't explain the offset, prior mismatch can).
+- **Evidence against:** single LB pair so far; needs confirmation on next submissions.
+- **Remaining uncertainty:** exact test balance (40×10 + 5?); whether macro tracks LB deltas, not just level.
+- **Experiments that would settle it:** prior-adjusted submission pair (files ready); every future submission logs macro-OOF vs LB.
+- **Last updated:** DA-001
 
-## B-005 — 100 MB budget is not binding for good solutions
+## B-012 — ~~Test set is class-balanced~~ DEAD (SUB-003/004)
+- **Killed:** prior-adjusted submissions dropped −6.5/−6.0 pts (0.393/0.398 vs 0.458 raw) → test prior ≈ TRAIN prior. Metric policy back to micro-OOF. The DA-001 macro↔LB match was coincidental overlap of two effects (subject shift ≈ macro-micro gap in magnitude). Kept here (not just the table) as a warning: a single corroborating coincidence is not confirmation — the submission PAIR was what falsified it.
+
+## B-013 — Current streams structurally cannot reach 0.85; stream quality IS the campaign (NEW)
+- **Confidence:** 85%
+- **Importance:** Highest — governs compute allocation
+- **Evidence for:** DA-001 oracle probe: pick-best-of-3-streams = 63.4% OOF (top-5 any-stream 87.8%). Even perfect fusion of current streams ≤63%.
+- **Evidence against:** —
+- **Remaining uncertainty:** how far each stream can be pushed (IR untested; ROI untested; capacity 0.2% used; pretrained legality unknown; transduction multiplier unknown).
+- **Experiments that would settle it:** EXP-009/010/011 (IR/ROI), pretrained probe, capacity sweep, transduction probes.
+- **Last updated:** DA-001
+
+## B-005 — 100 MB budget is not binding — SETTLED by organizer ruling
+- **Confidence:** 95%
+- **RULING (2026-07-28):** ensembles legal if TOTAL ≤100 MB; strict no-pretrained (none at all); test-time transduction legal. We use ~5 MB → ~20× headroom for multi-stream × multi-seed soups. Efficiency (10% of final) still rewards staying lean.
+- **Last updated:** RULING
+
+## B-016 — Rules-clean pipeline is a Selection-Stage asset (NEW)
 - **Confidence:** 70%
-- **Evidence for:** compact GCNs are 0.2–3.5 M params; small CNNs ≪100 MB.
-- **Evidence against:** EXP-000b — submission = SINGLE checkpoints/model.pth; efficiency is 10% of final score → smaller is actively rewarded; multi-stream fusion + fold ensembles must share the one file.
-- **Remaining uncertainty:** exact ensemble-counting ruling (email organizers).
-- **Last updated:** EXP-000b
+- **Importance:** High — changes what score ADVANCES
+- **Evidence for:** RULING confirms strict no-pretrained; DA-002 put ~85% on the 0.73-0.77 cluster using pretrained visual recipes → they fail reproduction; effective private-LB bar for top-15 advancement is likely well below the public cluster.
+- **Evidence against:** cluster teams may also be from-scratch (would mean they out-engineered us — steelman); enforcement rigor unknown.
+- **Remaining uncertainty:** rank-15 public score (Atharv harvest pending); how organizers audit training provenance.
+- **Last updated:** RULING
 
 ## B-006 — Visual modalities are the accuracy backbone (REVISED: latent, recipe-gated)
 - **Confidence:** 50% (revised meaning: visual has large headroom but ONLY after recipe fixes — EXP-006: depth random-split just 32.4% vs paper 90% pretrained ⇒ recipe-bottlenecked, not modality-weak; DG gap on depth is only ~9 pts at current quality)

@@ -41,7 +41,7 @@ Thumbs.db
 /checkpoints/
 /submissions/
 /research/artifacts/
-
+research/
 # Common ML experiment trackers
 /runs/
 /wandb/

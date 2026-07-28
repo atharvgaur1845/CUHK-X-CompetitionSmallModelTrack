@@ -1,93 +1,76 @@
 # Experiment Queue
 
-<!-- Re-ranked 2026-07-27 after EXP-000b profiling. EV/hour = expected gain × P(works) ÷ hours. -->
+<!-- REWRITTEN after DA-001 (2026-07-28). Metric = MACRO OOF accuracy (B-004/B-012).
+Governing belief: B-013 — stream quality is the campaign; oracle of current streams = 63.4%.
+Target >0.85 requires: strong visual stream + upgraded skeleton + calibrated fusion + transduction endgame. -->
 
 ## Budget ledger
 
-| Tier | Target share | Hours spent | Actual share |
-|------|--------------|-------------|--------------|
-| exploit | 60% | 0 | — |
-| explore | 30% | 0 | — |
-| crazy | 10% | 0 | — |
+| Tier | Target share | Hours spent (est) | Actual share |
+|------|--------------|-------------------|--------------|
+| exploit | 60% | ~10 | 77% |
+| explore | 30% | ~2 | 15% |
+| crazy | 10% | ~1 | 8% |
 
-## Active queue (ranked by EV/hour within tier)
+## BLOCKED ON ATHARV
+| ID | Action | Why |
+|----|--------|-----|
+| SUB-003/004 | Submit sub_fuse3_prioradj.csv then sub_fuse3_sinkhorn.csv | Tests B-012 (balanced test) — highest-EV pending measurement |
+| Q-65b | SEND the organizer email (draft ready) | Legality of pretrained init gates the visual strategy |
 
-### Foundation — ALL DONE (see LOG EXP-000b/c)
-| ID | Idea | Outcome |
-|----|------|---------|
-| Q-60 | Timeline merge audit | DONE: test clean; adjacency prior DEAD (0/405); 144 recording groups found |
-| Q-61 | Test cohort clustering | DONE: 2-way provable (E199/L206); 4-way ≈99/100/105/101; test_cohorts.csv |
-| Q-62 | Census fixes | DONE: test median 1.9 s, 10 s hard cap, ~20% trimmed; date_map.csv |
-| Q-00 | Preprocessing cache | DONE: 2933+405 npz, 1.4 GB |
-| Q-01 | Subject CV harness | DONE: cv_folds.json, 4 folds, 39-40/40 coverage |
-| Q-63 | Depth JET scale probe | DONE: FIXED absolute mapping — scalar depth is metric |
-| Q-64 | Station prior | DEAD: background matching ~50% → 0.09 bits effective |
-| Q-65 | Organizer email draft | DONE: research/organizer_email_draft.md awaiting send |
+## Active queue (ranked, macro-metric era)
 
-### New this round
-| ID | Tier | Idea | Hypothesis (one line) | Beliefs tested | Expected gain | P(works) | Hours | Status |
-|----|------|------|-----------------------|----------------|---------------|----------|-------|--------|
-| Q-68 | exploit | Recording-group Hungarian assignment | DONE (EXP-004/005): +0.6% skel, +1.1% on fusion, NEGATIVE on weak streams — apply to strong fused probs only | B-007, B-011 | measured | — | — | done |
-| Q-69 | exploit | Group-key extraction in inference code | DONE: predict_test.py radar-ts + camera-anchor fallback; found exactly 115 multi-groups on test | B-011 | enabler | — | — | done |
-| Q-70 | exploit | Person-ROI crop via depth foreground | Cropping a person-centered ROI (depth blob nearest/largest) at ~112-128px before the CNN lifts depth random-split 32%→55%+ and subject-CV proportionally | B-006 | +10% on depth stream | 0.6 | 4 | queued |
-| Q-71 | exploit | Depth recipe scale-up | Longer (100+ ep), wider CNN, 12-16 frames, 160×214 res each add; combined with Q-70 targets depth ≥45% subject-CV | B-006 | +8% on depth | 0.6 | 4 | queued |
-| Q-11b | exploit | Skeleton aug component ablation | One-at-a-time (yaw, scale, jitter, joint-drop, temporal-jitter) identifies which component(s) hurt EXP-001b | B-001 | +2% | 0.7 | 2 | queued |
-| Q-11c | exploit | Mild skeleton aug | yaw ±10°, scale ±7%, no joint-drop recovers aug benefit | B-001 | +2% | 0.5 | 1 | queued |
+### Exploit — stream quality (60%)
+| ID | Idea | Hypothesis | Beliefs | Exp gain (macro) | P | Hrs | Status |
+|----|------|-----------|---------|------------------|---|-----|--------|
+| Q-80 | IR-ROI stream (EXP-009) | Paper's best modality + person crop ≥35% macro | B-013, B-006 | new stream | 0.6 | — | RUNNING |
+| Q-81 | Depth-ROI stream (EXP-010) | ROI fixes tiny-person → ≥30% macro (vs 17.7 full-frame) | B-013, B-006 | +12 on stream | 0.6 | — | RUNNING |
+| Q-82 | Balanced skeleton reference (EXP-008) | balanced sampling + macro selection ≥47% macro | B-012 | +1-2 | 0.7 | — | RUNNING |
+| Q-83 | Skeleton jvb adoption + capacity/epoch scale-up | bones (+1.8 measured) + width256/depth6 + 150ep + balanced ≥50% macro | B-013 | +3-4 | 0.7 | 3 | queued |
+| Q-84 | Pretrained ResNet-18 probe on IR-ROI (DIAGNOSTIC ONLY until ruling) | ImageNet init random-split ≥70% ⇒ representation is the gap, from-scratch recipe must mimic transfer | B-006, B-013 | information | 0.7 | 2 | queued |
+| Q-85 | Label-smoothing ablation (0 vs 0.1) | LS=0 improves macro + calibration for fusion/assignment | DA-001 #3 | +1 | 0.5 | 1 | queued |
+| Q-86 | Person-selection policy (max-motion vs person-0) | fixes mirror-person in bathroom classes (+Comb_hair/Brush_teeth) | DA-001 #4 | +1-2 | 0.6 | 2 | queued |
+| Q-87 | No-stretch temporal (pad+mask) + duration input + valid-mask channel | removes duration erasure + velocity-unit corruption + invalid/near conflation | DA-001 #5/#7 | +1-2 | 0.5 | 3 | queued |
+| Q-88 | Temporal multi-crop TTA + nested fusion weights | honest fusion + eval; removes triple-dipping | DA-001 | +1 honest | 0.8 | 2 | queued |
+| Q-89 | Visual capacity/epochs scale-up (width 48-64, 100ep, 12 frames) | visual streams are under-trained | B-013 | +3-5 on stream | 0.6 | 4 | queued |
+| Q-28b | Skeleton capacity sweep (0.66M → 5-10M) | 0.2% of budget used; capacity is free | B-013 | +2 | 0.5 | 3 | queued |
 
-### Exploit (60%)
-| ID | Tier | Idea | Hypothesis (one line) | Beliefs tested | Expected gain | P(works) | Hours | Status |
-|----|------|------|-----------------------|----------------|---------------|----------|-------|--------|
-| Q-02 | exploit | Skeleton TCN/GRU baseline | ≥45% subject-CV from normalized 17×3 @10 Hz sequences | B-002 | baseline | 0.8 | 3 | queued |
-| Q-04 | exploit | Depth-scalar CNN baseline (TSN-style, 8 frames, small 2D-CNN + temporal pool) | ≥50% subject-CV from scratch | B-006 | baseline | 0.7 | 4 | queued |
-| Q-03 | exploit | IMU 1D-CNN baseline | ≥35% subject-CV from 5-device 10 Hz tensor | B-009 | baseline | 0.7 | 3 | queued |
-| Q-05 | exploit | IR CNN baseline | IR ≈ Depth accuracy; check subject-identity overfit via CV gap | B-006 | baseline | 0.6 | 2 | queued |
-| Q-11 | exploit | Skeleton augmentation suite | rotate/scale/shear/joint-drop/time-warp +3-8% | B-001 | +5% | 0.8 | 2 | queued |
-| Q-12 | exploit | IMU augmentation suite (Um et al.: 3D rotation critical) | +3-6% | B-001 | +4% | 0.7 | 2 | queued |
-| Q-14 | exploit | Visual augmentation suite (crop/flip/erase/RandAugment-lite) | +3-6% on depth CNN | B-001, B-006 | +4% | 0.7 | 2 | queued |
-| Q-13 | exploit | Class-balanced sampling + label smoothing + EMA | +2-4% given 27× imbalance | B-010 | +3% | 0.7 | 1 | queued |
-| Q-20 | exploit | Late fusion big-4 (skel+depth+IR+IMU) | ≥ +5% over best single | B-003 | +6% | 0.7 | 2 | queued |
-| Q-21 | exploit | Modality dropout in fusion training | robustness + regularization +1-2% | B-003 | +1.5% | 0.7 | 1 | queued |
-| Q-17 | exploit | Temporal multi-crop TTA | +1-2% | — | +1.5% | 0.8 | 1 | queued |
-| Q-18 | exploit | Fold/seed weight-space or logit ensembling within one .pth | +1-3% | B-005 | +2% | 0.8 | 1 | queued |
-| Q-15 | exploit | GroupNorm/InstanceNorm vs BatchNorm | GN beats BN cross-subject +1-3% | B-001 | +2% | 0.6 | 1 | queued |
-| Q-10 | exploit | Skeleton seq-level re-normalization (torso-scale; velocity channels to recover motion cues) | +2-5% (esp. classes hurt by per-frame floor-align) | B-002 | +3% | 0.6 | 2 | queued |
-| Q-28 | exploit | Capacity sweep of winning arch | +1-2% | B-005 | +1.5% | 0.6 | 3 | queued |
-
-### Explore (30%)
-| ID | Tier | Idea | Hypothesis (one line) | Beliefs tested | Expected gain | P(works) | Hours | Status |
-|----|------|------|-----------------------|----------------|---------------|----------|-------|--------|
-| Q-66 | — | ~~Session same-class smoothing~~ | KILLED by EXP-000c: recordings are class-DISTINCT, not class-pure — pooling would be systematically harmful; superseded by Q-68 Hungarian | B-011 | — | — | — | dead |
-| Q-67 | — | ~~Session-adjacency prior~~ | KILLED by EXP-000c: 0/405 same-class nearest train neighbors | B-007 | — | — | — | dead |
-| Q-30 | explore | CTR-GCN-lite skeleton (vs TCN) | graph conv +2-4% over Q-02 | B-002 | +3% | 0.6 | 4 | queued |
-| Q-30b | explore | Skeleton multi-stream (joint/bone/motion) ensemble | +2-4% (NTU-proven) | B-002 | +3% | 0.7 | 3 | queued |
-| Q-34 | explore | Mixup / SDMix per modality | +1-3% cross-subject | B-001 | +2% | 0.5 | 2 | queued |
-| Q-32 | explore | Subject-adversarial DANN head | +2-4% cross-subject | B-001 | +3% | 0.4 | 4 | queued |
-| Q-35 | explore | SupCon pretrain (paper's own LOSO trick) | +1-3% | B-001 | +2% | 0.5 | 4 | queued |
-| Q-31 | explore | Cross-modal attention mid-fusion | +2% over late fusion | B-003 | +2% | 0.4 | 5 | queued |
-| Q-38 | explore | Per-class fusion weights | +1-2% | B-003 | +1.5% | 0.5 | 2 | queued |
-| Q-33 | explore | Attention temporal pooling | +1-2% | A4' | +1.5% | 0.5 | 2 | queued |
-| Q-37 | explore | Duration + multi-person-rate + station-prior aux features | +1-2% (recalibrate for trimmed test) | B-007, B-010 | +1.5% | 0.5 | 2 | queued |
-| Q-39 | explore | Confusable-cluster specialist heads | +1-2% | — | +1.5% | 0.4 | 3 | queued |
-| Q-06 | explore | Thermal CNN stream (ironbow hue, ~25 fps unsynced) | worth a 4th stream? | B-006 | +1% | 0.4 | 3 | queued |
+### Explore — transduction + DG (30%)
+| ID | Idea | Hypothesis | Beliefs | Exp gain | P | Hrs | Status |
+|----|------|-----------|---------|----------|---|-----|--------|
+| Q-90 | Global balanced assignment (Sinkhorn) at inference | if B-012 true, matching test marginal to uniform adds +2-5 | B-012 | +3 | 0.6 | done-file | awaiting LB |
+| Q-91 | Per-user (cohort) self-training | pseudo-label confident clips per cohort, retrain; 4 users × ~100 clips | B-007, B-013 | +3-6 | 0.5 | 4 | queued |
+| Q-92 | Per-cohort feature alignment (mean/var matching, GN-compatible) | reduce subject shift at test time without BN | B-001 | +2 | 0.4 | 3 | queued |
+| Q-34 | Mixup (skeleton + visual) | +1-3 macro cross-subject | B-001 | +2 | 0.5 | 2 | queued |
+| Q-32 | Subject-adversarial DANN head | +2-4 macro | B-001 | +2.5 | 0.4 | 4 | queued |
+| Q-30 | ST-GCN-lite skeleton | graph conv beats TCN | B-002 | +2 | 0.5 | 4 | queued |
+| Q-93 | R(2+1)D-lite / temporal conv visual (vs frame-pool) | motion modeling beats mean-pool on ROI clips | B-006 | +3 on stream | 0.5 | 4 | queued |
+| Q-35 | SupCon pretrain | +1-3 | B-001 | +2 | 0.4 | 4 | queued |
 
 ### Crazy (10%)
-| ID | Tier | Idea | Hypothesis (one line) | Beliefs tested | Expected gain | P(works) | Hours | Status |
-|----|------|------|-----------------------|----------------|---------------|----------|-------|--------|
-| Q-50 | crazy | Test-time self-training (pseudo-label confident test clips) | +2-5% LB; not in forbidden list; must survive reproduction | B-007 | +3% | 0.4 | 3 | queued |
-| Q-54 | crazy | Per-cohort BN/statistics adaptation (TENT-style, using Q-61 cohorts) | +1-3% | B-001, B-007 | +2% | 0.4 | 2 | queued |
-| Q-55 | crazy | Skeleton limb-length retargeting (synthetic subjects) | +1-3% cross-subject | B-001 | +2% | 0.3 | 3 | queued |
-| Q-56 | crazy | Person-silhouette stream from depth (segment person by depth band, model silhouette dynamics) | subject-invariant shape signal +1-3% | B-006 | +2% | 0.3 | 4 | queued |
-| Q-57 | crazy | Knowledge distillation of full fusion into one compact student (efficiency score play) | keeps accuracy, wins efficiency 10% | B-005 | finals-only | 0.5 | 4 | queued |
+| ID | Idea | Hypothesis | Beliefs | Exp gain | P | Hrs | Status |
+|----|------|-----------|---------|----------|---|-----|--------|
+| Q-94 | Self-supervised pretrain on ALL clips (train+test, no labels) — masked reconstruction / temporal order | legal transfer without external weights; closes the init gap | B-013 | +5 | 0.35 | 8 | queued |
+| Q-95 | Cross-modal distillation (skeleton teacher → visual student on shared clips) | visual student learns pose-invariances it can't find alone | B-013 | +3 | 0.3 | 5 | queued |
+| Q-55 | Skeleton limb-length retargeting aug | synthetic subjects | B-001 | +1.5 | 0.3 | 3 | queued |
+| Q-96 | Hungarian/distinctness — REVISIT only after distinctness-on-test verified and base ≥55 macro | H2 test from DA Q5 (accuracy-matched null) | B-011 | +1 | 0.4 | 2 | parked |
 
-## Done (moved after LOG entry written)
-
-| ID | Idea | Expected gain | Actual gain | LOG ref |
-|----|------|---------------|-------------|---------|
-| — | Profiling workflow (8 agents) | — | strategy reshaped | EXP-000b |
-
-## Parked (blocked / needs compute / needs data)
-
-| ID | Idea | Blocked on |
+## Dead (do not resurrect)
+| ID | Idea | Killed by |
 |----|------|-----------|
-| Q-36 | Radar aux features | B-008 says defer; revisit only if fusion plateaus |
-| Q-52 | Depth colormap inversion | folded into Q-00 cache design (decided: invert) |
+| Q-66 | Same-class group pooling | EXP-000c: groups are class-DISTINCT |
+| Q-67 | Adjacency prior | EXP-000c: 0/405 |
+| Q-64 | Station prior via backgrounds | EXP-000c: 50% recovery → 0.09 bits |
+| Q-54 | BN adaptation | DA-001: models use GroupNorm — no BN exists (superseded by Q-92) |
+| Q-11-family | Geometric skeleton aug at v1 magnitudes | EXP-007: every component hurts; rot worst (−2.0) |
+| — | jv+tn torso-norm | EXP-007b: 44.1 vs 44.9 reference |
+
+## Done
+| ID | Idea | Outcome | LOG |
+|----|------|---------|-----|
+| Q-00/01/60-65 | Foundation + audits | see LOG EXP-000b/c | |
+| Q-02/03/04/05 partial | Baselines skel/imu/depth | 53.0/26.8/26.7 micro | EXP-001..003 |
+| Q-68/69 | Hungarian + group keys | +1.1 CV, −1.0 LB → parked as Q-96 | EXP-004/005, SUB-001 |
+| Q-70/71 partial | ROI cache built | 2910+405 crops | — |
+| Q-11b | Aug component ablation | all negative | EXP-007 |
+| — | jvb bones | +1.8 macro | EXP-007b |
