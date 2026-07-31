@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 import mm_data
 import mm_model
 
-ROOT = "/home/atharv/Desktop/projects/KAggle /CUHK-X-CompetitionSmallModelTrack"
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 RESULTS = os.path.join(ROOT, "research", "artifacts", "results.csv")
 CKPT = os.path.join(ROOT, "checkpoints")
 
@@ -29,8 +29,9 @@ def run_fold(args, fold):
     dev = "cuda"
     tr = mm_data.MMDataset("train", fold, "train", aug=True, seed=args.seed, roi=args.roi)
     va = mm_data.MMDataset("train", fold, "val", roi=args.roi)
+    # Workers must restart each epoch so the updated dataset seed reaches them.
     lt = DataLoader(tr, args.bs, shuffle=True, num_workers=4, drop_last=True,
-                    persistent_workers=True, pin_memory=True)
+                    pin_memory=True)
     lv = DataLoader(va, args.bs, num_workers=3)
     model = mm_model.MMFusion(d=args.dim, layers=args.layers).to(dev)
     if args.init:

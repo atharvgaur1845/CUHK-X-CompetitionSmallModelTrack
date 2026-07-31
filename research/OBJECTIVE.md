@@ -6,21 +6,60 @@
 
 ## Constraints
 - Compute (local): RTX 4060 Laptop 8 GB VRAM, 16 CPU cores, 15 GB RAM, ~117 GB free disk. torch 2.12.0+cu130 working.
-- Model size ≤ 100 MB total. Architectures limited to CNN / RNN / Transformer. **ORGANIZER RULING (2026-07-28): NO pretrained weights at all (strict from-scratch); ensembles LEGAL if total ≤100 MB; test-time transductive processing LEGAL.**
+- Model size ≤ 100 MB total. Architectures limited to CNN / RNN / Transformer.
+  **ORGANIZER RULING RELAYED BY ATHARV (2026-07-28):** no pretrained weights,
+  ensembles legal if total ≤100 MB, and test-time transductive processing
+  legal. Preserve the exact reply: the repository currently contains only the
+  draft question and a paraphrased research entry.
+- **The current stack has a verified sub-100-MB serialized package and a
+  streamed loader.** World25 occupies 85,217,859 bytes on disk. Streaming
+  reduced persistent fp32 model parameters from 337,973,856 bytes to at most
+  10,134,688 bytes while reproducing all 16,200 float64 probabilities exactly.
+  Preserve the exact organizer reply because serialized-size versus transient
+  dequantization accounting is still not stated publicly.
 - No test labels in training; no manual labeling of test samples.
 - Reproducibility matters: Top-15 advance to Selection Stage where organizers REPRODUCE the solution. Keep everything scripted, seeded, and documented from day one.
 - Submissions per day: assume 5 (verify on Kaggle).
 
 ## Timeline
-- Deadline: TBD — verify on Kaggle competition page / official site (https://openaiotlab.github.io/CUHK-X-Challenge/).
-- Today: 2026-07-27.
+- Kaggle deadline: **2026-09-15**; code upload: **2026-09-22** (EXP-000b rules audit).
+- Current research date: 2026-07-30.
 
-## Win condition (updated 2026-07-28 after DA-002)
+## Win condition (updated 2026-07-30 after SUB-012)
 - Goal: **Private LB Top 15** (→ Selection Stage → UbiComp finals). Kaggle rank only gates entry; finals decide cash.
-- **Public split = 201 clips (derived — all scores are k/201); private = 204.** 1 public clip = 0.4975%; shakeup ±2-3% at 1σ.
-- Landscape: leader 0.836 (168/201; mechanism uncertain — 30-40% strong transfer recipe, ~25% manual labeling, ~20% LB probing); cluster #2-#6 0.73-0.77 (likely pretrained visual recipes — possibly disqualifiable at reproduction if the pretrained ban is enforced, which lowers the effective bar for rules-clean teams like us). **Rank-15 score UNKNOWN — Atharv must harvest ranks 10/15/20/30 from Kaggle; this number sets the real bar.**
-- **Atharv's standing directive (2026-07-29): keep improving until 80+ accuracy — no convergence before that.** Interpretation per the loop: the exploit grind continues (streams/soups/fusion → low 0.50s), AND the explore/crazy tiers stay funded indefinitely because 80+ requires breaking the measured ceiling (oracle 63.4 on current streams), not polishing it. Every plateau triggers exploration rebalance, never termination. (Calibrated posterior on reaching 0.80+ remains low — but the search does not stop on posterior, it stops on the directive.)
-- Current best: 0.458 (92/201), single submission, no post-proc survived LB testing yet.
+- **Public split = 201 clips (derived — all scores are k/201); private = 204.**
+  One public clip = 0.4975%. Public/private sampling variation near current
+  accuracy is roughly 5 percentage points for their difference, not the
+  previously asserted 2--3 points.
+- Landscape: Atharv reports current competitors near **0.89**. The local
+  repository has no authenticated leaderboard snapshot, method, or private
+  transfer evidence for those entries. Treat 0.89 as a real target observation,
+  not as proof that the current skeleton/IMU family is one tuning step away.
+  **Rank-15 score remains unknown.**
+- **Verified public best:** `sub_astgcn_world25_int8_trans05.csv` =
+  **0.55721 = 112/201**. It applies tie-safe ordered decoding to the exact
+  probabilities from the legal 85.218 MB package. See `LEADERBOARD.md`.
+- **Atharv's standing directive:** improve beyond 0.83. A score strictly above
+  0.83 requires at least **167/201**, so the present gap is **+55 correct public
+  clips**.
+- **Sequence result:** ordered transitions transferred, moving the exact
+  package output from 109 to 112 public clips. Repeated-recording consensus
+  then scored 111/201 despite stronger local OOF, so its marginal is rejected.
+  No further sequence/template tuning is the active path.
+- The next model-side reset targets the actual remaining error mass: high
+  resolution IR + absolute depth + Thermal, with explicit masks and
+  candidate-conditioned object pooling. Existing visual preprocessing reduced
+  frames to 120×160 or loose ROIs and discarded appearance in motion maps;
+  Thermal was absent despite 2,788/2,933 canonical train and 395/405 test
+  coverage. A prior 2,891 count included 103 Thermal-only directories outside
+  the canonical metadata universe.
+- Operational success requires all three simultaneously: competitive private
+  accuracy, an inference package ≤100 MB, and reproducible training/inference.
+  The serialized-size gate and one exact-package leaderboard measurement are
+  passed: world25 is 85.218 MB on disk, its raw output scored 0.54228, and the
+  deterministic transition decode scored 0.55721. Live-weight
+  accounting, accuracy above 0.83, and complete clean-room reproduction remain
+  open.
 
 ## What loses
 - Overfitting to the 18 training subjects (cross-subject gap is THE challenge — test users 10, 11, 25, 26 are unseen).

@@ -42,6 +42,9 @@ Thumbs.db
 /submissions/
 /research/artifacts/
 research/
+!research/
+research/*
+!research/LEADERBOARD.md
 # Common ML experiment trackers
 /runs/
 /wandb/

@@ -2,7 +2,288 @@
 
 <!-- Written BEFORE any model code. Revised at every Stage 9 meta-analysis — keep old versions below, don't overwrite. -->
 
-## Current model (v3 — 2026-07-28, post-DA-001 + 15 experiments + 4 submissions; supersedes v2)
+## Current model (v8 — 2026-07-30, after EXP-047/048 leaderboard results)
+
+1. The verified champion is transition-only:
+   `sub_astgcn_world25_int8_trans05.csv` = **0.55721 = 112/201**, three clips
+   above the exact package base.
+2. Repetition consensus is rejected as a marginal. It scored
+   **0.55223 = 111/201**, one clip below transition-only despite reaching
+   70.667% strict nested OOF. This is direct evidence that local metadata gains
+   can overstate hidden-user transfer.
+3. Exact templates already failed their strict nested gate and must not be
+   uploaded. Sequence postprocessing is closed unless a new mechanism has
+   independent evidence.
+4. A score above 0.83 still requires 167/201, another **55 public clips**.
+   Postprocessing produced three; the remaining problem is representation.
+5. The dominant actionable bottleneck is object/context appearance: loose
+   crops, low-resolution caches, motion summaries that discard appearance, and
+   a nearly unused Thermal modality.
+6. The next experiment is the frozen all-user high-resolution
+   IR/depth/Thermal candidate-conditioned visual MIL screen. Fold 2 is the
+   untouched hard gate; if it fails, stop rather than tune on it.
+7. Deployment is materially hardened: the 85.218 MB package now streams one
+   member at a time, reducing persistent fp32 model parameters from 338.0 MB to
+   at most 10.1 MB with bit-exact probability parity. The exact organizer reply
+   is still needed for transient-dequantization accounting.
+
+**Operating order:** finish and validate the high-resolution cache; run the
+predeclared all-user fold-2 visual screen; replicate on fold 0 only if it
+passes; generate another upload only after paired visual+sequence evidence.
+
+## Previous model (v7 — 2026-07-30, post-EXP-048/049; superseded by v8)
+
+**The evidence-backed picture now:**
+
+1. The verified public best is still **0.54228 = 109/201**. No sequence-aware
+   leaderboard score has been observed yet.
+2. Directional transitions remain the clean first upload: strict nested OOF
+   reaches 66.963% and the fixed tie-safe candidate reaches 67.815%.
+3. Deployable repeated-recording consensus is the stronger local mechanism.
+   Consensus plus transitions reaches **70.667% under strict nested selection**
+   (70.889% fixed), with every fold positive. Its exact CSV changes 104/405
+   rows versus the scored base and 41 rows versus transition-only.
+4. Exact sequence templates are not robust. A fixed guarded hybrid reached
+   71.741%, but strict nested selection fell to 70.333%, below the
+   repeat+Markov fallback. It is not an upload candidate.
+5. The remaining model bottleneck is object appearance. Current IR motion maps
+   score about 27.1% on object/context clips in their audited folds; 34% of
+   train and 43% of test ROI crops span full image height, and summary maps
+   destroy instantaneous appearance. Thermal is almost fully available but
+   unused.
+6. The next representation must retain high-resolution frames, absolute depth,
+   validity, and Thermal, then rerank a strong model-derived candidate set.
+   The accepted-member top-two union oracle is about 89.41%, which makes
+   candidate-conditioned visual evidence a plausible regime change.
+7. Historical 2700-row OOF remains descriptive because it omits users 5 and
+   21 and reuses selected base checkpoints. New visual work must use
+   `cv_folds_all18.json`, a frozen epoch recipe, and outer-once scoring.
+8. The serialized package is 85.218 MB but the current all-resident loader
+   expands fp32 member weights to 338.14 MB. Streamed loading or a lazy compact
+   artifact remains a separate compliance task.
+
+**Operating order:**
+
+- Upload EXP-047 and bind the score to SHA-256 `ed678466…e346`.
+- Only then upload EXP-048 and bind it to SHA-256 `1a1dbda…c377`.
+- Complete the deterministic high-resolution visual cache, then hard-screen
+  the frozen compact visual MIL recipe on all-user fold 2 and replicate on
+  fold 0 only if the predeclared gates pass.
+- Do not upload the template hybrid or resume same-family skeleton/IMU soups.
+- Preserve the exact organizer reply and resolve serialized-versus-live size.
+
+## Previous model (v6 — 2026-07-30, post-RESET-002 and EXP-047; superseded by v7)
+
+**The evidence-backed picture now:**
+
+1. The verified public best remains **0.54228 = 109/201**. The next exact
+   candidate is `sub_astgcn_world25_int8_trans05.csv`, not a new backbone.
+2. Ordered recording context is the first regime-scale local gain:
+   complementary-user transitions raise world25 OOF
+   **61.778% → 66.963%** under strict nested transition-label selection
+   (67.815% at fixed `lambda=0.5`), with all four folds positive and
+   reversed/shuffled controls negative. The tie-safe candidate changes 93/405
+   exact-package predictions and is pending leaderboard measurement.
+3. This does not rehabilitate generic metadata forcing. Hungarian
+   distinctness, Sinkhorn, and class-prior adjustment remain public failures.
+   Directional action order is the supported mechanism.
+4. The dominant remaining model failure is missing object/context evidence:
+   gross-motion accuracy is 88.34%, object/context accuracy 50.13%, and
+   object/context classes contribute 90.7% of OOF errors. Skeleton+IMU cannot
+   be the only final information source.
+5. Current top-1 predictor outputs have a label-aware oracle of only
+   77.6--82.0%, below the target. Their any-member top-2 oracle is 89.41%, so
+   sequence and visual context should be used as a candidate-conditioned
+   reranker rather than another scalar ensemble weight.
+6. Historical validation is descriptive, not unbiased. It omits two users,
+   covers 2700/2933 clips, and outer-fold checkpoint selection contributes
+   about 1.2--1.3 optimistic points. The new all-user protocol covers
+   18/18 users and 2933/2933 clips; future models use fixed recipes and
+   outer-once scoring.
+7. Serialized size and live weights are separate gates. World25 is 85.218 MB
+   on disk but expands to 338.14 MB in the current loader. Preserve the package
+   while building an interpretation-independent streamed/quantized/distilled
+   path.
+8. A score above 0.83 still requires 58 additional public clips. EXP-047 is a
+   plausible step, not proof of target completion.
+
+**Operating order:**
+
+- Upload the exact EXP-047 candidate and bind its score to its SHA-256.
+- Finish the deployable repeated-recording consensus gate without spending a
+  submission unless it adds nested OOF beyond transition-only.
+- Use `cv_folds_all18.json` for the compact Thermal/IR/Depth object reset.
+- Fuse visual evidence as a top-2/context reranker; do not resume broad
+  skeleton/IMU soup searches.
+- Preserve the exact organizer reply and resolve serialized-versus-live model
+  size before Selection Stage.
+
+**Explicitly closed:**
+
+- scalar reweighting as a path to 0.83;
+- treating hard distinctness and directional order as the same hypothesis;
+- claims that the current package is unconditionally compliant;
+- sub-point adoption decisions from the historical selected/incomplete OOF.
+
+## Previous model (v5 — 2026-07-30, post-EXP-046 + serialized packaging; superseded by v6)
+
+**The evidence-backed picture now:**
+
+1. The verified public best is **0.54228 = 109/201**, from the exact legal
+   world25 int8 package. The
+   `sub_block10 = 0.52736` line is unverified and excluded. `LEADERBOARD.md` is
+   authoritative.
+2. The useful verified ladder is `97 → 98 → 103 → 104 → 105 → 108 → 109`. Invariant IMU
+   supplied cheap diversity; the first ST-GCN block supplied the largest step;
+   MultiTCN supplied one more clip; Adaptive ST-GCN supplied three. Adding more
+   same-family seeds/widths and broad TTA has saturated.
+3. Adaptive ST-GCN is the best single skeleton stream at 59.56% subject-OOF.
+   It raises the controlled assembly by +1.00 point with all four fold deltas
+   positive, and its three-clip LB gain is the strongest recent transfer
+   evidence.
+4. Physically grounded quaternion normalization is the first post-Adaptive
+   cross-modal gain: world-frame IMU improved solo 29.63% → 32.07% and added
+   +0.48 point under leave-one-fold-out fusion. The fixed 25% candidate is
+   positive on all folds. Its legal int8 output scored 0.54228, adding one
+   public correct clip.
+5. Public resolution is extremely coarse: one clip is 0.4975 point. Equal
+   scores can conceal different private predictions; small LB deltas cannot
+   substitute for paired OOF evidence.
+6. The newest different-view screens set useful boundaries. CTR-GCN and
+   dual-frame skeleton failed same-fold Adaptive controls. IR motion maps
+   reached 44.36%/37.67% solo on folds 0/2, but their 10% fusion marginal
+   flipped from +0.30 to −0.89 point; stronger solo accuracy is not enough.
+7. A score above 0.83 requires 167/201, another 58 public clips. No measured
+   soup-scale lever has arithmetic remotely near that gap; only new information
+   or representation can change the regime.
+8. **The current model-size gate is solved, with a parity caveat.** The exact
+   fp32 `a20` inventory is oversized, but deterministic int8 packaging stores
+   all 44 members in 82,696,132 bytes. Its packaged CSV differs from the
+   leaderboard-verified fp32 CSV on one argmax and is unscored. The 48-member
+   world candidate also fits at 85,217,859 bytes and changes three argmaxes
+   under quantization.
+
+**Current operating plan:**
+
+- **P0 — audit the remaining gap:** world25 int8 is now verified at 0.54228.
+  Use its one-clip transfer to calibrate new mechanisms and do not transfer
+  that score to the different fp32 CSV.
+- **P1 — preserve the legal champion:** retain the verified `a20` fp32 CSV and
+  its 82.696 MB int8 package together. Keep exact manifests, hashes, and the
+  one-row quantization difference explicit.
+- **P2 — seek new information:** prioritize legal competition-data
+  representation learning, object-aware visual features, or another physically
+  grounded sensor view. Same-family seed/width/graph expansion is no longer
+  exploration.
+- **P3 — class-specific diagnosis:** study hard pairs and classes absent from
+  test argmaxes with nested specialists or diagnostics; never force global
+  uniform priors.
+- **Parallel — reproducibility:** the deterministic packager and packaged
+  inference path exist; finish clean-room cache→train→package→infer commands,
+  README, and report while preserving exact artifact/CSV hashes.
+
+**Closed or parked unless new evidence changes the premise:**
+
+- uniform prior adjustment, Sinkhorn, and current Hungarian assignment;
+- naive pseudo-label self-training and TENT-GN;
+- learned logit-gate/transformer fusion at this data scale;
+- current ROI/upper-body visual CNN recipes and the unreplicated IR motion-map
+  fusion member;
+- pad64 masked TCN, tested DANN, mixup α=0.2, BiGRU, Identity, and the current
+  cross-user SupCon recipe;
+- the tested CTR-GCN and dual-frame skeleton implementations;
+- last-epoch full-data refit and unvalidated blanket temporal TTA;
+- additional same-family seeds/widths without a controlled marginal gain.
+
+**Assumptions still standing:**
+
+- A18. Architecture diversity can be quantized below 100 MB. This is now
+  measured: full `a20` is 82.696 MB and differs on 1/405 test argmaxes. The
+  remaining uncertainty is the unknown label of that row and end-to-end
+  clean-room reproduction, not serialized size.
+- A19. Competition-data-only representation learning may still reveal
+  information unavailable to supervised streams, but transformer SSL failed
+  its final gate and cross-user SupCon lost 2.82 points on fold 0. Any next
+  pretext needs a materially different mechanism and a one-fold hard gate.
+- A20. Test prior is train-like in aggregate, but several class-conditional
+  shifts may remain. This permits diagnosis, not manual or global prior forcing.
+- A21. Micro subject-CV selects large moves, while effects below roughly one
+  point require replication or stronger paired evidence.
+- A22. World-frame IMU's +0.48 nested OOF point transferred directionally but
+  modestly: the exact int8 package gained one public clip. This supports the
+  representation while limiting expectations for further scalar reweighting.
+
+## Previous model (v4 — 2026-07-30, post-EXP-042 + 11 verified LB results; superseded by v5)
+
+**The evidence-backed picture then:**
+
+1. The verified public best was **0.53731 = 108/201**, from a 20% Adaptive
+   ST-GCN addition to the MultiTCN architecture-diverse block. The
+   `sub_block10 = 0.52736` line was unverified and excluded.
+2. The useful verified ladder was `97 → 98 → 103 → 104 → 105 → 108`. Invariant
+   IMU supplied cheap diversity; the first ST-GCN block supplied the largest
+   step; MultiTCN supplied one more clip; Adaptive ST-GCN supplied three.
+   Adding more same-family seeds/widths and broad TTA had saturated.
+3. Adaptive ST-GCN was the best single skeleton stream at 59.56% subject-OOF.
+   It raised the controlled assembly by +1.00 point with all four fold deltas
+   positive, and its three-clip LB gain was the strongest recent transfer
+   evidence.
+4. The missing mass had not been accessible through the generic invariance
+   recipes tested to that point: pad+mask was flat, two DANN strengths lost
+   3-4 points, mixup was split-sign noise, and BiGRU was weaker. Learned fusion,
+   naive transduction, hard metadata assignment, current visual crops,
+   Identity, and the current cross-user SupCon recipe had also failed.
+5. Public resolution was extremely coarse: one clip is 0.4975 point. Equal
+   scores could conceal different private predictions; small LB deltas could
+   not substitute for paired OOF evidence.
+6. Model size appeared to be a live modeling constraint. The exact
+   verified-best four-fold ensemble was ~328.7 MB fp32 / 164.3 MB fp16, above
+   the 100 MB total cap; int8 packaging had not yet been measured.
+7. A score above 0.83 required 167/201, another 59 public clips. No measured
+   soup-scale lever had arithmetic remotely near that gap.
+
+**Operating plan at v4:**
+
+- **P0 — legal champion:** greedily/nested-select a compact
+  architecture-diverse subset, validate a single/full-data checkpoint strategy,
+  and test fp16/int8 packaging or distillation.
+- **P1 — preserve proven diversity:** retain MultiTCN, Adaptive ST-GCN, at most
+  one complementary legacy graph/TCN family, and invariant IMU only when each
+  survived leave-one-member-out paired OOF and bytes-per-gain accounting.
+- **P2 — seek new information:** prioritize legal competition-data
+  representation learning, object-aware visual features, or a genuinely new
+  sensor/motion view.
+- **P3 — class-specific diagnosis:** study hard pairs and classes absent from
+  test argmaxes with nested specialists or diagnostics; never force global
+  uniform priors.
+- **Parallel — reproducibility:** build one command for
+  cache→train→package→infer, deterministic manifests, exact checkpoint
+  inventory, CSV hash, README, and report.
+
+**Closed or parked at v4:**
+
+- uniform prior adjustment, Sinkhorn, and current Hungarian assignment;
+- naive pseudo-label self-training and TENT-GN;
+- learned logit-gate/transformer fusion at this data scale;
+- then-current ROI/upper-body visual CNN recipes;
+- pad64 masked TCN, tested DANN, mixup α=0.2, BiGRU, Identity, and the
+  cross-user SupCon recipe;
+- last-epoch full-data refit and unvalidated blanket temporal TTA;
+- additional same-family seeds/widths without a controlled marginal gain.
+
+**Assumptions standing at v4:**
+
+- A18. Architecture diversity could be compacted below 100 MB without losing
+  more than about one verified public clip. This was untested then.
+- A19. Competition-data-only representation learning might still reveal
+  information unavailable to supervised streams, but transformer SSL and
+  cross-user SupCon had failed their gates.
+- A20. Test prior was train-like in aggregate, but several class-conditional
+  shifts might remain.
+- A21. Micro subject-CV selected large moves, while effects below roughly one
+  point required replication or stronger paired evidence.
+
+## Previous model (v3 — 2026-07-28, post-DA-001 + 15 experiments + 4 submissions; superseded by v4)
 
 **The evidence-backed picture of this competition:**
 1. Test = 4 unseen users, ~train-like class prior (B-012 dead), clips trimmed ~20% (Δ≈1.7 pts), genuine subject shift ≈5-6 pts. CV(micro) − 9 ≈ LB.

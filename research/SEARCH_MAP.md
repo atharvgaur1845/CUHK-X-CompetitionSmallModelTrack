@@ -1,10 +1,98 @@
 # Search Map
 
+## Current map (v4 — 2026-07-30, post-EXP-048/049)
+
+Legend: `✓` useful/settled · `✗` eliminated at current implementation · `~`
+measured but inconclusive/conditional · `?` untested.
+
+```
+Evidence and validation
+ ├── Durable verified-LB ledger + CSV hashes                 ✓ LEADERBOARD.md
+ ├── Public split/count granularity (201; 0.4975%/clip)     ✓
+ ├── Micro subject-CV for large moves                       ✓
+ ├── Fine-grained CV→LB projection                          ✗ block12 broke smooth-offset claim
+ ├── Exact marginal controls / paired adoption gate         ✓ process adopted
+ ├── All-18-user deterministic outer protocol              ✓ protocol; model reruns pending
+ └── Outer-once epoch/model selection                       ? required for new runs
+
+Working representations
+ ├── TCN joint+velocity+bone backbone                       ✓ 54-55%
+ ├── ST-GCN architecture block                              ✓ largest verified ladder step
+ ├── MultiTCN separate joint/motion/bone branches           ✓ 56.60; +1 LB clip
+ ├── Adaptive multi-partition ST-GCN                         ✓ 59.56; +3 LB clips
+ ├── Invariant IMU                                          ✓ weak, cheap diversity
+ ├── Quaternion world-frame IMU                              ✓ 32.07 solo; +0.48 nested
+ ├── CTR-GCN topology refinement                             ✗ fold0/fold2 behind Adaptive
+ ├── Dual-frame station+canonical skeleton                   ✗ fold0 −1.63 vs Adaptive
+ ├── Correct dynamic truncation                             ~ +0.59 solo; +0.04 in block
+ ├── Depth/IR ROI CNNs                                      ✗ current supervised recipes
+ ├── Upper-body/object crop                                 ✗ zero on target classes
+ ├── Dual IR motion-map CNN                                 ~ 44.36/37.67 solo; fusion signs split
+ ├── Cross-user supervised contrastive representation       ✗ fold0 −2.82
+ ├── Alternative competition-data pretext/teacher           ? new premise required
+ ├── Identity screen                                        ✗ fold0 −3.12
+ ├── Radar early-cohort view                                ?
+ └── Targeted hard-pair specialists                         ?
+
+Rejected DG/temporal implementations
+ ├── Aggressive geometric skeleton augmentation            ✗
+ ├── Pad+mask TCN at T=64                                   ✗ flat at 55.34
+ ├── Subject-adversarial MultiTCN (DANN)                    ✗ −3 to −4 on fold 0
+ ├── Mixup α=0.2                                            ~ +0.15, split signs; rejected
+ ├── BiGRU                                                  ✗ 53.34
+ └── Blanket temporal-jitter TTA                            ✗/conditional; per-member gate only
+
+Fusion and inference
+ ├── Scalar late fusion                                     ✓ operating point
+ ├── Learned logit gate                                     ✗ −6.8 nested
+ ├── Fusion transformer / masked SSL transformer            ✗ final gate
+ ├── Same-family seed/width accumulation                    ✗ ceiling-scale lever
+ ├── Architecture-diverse compact selection                 ~ optional efficiency; cap solved
+ ├── Global uniform prior / Sinkhorn                        ✗ −12/−13 public clips
+ ├── Recording-group Hungarian                              ✗ at current base
+ ├── Ordered-recording transition Viterbi                   ✓ public 109→112 clips
+ ├── Repeated-recording probability consensus               ✗ marginal public 112→111
+ ├── Exact recording-template forcing/hybrid                ~ fixed +0.85; nested −0.56 vs fallback
+ ├── Naive pseudo-label self-training / TENT-GN             ✗
+ └── Class-specific low-parameter correction                ?
+
+Deployment
+ ├── Exact organizer ruling preserved                       ✗ reply/screenshot missing
+ ├── Strict no-pretrained compliance                        ~ relayed, exact reply missing
+ ├── Full `a20` serialized artifact ≤100 MB                 ✓ int8 82.696 MB
+ ├── Full world25 serialized artifact ≤100 MB               ✓ int8 85.218 MB
+ ├── Persistent fp32 model params ≤100 MB                  ✓ streamed max member 10.135 MB
+ ├── Quantized test-argmax parity                           ~ a20 1/405; world25 3/405
+ ├── Nested compact member subset                           ~ optional efficiency work
+ ├── Validated full-data checkpoint strategy               ?
+ ├── Distillation                                           ?
+ ├── Quantization with payload audit                        ✓
+ └── One-command reproducible package                       ~ package+infer exist; clean rerun open
+```
+
+### Current frontier
+
+1. Preserve the verified transition champion:
+   `0.55721 = 112/201`, derived from the 85.218 MB package.
+2. Close repeat consensus after its 0.55223 result and do not spend more
+   submissions on template/distinctness variants.
+3. Build the all-user high-resolution IR/depth/Thermal object reset and use it
+   only as candidate-conditioned evidence.
+4. Preserve the streamed bit-exact loader and obtain exact organizer wording
+   for transient-dequantization accounting.
+5. Obtain the actual Top-15 score, preserve the organizer reply, and reconcile
+   the unsupported block10 claim.
+
+---
+
+## Historical map (v1 — 2026-07-27; superseded)
+
 <!--
 Legend: ✓ tested (see LOG) · ✗ tested and eliminated · ? untested · ~ partially explored
 -->
 
-**Estimated search space remaining: 74%** (baselines + DG diagnostics done: skeleton=DG-bottlenecked (53 subj / 73 rand), depth=recipe-bottlenecked (24 / 32), IMU weak (27), fusion 54.3 +Hungarian 55.4; submission pair prepared)
+**Historical estimate: 74% remaining** (recorded before the later experiment and
+leaderboard waves; not a current estimate)
 
 ```
 Data understanding
@@ -82,7 +170,7 @@ Unknown ideas (literature)
  └── Missing-modality + DG literature                     ✓ (EXP-000b: modality dropout, ShaSpec, SDMix, DANN)
 ```
 
-## Frontier
+### Historical frontier
 1. SUBMIT the pair (Atharv, manual) — calibrates CV↔LB and the Hungarian lever with one Kaggle day.
 2. Q-70 person-ROI depth pipeline — the visual recipe fix with the largest expected step (32%→? in-domain).
 3. Skeleton DG block: Q-11b aug ablation, Q-10 seq normalization, Q-34 mixup — attacks the measured 20-pt gap.

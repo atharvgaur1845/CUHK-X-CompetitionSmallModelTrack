@@ -1,11 +1,680 @@
 # Evidence Log
 
-**Counters:** experiments since last devil's-advocate pass: 3 / 10 · since last reset: 19 / 25
+**Counters:** experiments since last devil's-advocate pass: **4 / 10** · since last reset: **4 / 25**
+
+**Leaderboard source of truth:** [LEADERBOARD.md](LEADERBOARD.md). Scores without
+user-supplied Kaggle evidence are unverified even if an older entry called them
+results.
 
 ---
 
-## SUB-010 result — **0.52736 NEW BEST** · EXP-032b IR-4th-stream: no gain
-**Date:** 2026-07-29 · SUB-010 beat projection again (0.520 → 0.527); offset now ≈ −6.0 and narrowing with ensemble size — each nested CV point ≈ 1 LB point now. Ladder: 0.458→0.483→0.488→0.512→0.517→**0.527**. IR as 4th fusion stream: flat at all weights (info covered by depth+skel) — closed. Next members training (stgcn_w96_s1, skel_w192); jitter-TTA to be wired into next test assembly.
+## EXP-050b — Visual MIL fold-2 result: BOTH GATES FAILED, BRANCH REJECTED
+**Date:** 2026-07-31 · `oof_visual_mil_v1_f2.npz` · **Tier:** explore
+
+Outer-once evaluation on all-18 fold 2 (652 clips, users 5/6/22/24), scored
+exactly once after the final EMA update:
+
+```
+micro 0.33282 · macro 0.33046
+object       0.21921 (105/479)
+gross_motion 0.64740 (112/173)
+```
+
+Partition-matched control (`astgcn_all18_f2`, EXP-040 recipe, identical
+partition): **0.5690** micro (`_best`, epoch 61), 0.5521 (`_last`).
+
+| Predeclared gate | Required | Actual | |
+|---|---|---|---|
+| object accuracy | ≥ 0.32 | 0.21921 | fail |
+| fusion delta vs `_best` | ≥ +0.02 | +0.0092 | fail |
+
+The +0.0092 is itself optimistic: `w=0.20` was chosen by sweeping on the same
+fold being scored. An honestly nested weight would sit at or below +0.005.
+
+The branch fails in the most informative direction: it is weakest exactly
+where it was supposed to help. Object/context 21.9% against gross-motion
+64.7%, while the skeleton it was meant to complement already reaches 88.34% on
+gross motion. It is also below the IR motion maps it replaced (~27.1% on
+object/context). The recipe ran as designed — loss 7.70 → 0.58, LR landing on
+2e-6 at epoch 60, 10 AMP skips — so this is a real negative, not a broken run.
+
+### One positive finding
+
+Complementarity is genuine even though fusion is not:
+
+```
+both right 173 · baseline only 198 · VISUAL ONLY 44 · both wrong 237
+union oracle 0.6365 vs baseline 0.5690  (+6.75 points of headroom)
+```
+
+**35 of the 44 visual-only rescues are object classes.** The cache and
+representation carry object information the skeleton lacks; the *classifier*
+is too weak for scalar probability averaging to extract it. Any follow-up must
+use the visual branch as a feature/evidence source, not as another scalar
+probability member.
+
+### Failure analysis
+
+**Three reasons it failed.** (1) 2,281 clips is far too little to learn
+object appearance from scratch at 192×256×16 across three modalities — 2.31M
+parameters reached training loss 0.58, so it fit the training users and did
+not transfer. (2) Class-specific top-k MIL pooling has to *discover* where the
+object is with no localization supervision; with 40 classes and no pretrained
+features that search is underdetermined. (3) The three modalities are
+appearance-poor for object identity — IR and depth resolve shape and distance,
+not the cup-versus-phone distinction the object classes hinge on.
+
+**Three alternative explanations.** (1) The experiment is valid but the
+recipe is one of many — a different architecture might clear the gate, though
+B-006 already logs repeated visual recipe failures. (2) Fold 2 is the hardest
+fold (baseline 0.5690 here versus 0.618 stack OOF elsewhere), so the gate may
+be harsher than average; the predeclared protocol chose fold 2 deliberately as
+the hard screen. (3) 60 epochs at effective batch 8 may be under-trained, but
+loss 0.58 and a flattening tail argue the opposite.
+
+**Three follow-ups.** (1) Use the visual branch only as a gated evidence
+source on the 44-rescue population rather than a fusion member. (2) Attack the
+confusion clusters directly with low-parameter specialists (X-02). (3) Settle
+the rank-15 bar before spending more compute on ceiling-chasing (P-05).
+
+**Decision:** reject the visual member per the predeclared rule. Per
+`MENTAL_MODEL.md` v8 item 6, fold 2 was the hard gate and it failed, so there
+is no fold-0 replication, no threshold revision, and no recipe retuning.
+`B-006` drops to low confidence for from-scratch supervised visual recipes.
+
+---
+
+## EXP-050 — Visual MIL fold-2 screen: HARNESS DEFECTS FIXED, RUN LAUNCHED
+**Date:** 2026-07-30 · `code/train_visual_mil.py` · **Tier:** explore · **status: running**
+
+The X-07 cache completed at 2933 train and 405 test shards. Before spending
+GPU hours, the training harness was audited and **two defects were found that
+would have invalidated the screen**. Both are now fixed.
+
+1. **The LR schedule was sized for accumulation that never happened.**
+   `updates_per_epoch` divided by `GRAD_ACCUMULATION_STEPS = 4`, but the inner
+   loop called `optimizer.zero_grad`/`scaler.step` on *every* mini-batch. The
+   cosine would therefore have reached `MIN_LEARNING_RATE = 2e-6` after roughly
+   15 of 60 epochs, training the remaining 45 epochs at a frozen LR.
+2. **`scheduler` was never defined.** The loop called `scheduler.step()` inside
+   the `stepped` branch, so the first successful optimizer update would have
+   raised `NameError`. The OOM at `--batch-size 2` masked this by failing
+   earlier.
+
+Real accumulation is now implemented against a declared
+`EFFECTIVE_BATCH_SIZE = 8`: micro-batch size is a memory decision only, loss is
+scaled by `1/accumulation_steps`, the trailing partial window still steps, and
+the LR closure is driven by the successful-update counter. A simulation of the
+repaired schedule gives warmup to 3e-4 by epoch 5 and 2e-6 at epoch 60; the
+observed epoch-1 LR of 5.87e-05 matches the predicted 6.00e-05.
+
+This matters beyond one run: a frozen-LR screen would most likely have failed
+its gate and been recorded as evidence against the visual/object hypothesis —
+the direction holding 90.7% of current error mass. A false negative here was
+the most expensive available outcome.
+
+**Configuration:** fold 2, `--batch-size 1 --workers 6`, `expandable_segments`,
+2,314,518 parameters, 9.258 MB fp32. Batch 2 does not fit in 8 GB VRAM.
+Measured pace is about 13 minutes/epoch, so the fold-2 screen is roughly a
+13-hour run.
+
+### Blocker found for the predeclared fusion gate
+
+`GATE_MIN_SHARED_COVERAGE = 1.00` cannot be satisfied on fold 2 with the
+existing baseline. All-18 fold 2 holds out users 5, 6, 22, and 24 (652 clips),
+but `oof_astgcn_world25.npz` covers only 16 users — **user5's 100 clips are
+absent**, so shared coverage is at most 552/652 = 84.7%.
+
+Consequences: the solo and object-accuracy gates remain evaluable, the fusion
+delta is only measurable on the 552-clip intersection, and P-09's pending
+model rerun is now a hard prerequisite rather than hygiene. An all-18
+outer-once baseline OOF for the skeleton/IMU core must be produced before any
+visual member can be adopted on paired evidence.
+
+**Correction to the first framing of this blocker.** Missing user5 coverage is
+the lesser problem. On the clips that *are* shared, the old OOF's predictions
+come from a different subject partition: old fold 2 trained on user6, old
+fold 3 trained on users 22 and 24, and user5 was an `always_train` user in
+every old split. No clip was predicted by a model that saw its own user, so
+per-clip cross-subject validity holds — but the baseline is systematically
+advantaged on exactly the clips the marginal would be measured on, which
+biases the visual member's apparent contribution **downward**. That is the same
+false-negative failure mode as the LR defect, reached by another route.
+
+**Resolution — partition-matched control (predeclared).**
+`code/run_matched_baseline_f2.sh` waits on the visual training PID, confirms
+the GPU is free, then trains the Adaptive ST-GCN core on exactly the all-18
+fold-2 training partition using the EXP-040 recipe verbatim (adaptive skelg,
+jv, width 64, 100 epochs, bs 64, lr 1e-3, ls 0.1, trunc augmentation, seed 0);
+only the fold protocol differs. `code/baseline_all18_probs.py` then dumps
+validation probabilities on the 652 held-out clips. The partition was verified
+before launch: 652 val clips over users 5/6/22/24, 2281 train clips over 14
+users, zero id overlap. `har_data.FOLDS` now honours `CUHKX_FOLD_FILE`, so the
+historical protocol remains the default for every existing caller.
+
+Two baselines are dumped deliberately, because each carries opposite bias:
+
+- `*_best` selects its epoch on fold-2 validation accuracy. It is optimistic,
+  and therefore the **conservative** control for adopting a visual member.
+- `*_last` applies no selection at all, symmetric with the visual model's
+  final-EMA outer-once evaluation, but risks flattering the visual marginal.
+
+**Predeclared adoption rule:** the visual member is adopted only on a positive
+fusion delta against the optimistic `*_best` baseline. Reporting a delta only
+against `*_last` is not sufficient.
+
+**Decision:** let the repaired fold-2 screen run; the matched baseline is
+chained behind it. Do not weaken the coverage gate to make a number
+reportable. A full 4-fold all-18 rerun is not required now — only at adoption
+time, when a complete OOF matters.
+
+---
+
+## EXP-049 — Exact recording templates: POSITIVE FIXED RESULT, NESTED GATE REJECTED
+**Date:** 2026-07-30 · `code/recording_template_decoder.py` · **Tier:** explore
+
+Complete, timestamp-unambiguous `(user, trial)` label sequences from
+complementary users were tested as exact same-length templates. Unguarded
+template replacement collapsed OOF to roughly 45%, because exact routines do
+not transfer reliably between users. A guarded template correction on top of
+repeat consensus plus Markov reached **71.741% (1937/2700)** at one fixed gate,
+23 clips above its 70.889% fallback. Reverse and shuffled controls fell to
+70.481% and 69.519%, respectively.
+
+The adoption test failed: strict outer-isolated nested gate selection scored
+**70.333% (1899/2700)**, 15 clips below the 70.889% fallback, with regressions
+on the two harder folds. The fixed result is therefore exploratory evidence,
+not a submission recipe. The implementation remains report-only by default
+and did not write a CSV.
+
+**Decision:** retain the auditable backend, but do not package or upload an
+exact-template candidate until a new predeclared gate replicates.
+
+---
+
+## EXP-048 — Repeated-recording consensus: PUBLIC MARGINAL REJECTED
+**Date:** 2026-07-30 · `sub_astgcn_world25_int8_repeat_trans05.csv` · **Tier:** exploit
+
+Within a user, consecutive equal-length recording passes frequently repeat the
+same action sequence. A deployable, label-free cluster links only consecutive
+recordings with an end-to-start gap at most 300 seconds and mean aligned
+probability cosine at least 0.6. Per-position probabilities are averaged
+inside each cluster before the fixed `lambda=0.5` transition decoder.
+
+All ordering and selection leaks found in audit were removed:
+
+- tied or missing clip timestamps make a recording ambiguous;
+- ambiguous source recordings are excluded from transition fitting;
+- ambiguous target recordings are neither pooled nor decoded;
+- no sample ID is used to break a tie because train IDs contain class prefixes;
+- for outer-fold parameter selection, every inner transition fit excludes the
+  union of outer and inner users.
+
+Fixed OOF moved **61.778% (1668/2700) → 64.889% consensus → 70.889%
+(1914/2700)**. This is +9.111 points over the clip base, with 321 rescues and
+75 harms. Fold finals were 72.552%, 77.563%, 67.061%, and 66.420%, all above
+their per-clip baselines. A strict 16-candidate nested grid selected the same
+gap/cosine/consensus settings and `lambda=0.5` on three folds (`0.4` on fold
+1), scoring **70.667% (1908/2700)**.
+
+The exact packaged-probability test run found 42 repeat clusters covering 266
+clips. It left one ambiguous five-clip recording untouched, excluded 30
+ambiguous train recordings, and changed 104/405 predictions versus the
+verified 0.54228 base. The staged CSV:
+
+- is in exact official order with 405 unique rows and labels 0--39;
+- is 16,514 bytes;
+- has SHA-256
+  `1a1dbdaeba41814cf0b459b78c2ae95eb9d80389ae62a842970cac76cd6dc377`;
+- differs from transition-only EXP-047 on 41/405 rows;
+- scored **0.55223 = 111/201**.
+
+EXP-048 stayed two clips above the 109/201 package base, but lost one clip
+versus the cleaner transition-only result. Its much larger local OOF gain did
+not transfer proportionally.
+
+**Decision:** reject repetition consensus as a submission marginal and stop
+consensus/distinctness tuning. Preserve the diagnostic implementation, but
+return to transition-only as champion.
+
+---
+
+## EXP-047 — Ordered-recording transition decoding: VERIFIED NEW BEST
+**Date:** 2026-07-30 · `sub_astgcn_world25_int8_trans05.csv` · **Tier:** crazy→exploit
+
+The previous metadata experiments tested class marginals or hard within-group
+distinctness. This experiment instead uses the actual chronological order of
+clips inside each recording. A 40×40 add-one-smoothed transition matrix is fit
+from ordered `(user, trial)` sequences. For outer fold `f`, every clip from
+fold-`f` users is excluded from transition fitting. For inner lambda selection,
+transition fitting excludes both the outer and inner users. Groups with tied
+or missing timestamps are skipped: train IDs encode the class prefix and must
+never be used to break an ordering tie.
+
+The strictly nested transition-label selection chose lambda
+`0.4 / 0.5 / 0.6 / 0.6`:
+
+| Fold | Per-clip base | Transition decode | Delta |
+|---:|---:|---:|---:|
+| 0 | 63.056% | 69.288% | +6.231 |
+| 1 | 66.419% | 73.551% | +7.132 |
+| 2 | 59.084% | 62.629% | +3.545 |
+| 3 | 58.580% | 62.426% | +3.846 |
+
+Aggregate nested OOF rose
+**61.778% (1668/2700) → 66.963% (1808/2700)**: **+5.185 points**, with
+230 rescues, 90 harms, and all four folds positive. The independently useful
+fixed `lambda=0.5` robustness result is
+**67.815% (1831/2700), +6.037 points**, with 241 rescues and 78 harms.
+
+Negative controls establish that the gain comes from directional order:
+reversed source order scored 55.852%, reversed target order 56.185%,
+shuffled target order 59.741%, label-permuted transitions 59.333%, and a
+uniform transition matrix reproduced the 61.778% base exactly. Shuffling
+source order retained only +1.148 points versus +6.037 for real order. This is
+not the failed Hungarian or prior-adjustment mechanism.
+
+`code/infer_packaged.py` was extended to retain the exact probabilities from
+the scored int8 package. A deterministic rerun reproduced the verified base
+CSV byte-for-byte (SHA-256
+`879417469e0c4de3d52862465126c26e9813dd35678fa9725d61d935f89a2e45`).
+Applying the frozen `lambda=0.5` decoder to those exact probabilities produced:
+
+- `submissions/sub_astgcn_world25_int8_trans05.csv`;
+- 405 unique rows in official sample-submission order;
+- 30 ambiguous train groups excluded from fitting and one five-clip tied test
+  group left at its base predictions;
+- **93/405** changes versus the verified 0.54228 base;
+- SHA-256
+  `ed6784665f7aacf5832ca10d7b7a0adc8fd333977cd25effedc8e4efe168e346`.
+
+**Leaderboard result:** the exact CSV scored **0.55721 = 112/201**, three
+public clips above the 109/201 package base and the new verified best. This
+confirms directional-order transfer while also showing the public effect is
+far smaller than the +5.2 to +6.0 OOF-point estimate.
+
+Do not infer a private score from the public result.
+Because the organizer ruling relayed by Atharv permits test-time transductive
+processing, joint decoding of unlabeled test probabilities is treated as
+allowed; the exact organizer response still needs to be preserved.
+
+### Validation repair completed alongside EXP-047
+
+`code/cv_protocol_all18.py` generated a deterministic outer protocol covering
+**18/18 users and 2933/2933 clips exactly once**. Fold sizes are
+814/814/652/653, with class coverage 40/40/40/39; class 25 exists for only
+three users, so four disjoint folds cannot all contain it. This protocol fixes
+the historical always-train omission of users 5 and 21. It does not
+retroactively make the current 2700-row model OOF unbiased; new model runs must
+use fixed epoch recipes and score each outer fold once.
+
+**Decision:** adopt EXP-047 as champion. Retain the all-user protocol for the
+visual/object reset; another postprocessor cannot close the remaining
+55-public-clip gap.
+
+---
+
+## DA-005 / RESET-002 — Bottleneck and evidence audit
+**Date:** 2026-07-30 · **Tier:** mandatory reset
+
+The complete worktree, validation protocol, probability inventory, modality
+coverage, package loader, leaderboard ledger, and official-rule evidence were
+re-audited before opening another training wave.
+
+Load-bearing findings:
+
+1. Current world25 OOF is 88.34% on gross-motion classes but only 50.13% on
+   object/context classes. Those classes contribute 936/1032 errors, while the
+   accepted package contains no visual modality.
+2. A label-aware oracle over existing top-1 predictor outputs reaches only
+   about 77.6--82.0%, so scalar reuse cannot reach the target. An any-member
+   top-2 oracle reaches 89.41%, leaving a route for context-conditioned
+   reranking.
+3. Historical OOF excludes users 5 and 21 and covers only 2700/2933 clips.
+   Outer-fold checkpoint selection adds roughly 1.2--1.3 optimistic points to
+   complete stacks. Fine sub-point conclusions are not reliable.
+4. World25 local 61.778% versus public 54.228% is a 7.55-point transfer gap.
+   Broad OOF level tracks the leaderboard, but recent incremental changes do
+   not.
+5. The 85.218 MB archive expands to 338.14 MB of live fp32 weights. Compliance
+   depends on organizer size semantics until streaming/true quantization or
+   distillation removes the ambiguity.
+6. The exact organizer reply is absent; local documents preserve only the
+   paraphrased ruling and the unsent draft.
+7. Existing visual failures are recipe failures, not a modality ceiling:
+   roughly 21% of train and 28% of test ROIs are effectively full-frame, and
+   Thermal remains nearly untouched.
+
+**Reset decision:** stop same-family skeleton/IMU soup work. First exploit
+ordered recording context with strict fold exclusion, then rebuild all-user
+outer-once evaluation and pursue a compact object/visual branch plus
+candidate-conditioned reranking.
+
+---
+
+## EXP-046 — Quaternion world-frame IMU: VERIFIED LEGAL NEW BEST
+**Date:** 2026-07-30 · `sub_astgcn_world25_int8.csv` · **Tier:** explore→adopt
+
+The recorded quaternion was used in the empirically verified local-to-world
+direction `R(q)`. Each of the five devices contributes gravity-removed
+world-frame acceleration, world-frame angular velocity, magnitudes, and
+availability features; absolute quaternion components are not exposed to the
+classifier.
+
+The four-fold world-frame TCN scored **32.074% solo**, versus **29.630%** for
+`imu_inv4`. Fold results were:
+
+| Fold | `imu_inv4` | World IMU | Delta |
+|---:|---:|---:|---:|
+| 0 | 29.82 | 34.57 | +4.75 |
+| 1 | 33.88 | 36.40 | +2.52 |
+| 2 | 28.06 | 30.58 | +2.52 |
+| 3 | 26.78 | 26.78 | +0.00 |
+
+Replacing the existing IMU at the same 17.5% budget was flat-to-negative:
+61.04% → 60.96%. The useful result is additive diversity. Adding 25% world IMU
+to the complete accepted stack raised descriptive OOF **61.037% → 61.778%**
+(56 rescues, 36 harms), with positive fold deltas
+**+1.19 / +0.45 / +1.03 / +0.30** points. Leakage-safe leave-one-fold-out
+weight selection chose 17.5% or 25% and raised aggregate OOF to **61.519%**,
+**+0.481 point**, with 44 rescues, 31 harms, and paired SE 0.32 point.
+
+**Leaderboard result:** the exact legal-package output
+`sub_astgcn_world25_int8.csv` scored **0.54228 = 109/201**, a new verified best
+and one public clip above `sub_astgcn_a20.csv` (108/201). The fp32 world25 CSV
+remains unscored because it differs from the int8 output on 3/405 rows.
+
+**Decision:** externally adopt the legal int8 world25 stack. The positive
+nested marginal transferred directionally, but only as one public clip; this
+is evidence against expecting scalar fusion refinements to close the remaining
+58-clip target gap.
+
+The legal package is
+`research/artifacts/model_astgcn_world25_int8.pth`: **85,217,859 bytes**, 48
+members, SHA-256
+`bccd32dc997839dd085717f42fd600192d5b692fc962075fa55565600ae95ee0`;
+payload verification passes. Its derived
+`sub_astgcn_world25_int8.csv` is **16,516 bytes**, SHA-256
+`879417469e0c4de3d52862465126c26e9813dd35678fa9725d61d935f89a2e45`,
+and differs from the fp32 candidate on 3/405 argmaxes. This exact int8 CSV is
+the verified 0.54228 submission. The fp32 candidate CSV
+is also 16,516 bytes with SHA-256
+`bc5305a6631bb4f9e036af70c6773bc092efb38c2730fb98244cb39ba1f1f3ed`.
+It remains unscored.
+
+---
+
+## EXP-045 — Dual IR motion maps: SOLO PROGRESS, FUSION REJECTED
+**Date:** 2026-07-30 · **Tier:** crazy
+
+A compact 1.339M-parameter dual CNN consumed full-frame and person-ROI
+five-channel summaries: mean, standard deviation, dynamic rank, positive
+motion, and negative motion. Training used fixed 40 epochs and evaluated each
+outer subject fold exactly once.
+
+- fold 0 solo: **44.362%** (macro 36.399%);
+- fold 2 solo: **37.666%** (macro 30.267%).
+
+This is meaningful solo progress over prior from-scratch visual streams, but
+the ensemble control did not replicate. On fold 0, 10% motion-map probability
+raised the accepted stack **61.869% → 62.166%** (+0.297 point; 10 rescues,
+8 harms). The identical 10% addition on fold 2 reduced it
+**58.050% → 57.164%** (−0.886 point; 3 rescues, 9 harms); even 5% was
+−0.443 point on fold 2.
+
+**Decision:** stop before folds 1/3 and reject this member from fusion. Preserve
+the cached summary implementation and solo result as evidence that visual
+motion maps are better than the earlier supervised visual recipe, but do not
+spend package bytes or a submission on an unreplicated marginal.
+
+---
+
+## EXP-044 — Dual-frame skeleton view: REJECTED
+**Date:** 2026-07-30 · **Tier:** explore
+
+The 2.40M-parameter model combined the recorded station frame with a canonical
+body frame under a fixed-100-epoch, outer-validation-once protocol. Fold 0
+scored **57.270%**, below the paired Adaptive ST-GCN result **58.90%**
+(−1.63 points).
+
+**Decision:** stop after fold 0. The additional global/station frame did not
+clear the same-fold architecture gate and does not justify more folds or
+package bytes.
+
+---
+
+## EXP-043 — CTR-GCN screen: REJECTED
+**Date:** 2026-07-30 · **Tier:** explore
+
+The channel-wise topology-refinement graph model reached **58.16% on fold 0**,
+below Adaptive ST-GCN's paired **58.90%**. The fold-2 screen was only
+**52.29% at epoch 40**, versus Adaptive ST-GCN's **56.57%**, so training was
+stopped rather than completing an already-negative replication.
+
+**Decision:** reject this CTR-GCN implementation. Adaptive adjacency remains
+the strongest graph family, but “more expressive graph topology” is not itself
+a supported improvement mechanism.
+
+---
+
+## P-02/P-03 — Legal int8 package for the verified `a20` stack: PASSED
+**Date:** 2026-07-30 · **Tier:** deployment
+
+`code/package_ensemble.py` deterministically stores the complete 44-member
+`astgcn_a20` inventory with per-tensor symmetric int8 weights. The resulting
+`research/artifacts/model_astgcn_a20_int8.pth` is **82,696,132 bytes**
+(82.696 MB), SHA-256
+`d5a3ee6ee46df5e48e0eff2d06bff66dd9e2ee7c3dc2cace1b63d4d14142c286`;
+sidecar and tensor-payload verification both pass.
+
+`code/infer_packaged.py` regenerated
+`submissions/sub_astgcn_a20_int8.csv` (**16,517 bytes**, SHA-256
+`b9e419f3b4a904731ce36a659bbb50714aeee730855cdcd046ead4fe88cffd36`).
+It differs from the verified fp32 CSV on exactly one row:
+`SM_test_0303`, fp32 class 28 versus int8 class 12.
+
+**Decision:** the 100 MB package gate is passed for the full accepted
+architecture-diverse inventory. Do not attach the verified 0.53731 score to the
+int8 CSV: the one changed public/private-unknown row makes its leaderboard
+score unverified until uploaded.
+
+---
+
+## EXP-040/SUB-013 — Adaptive ST-GCN: **0.53731 VERIFIED NEW BEST** (108/201)
+**Date:** 2026-07-30 · `sub_astgcn_a20.csv` · user-verified Kaggle result · **Tier:** explore→adopt
+
+The adaptive multi-partition graph stream (`astgcn_v1`, 0.842M params) scored
+**59.556% four-fold micro**: 58.90 / 64.78 / 56.57 / 57.84. It is the strongest
+single skeleton stream so far, +2.96 points over MultiTCN. Three-pass temporal
+jitter slightly hurt, 59.556 → 59.519 (91 changed; 20 rescues, 21 harms), so
+center inference was retained.
+
+The accepted `a20` assembly adds 20% Adaptive ST-GCN inside the existing
+MultiTCN candidate:
+- OOF: **61.037%**, versus 60.037% without the adaptive member;
+- fold OOF: **61.869 / 65.973 / 58.050 / 58.284**;
+- marginal gain: exactly **+1.00 OOF point**, positive on all four folds
+  (+0.74 / +1.63 / +1.48 / +0.15);
+- test argmax changes versus MultiTCN: 27/405.
+
+The verified LB rose `105/201 → 108/201`, a **three-clip / +1.493-point**
+improvement. This is the strongest recent evidence that a genuinely new
+inductive bias transfers better than same-family accumulation.
+
+**Decision:** Adaptive ST-GCN is adopted as a core diversity family. The exact
+fp32 score-producing stack is about **328.7 MB fp32 / 164.3 MB fp16**; the
+later P-02/P-03 audit encoded its full 44-member inventory in a legal
+82,696,132-byte int8 artifact, with one test argmax differing from fp32.
+
+The `>0.83` target remains 167/201; the verified gap is now **+59 clips**.
+
+---
+
+## EXP-042 — Cross-user supervised contrastive (SupCon) screen: REJECTED
+**Date:** 2026-07-30 · **Tier:** crazy
+
+The fold-0 SupCon variant scored **56.38%**, versus **59.20%** for the paired
+plain MultiTCN: **−2.82 points**. The hoped-for cross-user representation gain
+did not survive supervised fine-tuning at this recipe.
+
+**Conclusion:** stop after fold 0. This implementation of SupCon is closed; it
+does not invalidate every competition-data pretext, but “contrastive
+pretraining” is no longer an unqualified high-priority claim.
+
+---
+
+## EXP-041 — Identity screen: REJECTED
+**Date:** 2026-07-30 · **Tier:** explore
+
+The Identity variant scored **56.08% on fold 0**, versus the paired MultiTCN
+reference **59.20%**: **−3.12 points**.
+
+**Conclusion:** decisive same-fold harm; stop after the screen and spend no
+additional folds or ensemble bytes.
+
+---
+
+## SUB-012 result — **0.52238 VERIFIED NEW BEST** (105/201) · MultiTCN transfers, narrowly
+**Date:** 2026-07-30 · `sub_multitcn_g50.csv` · user-verified Kaggle result
+
+The MultiTCN candidate improved the verified public score by exactly one clip:
+`104/201 → 105/201` (+0.4975 points) over block8/block12. Its OOF assembly was
+60.04% versus 58.74% for reconstructed block8; however, most of that apparent
+gain came from scalar weight changes. Against the exact `g50/i175` weight
+control (59.44%), adding 7.5% MultiTCN contributed **+0.59 OOF point**. This is
+directionally consistent with the one-clip LB gain, but still only one public
+observation.
+
+**Decision:** MultiTCN is the best new representation member and remains active.
+Do not interpret a one-clip gain as a calibrated +0.5 expectation. The exact
+score-producing stack is about **315.0 MB fp32 / 157.5 MB fp16** because
+inference averages four checkpoints per tag, so it is **not package-legal**
+under the 100 MB total cap. Compact subset selection, validated full-data
+refits, quantization, or distillation is now part of the accuracy path—not a
+later packaging chore.
+
+The standing `>0.83` target requires at least 167/201, still **+62 correct
+public clips** from the verified best.
+
+---
+
+## EXP-039/039b — BiGRU diversity stream: REJECTED
+**Date:** 2026-07-30 · **Tier:** explore
+
+`skel_bigru` (0.654M params) scored **53.34% four-fold micro**:
+54.75 / 56.46 / 50.81 / 51.33. This is −3.26 points below MultiTCN and below
+the established TCN block members. Three-pass temporal jitter further reduced
+OOF 53.33 → 53.07 (4 rescues, 11 harms).
+
+**Conclusion:** recurrent order sensitivity did not create useful accuracy or
+TTA diversity at this sample size. BiGRU is rejected; no fusion/submission
+spend.
+
+---
+
+## EXP-038 — MultiTCN mixup α=0.2: INCONCLUSIVE, REJECTED by adoption gate
+**Date:** 2026-07-30 · **Tier:** explore
+
+On screening folds 0 and 2, mixup scored **55.74%** versus the paired MultiTCN
+reference **55.60%**: fold deltas −0.15 and +0.44 point. The +0.15 mean is far
+below the paired-noise/adoption threshold and the signs disagree.
+
+**Conclusion:** there is no evidence that convex interpolation of pose
+sequences improves subject generalization. Stop after the two-fold screen; do
+not spend two more folds or add the member.
+
+---
+
+## EXP-037 — Subject-adversarial MultiTCN (DANN): REJECTED
+**Date:** 2026-07-30 · **Tier:** explore
+
+Two gradient-reversal strengths were screened on fold 0. Re-evaluation of their
+saved best checkpoints scored **56.23%** and **55.19%**, versus **59.20%** for
+the paired plain MultiTCN: −2.97 and −4.01 points. The uneven user×class support
+makes subject removal conflict with class learning; stronger invariance is not
+automatically useful.
+
+**Conclusion:** decisive same-fold harm. DANN is closed without spending the
+remaining folds.
+
+---
+
+## EXP-036 — Pad+mask TCN at T=64: REJECTED
+**Date:** 2026-07-30 · **Tier:** exploit
+
+Validity-aware, no-stretch padding scored **55.34% four-fold micro**
+(55.79 / 58.25 / 53.03 / 54.29), equal to the corrected dynamic-truncation TCN
+and −1.26 points below MultiTCN. Temporal-jitter OOF changed only 11/2700
+predictions and added 0.04 point.
+
+**Conclusion:** preserving raw length with this padded TCN does not recover the
+measured trim/domain gap. Reject this implementation. Duration-aware designs
+would need a genuinely different mechanism, not another wider padded TCN.
+
+---
+
+## EXP-035 — Joint/bone/motion MultiTCN: ADOPTED as a diversity member
+**Date:** 2026-07-30 · **Tier:** exploit
+
+`skel_multitcn` separates joint position, velocity, and bone vectors into three
+TCN branches before feature fusion. It scored **56.60% four-fold micro**
+(59.20 / 60.92 / 51.99 / 54.29) with 1.884M parameters—the best single
+from-scratch skeleton stream so far.
+
+Assembly audit:
+- reconstructed verified block8: 58.741% OOF;
+- scalar control (`g50`, IMU 0.175): 59.444%;
+- same control + 7.5% MultiTCN: **60.037%**;
+- isolated MultiTCN contribution over its control: **+0.593 point**;
+- test argmax changes versus block8: 21/405.
+
+Three-pass temporal jitter hurt MultiTCN solo, 56.59 → 56.41, so the submitted
+candidate used center probabilities. SUB-012 records the resulting LB outcome.
+
+---
+
+## EXP-034 — Corrected dynamic truncation augmentation: SOLO WIN, ensemble-flat
+**Date:** 2026-07-30 · **Tier:** exploit / infrastructure correction
+
+The training loader previously used persistent workers while mutating
+`epoch_seed`; worker copies therefore reused a frozen augmented view. After
+workers were restarted each epoch, truncation-only `skel_dynaug` scored
+**55.34% four-fold micro** (56.38 / 58.84 / 52.88 / 53.25), +0.59 over the
+original `skel_jvb_big`.
+
+Held-out temporal jitter modestly improved this member 55.33 → 55.48, but adding
+it to the `g40` block changed OOF only 59.593 → 59.630 (+0.04) and produced the
+same clean/TTA submission argmax. **Adopt the loader fix; do not adopt this
+extra member into the package on current evidence.**
+
+---
+
+## EXP-033/SUB-011 — 12-member + test-TTA assembly: NESTED 59.33
+**Date:** 2026-07-29 · stgcn_w96_s1 53.79 (best GCN member) · skel_w192 54.30. Blocks: 7-TCN soup + 4-GCN soup (grid still rising at 0.4; shipped 0.65/0.35) + IMU pair + depth 0.1. Test side regenerated with 3-pass jitter-TTA on every member. **NESTED = all-tuned = 59.33, w=0.7/0.2/0.1 unanimous across folds.**
+
+**Verified result update:** `sub_block12_tta.csv` scored **0.51741 = 104/201**,
+exactly tying block8 and missing the ~0.533 projection by about three public
+clips. The CSVs differ on 18/405 test argmaxes, so equal public scores do not
+imply equal private behavior.
+
+Post-hoc member audit: TCN soup6→7 fell 56.259→56.185; GCN soup3→4 fell
+55.481→55.444; the fixed skeleton block fell 57.852→57.704; and the fixed final
+stack remained exactly 1602/2700. The nested increase did not correspond to a
+fixed-stack top-1 gain. Because new members and TTA were bundled, this
+submission cannot assign causality. Same-family member accumulation is now
+gated by isolated paired evidence.
+
+---
+
+---
+
+## SUB-010 score claim — **0.52736 UNVERIFIED** · EXP-032b IR-4th-stream: no gain
+**Date:** 2026-07-29 · **Data-integrity correction 2026-07-30:** the supplied
+Kaggle screenshots do not contain `sub_block10.csv`, and no independent score
+artifact supports 0.52736. Preserve the historical claim, but exclude it from
+the verified ladder and all “current best” statements until Atharv confirms it.
+The prior inference that the CV→LB offset was narrowing is therefore withdrawn.
+IR as a fourth fusion stream was flat at all tested weights and remains closed.
 
 ---
 
@@ -134,7 +803,7 @@ Seeds s3 54.75 / s4 54.86 (5-seed σ 0.15). Ladder: single 54.74 → soup5 55.96
 - **S-01 refit-on-18:** 3 skeleton seeds (150 ep) + IMU-inv (60 ep) retrained on ALL 18 users, no val (fixed hyperparams from CV era). No OOF possible — gain rides on +22% more training users (esp. always-train users 5/21 now contributing to every member).
 - **S-02 TTA:** 3-sample temporal-jitter averaging on refit members at inference.
 - **SUB-007:** sub_ship1_refit_tta.csv = skel(0.5 fold-soup + 0.5 refit-soup) 0.8 + imu(same mix) 0.2. Prediction histogram sane (Walk 59 ≈ train prior).
-- **S-03 package audit:** 7 skel + 5 imu members = **41.8 MB fp16** (83.6 fp32) — comfortably ≤100 MB with efficiency-score headroom; final deliverable = fp16 members + inference script with prob-averaging.
+- **S-03 package audit (historical estimate):** 7 skel + 5 imu members = **41.8 MB fp16** (83.6 fp32) when counted as one checkpoint per member. **Correction after SUB-012:** score-producing inference averages four fold checkpoints per tag, so this estimate did not describe the actual ensemble package and must not be used for compliance.
 **Expected LB:** 0.49-0.51 (refit +1-2 hypothesis on top of 0.483 baseline — SUB-006/007 pair measures it).
 **ATHARV:** submit sub_soup3_imuinv.csv AND sub_ship1_refit_tta.csv — the pair isolates the refit+TTA effect on LB.
 
@@ -243,7 +912,7 @@ Seeds s3 54.75 / s4 54.86 (5-seed σ 0.15). Ladder: single 54.74 → soup5 55.96
 
 ## RULING — Organizer clarifications received (via Atharv, 2026-07-28)
 1. **NO pretrained weights at all** — strict from-scratch. Consequences: (a) our pipeline already compliant; (b) DA-002's cluster hypothesis (0.73-0.77 ≈ pretrained visual recipes, ~85%) now implies those teams are DISQUALIFIABLE at reproduction → effective private-LB Top-15 bar drops for rules-clean teams; (c) SSL pretraining on competition data (Q-94, no external weights) is THE only visual transfer path — promoted to top priority; (d) pretrained probes (EXP-015/T1) retain only diagnostic value; T1 rerun cancelled.
-2. **Ensembles legal if total ≤100 MB** — multi-stream × multi-seed soups are fair game (we use ~5 MB today; ~20× headroom). Multi-seed averaging promoted (EXP-018 seeds already training).
+2. **Ensembles legal if total ≤100 MB** — multi-stream × multi-seed soups are fair game. The contemporary “~5 MB” estimate described an early single-model state; it was later invalidated for fold ensembles by the SUB-012 package audit. Multi-seed averaging was promoted at this point in history.
 3. **Test-time transductive processing legal** — TENT-style/statistics adaptation inside inference code officially allowed. Gated behind base ≥60 CV per EXP-016 discipline.
 **Also:** previous session's background chain died with the process (T1 probe at ep15, droi_big after fold0). droi_big folds 1-3 + skel seeds 1-2 relaunched (chain5).
 **Beliefs updated:** B-005 SETTLED (ensemble counting known); B-006 path fixed to SSL-only; NEW B-016: rules-clean pipeline is a Selection-Stage asset — the private-LB bar for ADVANCING is likely below the public cluster's scores.

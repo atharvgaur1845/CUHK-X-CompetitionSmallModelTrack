@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 import har_data
 import har_models
 
-ROOT = "/home/atharv/Desktop/projects/KAggle /CUHK-X-CompetitionSmallModelTrack"
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 ART = os.path.join(ROOT, "research/artifacts")
 CKPT = os.path.join(ROOT, "checkpoints")
 DEV = "cuda" if torch.cuda.is_available() else "cpu"
@@ -26,6 +26,27 @@ CFG = {  # tag -> (modality, build_kwargs, dataset_kwargs)
     "stgcn_v1": ("skelg", {}, {}),
     "stgcn_s1": ("skelg", {}, {}),
     "stgcn_w96": ("skelg", {"width": 96}, {}),
+    "stgcn_w96_s1": ("skelg", {"width": 96}, {}),
+    "astgcn_v1": ("skelg", {"arch": "adaptive", "width": 64}, {}),
+    "skel_w192": ("skel", {"width": 192}, {"feat": "jvb"}),
+    "skel_dynaug": ("skel", {"width": 256}, {"feat": "jvb"}),
+    "skel_multitcn": ("skel", {"arch": "multitcn", "width": 128}, {"feat": "jvb"}),
+    "skel_multitcn_xusupcon": (
+        "skel",
+        {"arch": "multitcn", "width": 128},
+        {"feat": "jvb"},
+    ),
+    "skel_multitcn_dann": (
+        "skel",
+        {"arch": "multitcn_dann", "width": 128},
+        {"feat": "jvb"},
+    ),
+    "skel_pad64": (
+        "skel",
+        {"arch": "masktcn", "width": 256},
+        {"feat": "jvb", "t_skel": 64, "skel_time": "pad"},
+    ),
+    "skel_bigru": ("skel", {"arch": "bigru", "width": 128}, {"feat": "jvb"}),
     "imu_aug": ("imu", {}, {}),
     "imu_inv4": ("imu", {}, {"imu_feat": "inv"}),
     "imu_lstm": ("imu", {"arch": "lstm"}, {"imu_feat": "inv"}),
@@ -33,11 +54,12 @@ CFG = {  # tag -> (modality, build_kwargs, dataset_kwargs)
     "droi_big": ("droi", {"width": 64}, {"n_frames": 12}),
 }
 IMU_TAG = "imu_inv4"
-SOUP_TAGS = ("skel_jvb_big", "skel_jvb_big_s1", "skel_jvb_big_s2", "skel_jvb_big_s3", "skel_jvb_big_s4", "skel_mildaug")
+SOUP_TAGS = ("skel_jvb_big", "skel_jvb_big_s1", "skel_jvb_big_s2", "skel_jvb_big_s3", "skel_jvb_big_s4", "skel_mildaug", "skel_w192")
 
 
 def gen(tag, split):
-    out = os.path.join(ART, f"{'oof' if split == 'train' else 'testprobs'}_{tag}.npz")
+    prefix = "oof" if split == "train" else "testprobs_tjitter_v2"
+    out = os.path.join(ART, f"{prefix}_{tag}.npz")
     if os.path.exists(out):
         z = np.load(out, allow_pickle=True)
         return z["probs"], (z["labels"] if "labels" in z.files else None), list(z["sids"])
@@ -55,17 +77,21 @@ def gen(tag, split):
             m.load_state_dict(torch.load(f"{CKPT}/{tag}_f{fold}.pt", map_location=DEV))
         m.eval()
         acc = None
-        if split == "test":  # average the 4 fold checkpoints
+        if split == "test":  # average 4 fold ckpts x 3 temporal-only jitter passes
             acc = np.zeros((len(ds), 40))
+            n_pass = 0
             for f2 in range(4):
                 m.load_state_dict(torch.load(f"{CKPT}/{tag}_f{f2}.pt", map_location=DEV))
                 m.eval()
-                ps = []
-                with torch.no_grad():
-                    for x, y, s in DataLoader(ds, 64, num_workers=4):
-                        ps.append(torch.softmax(m(x.to(DEV)), 1).cpu().numpy())
-                acc += np.concatenate(ps)
-            P.append(acc / 4)
+                for t in range(3):
+                    dst = har_data.HARDataset("test", mod, aug=("tjit" if t else False), seed=t, **dkw)
+                    ps = []
+                    with torch.no_grad():
+                        for x, y, s in DataLoader(dst, 64, num_workers=4):
+                            ps.append(torch.softmax(m(x.to(DEV)), 1).cpu().numpy())
+                    acc += np.concatenate(ps)
+                    n_pass += 1
+            P.append(acc / n_pass)
             S.extend(ds.ids)
             break
         with torch.no_grad():
@@ -105,7 +131,7 @@ def main():
     # labels come from the first tag's order
     Y = labels
     soup = sum(oof[t] for t in SOUP_TAGS) / len(SOUP_TAGS)
-    gsoup = (oof["stgcn_v1"] + oof["stgcn_s1"] + oof["stgcn_w96"]) / 3
+    gsoup = (oof["stgcn_v1"] + oof["stgcn_s1"] + oof["stgcn_w96"] + oof["stgcn_w96_s1"]) / 4
     print(f"tcn-soup5: {(soup.argmax(1) == Y).mean():.4f} gcn-soup3: {(gsoup.argmax(1) == Y).mean():.4f}")
     for wg in (0.2, 0.25, 0.3, 0.35, 0.4):
         blk = (1 - wg) * soup + wg * gsoup
@@ -156,18 +182,18 @@ def main():
     Pl, _, Sl = gen("imu_lstm", "test")
     ol = {x: i for i, x in enumerate(Sl)}
     gtest = None
-    for tag in ("stgcn_v1", "stgcn_s1", "stgcn_w96"):
+    for tag in ("stgcn_v1", "stgcn_s1", "stgcn_w96", "stgcn_w96_s1"):
         Pg, _, Sg = gen(tag, "test")
         og = {x: i for i, x in enumerate(Sg)}
         a = Pg[[og[x] for x in S]]
         gtest = a if gtest is None else gtest + a
-    souptest = 0.65 * souptest + 0.35 * (gtest / 3)
+    souptest = 0.65 * souptest + 0.35 * (gtest / 4)
     tsids = S
     imutest = 0.7 * align(*tp[IMU_TAG], tsids) + 0.3 * Pl[[ol[x] for x in tsids]]
     Ft = (w_all_best[0] * souptest + w_all_best[1] * imutest
           + w_all_best[2] * align(*tp["droi_big"], tsids))
     pred = Ft.argmax(1)
-    out = os.path.join(ROOT, "submissions", "sub_block10.csv")
+    out = os.path.join(ROOT, "submissions", "sub_block12_tjitter_v2.csv")
     with open(out, "w") as f:
         f.write("path,prediction\n")
         for sid, p in zip(tsids, pred):

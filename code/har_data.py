@@ -10,7 +10,13 @@ from torch.utils.data import Dataset
 
 ROOT = "/home/atharv/Desktop/projects/KAggle /CUHK-X-CompetitionSmallModelTrack"
 CACHE = os.path.join(ROOT, "cache")
-FOLDS = os.path.join(ROOT, "research", "artifacts", "cv_folds.json")
+# Default stays the historical 16-user protocol so existing callers are
+# unchanged. Set CUHKX_FOLD_FILE to run against the all-18-user outer protocol
+# (cv_folds_all18.json), which validates users 5 and 21 as well.
+FOLDS = os.environ.get(
+    "CUHKX_FOLD_FILE",
+    os.path.join(ROOT, "research", "artifacts", "cv_folds.json"),
+)
 DEVICES = ("WTC", "WTLA", "WTRA", "WTLL", "WTRL")
 
 
@@ -45,15 +51,17 @@ class HARDataset(Dataset):
     H36M_PARENT = (0, 0, 1, 2, 0, 4, 5, 0, 7, 8, 9, 8, 11, 12, 8, 14, 15)
 
     def __init__(self, split, modality, fold=None, part="train", t_skel=32, t_imu=64,
-                 n_frames=8, aug=False, seed=0, feat="jv", person="first", imu_feat="raw"):
-        # aug: False/""=none, True=all components, or comma spec from
-        # {rot,scale,jit,jdrop,tjit} (skel) / {chan}(imu/visual keep bool behavior)
+                 n_frames=8, aug=False, seed=0, feat="jv", person="first",
+                 imu_feat="raw", skel_time="stretch"):
+        # aug: False/""=none, True=all components, or a comma-separated spec.
+        # Shared: trunc,tjit. Skeleton: rot,scale,jit,jdrop.
+        # IMU: iscale,inoise,chan. Visual: crop,erase.
         if aug is True:
-            aug = "rot,scale,jit,jdrop,tjit"
+            aug = "trunc,tjit,rot,scale,jit,jdrop,iscale,inoise,chan,crop,erase"
         self.aug_set = set(aug.split(",")) if aug else set()
         self.split, self.mod, self.aug = split, modality, bool(self.aug_set)
         self.feat = feat  # "jv" | "jvb" (+bones); "+tn" suffix = torso-scale norm
-        self.person, self.imu_feat = person, imu_feat
+        self.person, self.imu_feat, self.skel_time = person, imu_feat, skel_time
         self.t_skel, self.t_imu, self.n_frames = t_skel, t_imu, n_frames
         meta = load_meta(split)
         if split == "train":
@@ -92,7 +100,8 @@ class HARDataset(Dataset):
 
     def skel_dim(self):
         base = 17 * 3 * 2  # joints + velocity
-        return base + 17 * 3 if self.feat.startswith("jvb") else base
+        base = base + 17 * 3 if self.feat.startswith("jvb") else base
+        return base + (1 if self.skel_time == "pad" else 0)
 
     def _trunc(self, n, rng):
         """random truncation to test-like lengths (aug component 'trunc')"""
@@ -130,8 +139,19 @@ class HARDataset(Dataset):
         pos = self._pick_person(z)  # (T,17,3)
         pos = pos[:self._trunc(len(pos), rng)]
         T = len(pos)
-        idx = uniform_idx(T, self.t_skel, jitter="tjit" in self.aug_set, rng=rng)
-        x = pos[idx].astype(np.float32)  # (t,17,3)
+        if self.skel_time == "pad":
+            n = min(T, self.t_skel)
+            if T > self.t_skel:
+                if "tjit" in self.aug_set and rng is not None:
+                    start = int(rng.integers(0, T - self.t_skel + 1))
+                else:
+                    start = (T - self.t_skel) // 2
+            else:
+                start = 0
+            x = pos[start:start + n].astype(np.float32)
+        else:
+            idx = uniform_idx(T, self.t_skel, jitter="tjit" in self.aug_set, rng=rng)
+            x = pos[idx].astype(np.float32)  # (t,17,3)
         if "+tn" in self.feat:  # torso-scale normalization (pelvis->thorax)
             spine = np.linalg.norm(x[:, 8] - x[:, 0], axis=-1)
             s = np.median(spine[spine > 1e-4])
@@ -155,7 +175,17 @@ class HARDataset(Dataset):
             parts.append(x - x[:, list(self.H36M_PARENT)])  # bone vectors
         feat = np.concatenate(parts, -1)  # (T,17,C)
         if self.mod == "skelg":  # graph layout (C,T,V)
+            if self.skel_time == "pad":
+                padded = np.zeros((self.t_skel, 17, feat.shape[-1]), np.float32)
+                padded[:len(feat)] = feat
+                feat = padded
             return torch.from_numpy(np.ascontiguousarray(feat.transpose(2, 0, 1)))
+        if self.skel_time == "pad":
+            flat = feat.reshape(len(feat), -1)
+            out = np.zeros((self.t_skel, flat.shape[1] + 1), np.float32)
+            out[:len(flat), :-1] = flat
+            out[:len(flat), -1] = 1.0
+            return torch.from_numpy(out)
         return torch.from_numpy(feat.reshape(self.t_skel, -1))
 
     def imu_dim(self):
@@ -180,7 +210,11 @@ class HARDataset(Dataset):
                 span[1] = max(span[1], z[k][-1])
         out = np.zeros((5, 17, self.t_imu), np.float32)
         if span[0] < span[1]:
-            grid = np.linspace(span[0], span[1], self.t_imu)
+            if "tjit" in self.aug_set and rng is not None:
+                edges = np.linspace(span[0], span[1], self.t_imu + 1)
+                grid = edges[:-1] + rng.random(self.t_imu) * np.diff(edges)
+            else:
+                grid = np.linspace(span[0], span[1], self.t_imu)
             for i, d in enumerate(DEVICES):
                 tk, xk = f"imu_{d}_t", f"imu_{d}_x"
                 if tk in z.files and len(z[tk]) >= 2:
@@ -192,11 +226,12 @@ class HARDataset(Dataset):
         out[:, 3:6] /= 500.0
         out[:, 6:9] /= 180.0
         out[:, 9:12] /= 100.0
-        if self.aug and rng is not None:
+        if rng is not None and "iscale" in self.aug_set:
             out[:, :16] *= 1.0 + rng.normal(0, 0.1, (5, 1, 1))
+        if rng is not None and "inoise" in self.aug_set:
             out[:, :16] += rng.normal(0, 0.02, out[:, :16].shape)
-            if rng.random() < 0.2:
-                out[rng.integers(0, 5)] = 0
+        if rng is not None and "chan" in self.aug_set and rng.random() < 0.2:
+            out[rng.integers(0, 5)] = 0
         if self.imu_feat == "inv":
             out = self._imu_inv(out)
             return torch.from_numpy(out.reshape(5 * 13, self.t_imu))
@@ -209,16 +244,16 @@ class HARDataset(Dataset):
         v = z[key]
         v = v[:self._trunc(len(v), rng)]
         H, W = v.shape[1:3]
-        idx = uniform_idx(len(v), self.n_frames, jitter=self.aug, rng=rng)
+        idx = uniform_idx(len(v), self.n_frames, jitter="tjit" in self.aug_set, rng=rng)
         x = v[idx].astype(np.float32) / 255.0
-        if self.aug and rng is not None:
-            if rng.random() < 0.5:  # random resized crop (same for all frames)
+        if rng is not None:
+            if "crop" in self.aug_set and rng.random() < 0.5:  # same crop for all frames
                 sc = 0.8 + rng.random() * 0.2
                 h, w = int(H * sc), int(W * sc)
                 y0, x0 = rng.integers(0, H - h + 1), rng.integers(0, W - w + 1)
                 import cv2
                 x = np.stack([cv2.resize(f[y0:y0 + h, x0:x0 + w], (W, H)) for f in x])
-            if rng.random() < 0.3:  # random erase
+            if "erase" in self.aug_set and rng.random() < 0.3:
                 y0, x0 = rng.integers(0, int(H * 0.75)), rng.integers(0, int(W * 0.75))
                 x[:, y0:y0 + H // 4, x0:x0 + W // 4] = 0
         return torch.from_numpy(x)
