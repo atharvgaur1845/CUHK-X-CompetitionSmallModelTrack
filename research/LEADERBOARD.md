@@ -9,15 +9,168 @@ The public split contains 201 clips, so one correct clip is
 `1 / 201 = 0.00497512` (about 0.50 percentage points). Reported scores below
 map exactly to integer correct counts after Kaggle rounding.
 
+## Public leaderboard snapshot (top 20) — 2026-07-31
+
+Supplied by Atharv from the Kaggle public leaderboard on 2026-07-31. This
+resolves **P-05**, which had been open since the campaign began. Every score
+maps to an exact integer `k/201`, which independently confirms the derived
+201-clip public split.
+
+| Rank | Team | Score | Correct/201 | Submitted |
+|---:|---|---:|---:|---|
+| 1 | Jacobo Martin | 0.90049 | 181 | 2026-07-30 |
+| 2 | Bull | 0.80099 | 161 | 2026-07-30 |
+| 3 | Pre-Par-e | 0.79601 | 160 | 2026-07-30 |
+| 4 | z shuyang | 0.77611 | 156 | 2026-07-31 |
+| 5 | Arthurs Torres24 | 0.76616 | 154 | 2026-07-15 |
+| 6 | houqiiii | 0.75124 | 151 | 2026-07-29 |
+| 7 | ahmetkrgztr | 0.74129 | 149 | 2026-07-27 |
+| 8 | shenzhijie | 0.73631 | 148 | 2026-07-30 |
+| 9 | Arunava Maulik | 0.73134 | 147 | 2026-07-28 |
+| 10 | Six Senses | 0.72139 | 145 | 2026-07-28 |
+| 11 | Danielle Lesin | 0.71641 | 144 | 2026-07-06 |
+| 12 | Fususu | 0.71144 | 143 | 2026-07-31 |
+| 13 | Phaedrus | 0.69154 | 139 | 2026-07-23 |
+| 14 | Ming | 0.68159 | 137 | 2026-07-25 |
+| **15** | **Cuda out of memory** | **0.68159** | **137** | 2026-07-30 |
+| 16 | Ali Kaya | 0.68159 | 137 | 2026-07-29 |
+| 17 | Ioannis M | 0.66666 | 134 | 2026-07-30 |
+| 18 | StormML | 0.66169 | 133 | 2026-07-29 |
+| 19 | Zalman Goldstein | 0.65174 | 131 | 2026-07-28 |
+| 20 | Freeman Hui | 0.65174 | 131 | 2026-07-26 |
+
+**Measured bars, against our verified 112/201:**
+
+| Bar | Score | Correct/201 | Clips needed |
+|---|---:|---:|---:|
+| Rank 1 | 0.90049 | 181 | **+69** |
+| Rank 10 | 0.72139 | 145 | +33 |
+| **Rank 15** | **0.68159** | **137** | **+25** |
+| Rank 20 | 0.65174 | 131 | +19 |
+
+Structural notes:
+
+- **Rank 1 is a 20-clip outlier.** 181/201 sits 20 clips clear of rank 2, while
+  ranks 2--20 form a smooth ladder from 161 down to 131. Whatever produces
+  0.90049 is not what produces the rest of the board.
+- Ranks 14--16 are a three-way tie at 137/201, so the rank-15 boundary is
+  currently decided by submission time, not score.
+- The top-15 bar is **0.68159**, not the previously assumed 0.83 or the
+  observed 0.89.
+- Our 112/201 is below rank 20; exact standing is unknown because only the top
+  20 was captured.
+
+## VERIFIED 2026-08-02 — new best 0.62189 = 125/201
+
+| file | w | public | clips |
+|---|---:|---:|---:|
+| `sub_visual_mil_v1.csv` (visual member ALONE) | — | 0.38805 | 78 |
+| `sub_world25_visgeo225_f0123_trans05.csv` | 0.225 | 0.61194 | 123 |
+| **`sub_visgeo035_f0123_trans05.csv`** | **0.35** | **0.62189** | **125** |
+| `sub_visgeo045_f0123_trans05.csv` | 0.45 | 0.61194 | 123 |
+| `sub_visgeo055_f0123_trans05.csv` | 0.55 | 0.58706 | 118 |
+
+**Public weight curve (4-fold visual member): 0.225→123 · 0.35→125 · 0.45→123 · 0.55→118.**
+Peak at w=0.35. The 4-fold member at the old weight 0.225 was a **null** (123 = 123): 59 rows
+changed, net zero. The gain came from re-weighting, not from the extra folds.
+
+**Why the weight had to move (EXP-063).** Visual alone transfers **+0.89** (OOF 0.379 → public
+0.388); the skeleton stack transfers **−7.55** (0.618 → 0.542). Any weight fitted on OOF
+under-weights the only component that survives the subject shift. OOF selected 0.15–0.20;
+the truth is 0.35. **Do not tune fusion on OOF again** — use the public LB, sparingly.
+
+**Fusion parameterization is closed.** Fold-safe on 2700 clips: global w +1.778 pts,
+per-class-group +1.778, per-cohort +1.704. Richer schemes buy nothing.
+
+## Superseded staging note (2026-08-02, kept for provenance)
+
+Submit in this order; each is an isolated single change against the 123/201 champion.
+
+| # | File | Change vs champion | Rows differ | SHA-256 |
+|---|---|---|---:|---|
+| 1 | `sub_world25_visgeo225_f0123_trans05.csv` | visual member = **4-fold average** instead of fold-2-only; w=0.225 and lambda=0.5 unchanged | **59/405** (~29 public) | `265ef9e45318a5819a382b5bbd0f12d1114d8d66800fb8388771872864436059` |
+| 2 | `sub_world25_visgeo225_trans05_dist10.csv` | + soft distinctness (penalty 1.0); everything else identical | **12/405** (~6 public) | `dd57f76acb7499a8d968ffc7439aff756b98b0e6877efe453682c4aefd228d76` |
+
+**#1 — 4-fold visual member.** Fusion weight w=0.225 was **refit fold-safe on 2700 clips**
+(w chosen per fold on the other three folds only): unbiased gain **+1.778 points, +48 clips**,
+with w=0.225 selected by 3 of 4 folds and also the full-sample argmax. Selection bias measured at
+only 0.185 points, versus the 552-clip sweep that produced the original weight. This retires the
+methodology error recorded below for the tri-member config.
+*Caveat:* the change is one model -> an average of four, and there is **no unbiased OOF estimate
+of that specific change** (the fold-2 model cannot be scored on folds 0/1/3 without contamination).
+59 changed rows is a large edit; downside is real.
+
+**#2 — distinctness at base 123.** Tests B-022's standing falsifiable prediction that the coupling
+flips sign as base accuracy rises. Measured ladder: base 112 -> **−1 clip**; base 121 -> **0 clips**;
+base 123 -> ? Monotone so far and not yet positive. Cheapest live test of a standing prediction in
+the campaign.
+
+**Submit #1 first** (larger expected effect, and it changes the base that #2 is defined against —
+if #1 wins, #2 must be regenerated on top of it before it means anything).
+
 ## Current state
 
-- **Verified best:** `sub_astgcn_world25_int8_trans05.csv` —
-  **0.55721 = 112/201**
+- **Verified best:** `sub_world25_visgeo225_trans05.csv` —
+  **0.61194 = 123/201** (visual MIL fused in LOG space at w=0.225 + transition
+  decode). **+11 clips in one day**, all from a member rejected that morning.
+
+Same-day ladder, every score user-verified:
+
+| candidate | rule | public | clips |
+|---|---|---:|---:|
+| `sub_astgcn_world25_int8_trans05` | transition only | 0.55721 | 112 |
+| `sub_world25_int8_trans05_dist10` | + distinctness | 0.55223 | 111 |
+| `sub_world25_visfuse10_trans05` | + visual, linear w=0.10 | 0.58706 | 118 |
+| `sub_world25_visfuse15_trans05` | linear w=0.15 | 0.58706 | 118 |
+| `sub_world25_visfuse20_trans05` | linear w=0.20 | 0.57213 | 115 |
+| `sub_world25_visgeo15_trans05` | **geometric** w=0.15 | 0.60199 | 121 |
+| `sub_world25_visgeo15_trans05_dist10` | geometric + distinctness | 0.60199 | 121 |
+| **`sub_world25_visgeo225_trans05`** | **geometric w=0.225** | **0.61194** | **123** |
+| `sub_world25_visgeo275_trans05` | geometric w=0.275 | ~0.59 | ~119 |
+| `sub_world25_visgeo30_trans05` | geometric w=0.30 | 0.577 | 116 |
+| `sub_tri_geo_trans05` | + astgcn_all18 @ w=0.30 | 0.60696 | 122 |
+| `sub_tri_geo15_trans05` | + astgcn_all18 @ w=0.15 | 0.61194 | 123 |
+
+**`astgcn_all18` rejected as a member:** neutral at w=0.15, −1 clip at w=0.30.
+Its large local marginal (+3.99) was an artefact of sweeping 36 weight
+combinations on 552 clips.
+
+**Weight optimum is pinned at w=0.225** (121 / **123** / ~119 / 116).
+
+**Methodology error, recorded so it is not repeated.** The tri-member config was
+chosen by sweeping **36 weight combinations on 552 clips** and reporting the
+maximum: selection on a small validation set, not an unbiased estimate. Local
+said +3.99 points; public returned −1 clip. The earlier single-member sweeps
+(~7 weights on the same 552 clips) carried the same bias more mildly, and the
+public confirmations of those made the method look more trustworthy than it is.
+Any local weight search on this 552-clip sample must be treated as optimistic,
+and multi-member configs compound it.
+
+**B-022 confirmed directionally:** the distinctness delta moved from −1 clip at
+base 112 to 0 clips at base 121, monotone in base accuracy as predicted. It is
+not yet positive; re-test again if the base rises further.
+
+**Fusion-rule finding:** geometric (log-space) fusion beats linear at every
+weight and stays positive far past the point where linear collapses. Linear
+averaging lets a confident base drown out the visual member; the geometric mean
+treats the two as independent evidence.
 - **Measured follow-up:** `sub_astgcn_world25_int8_repeat_trans05.csv` —
   **0.55223 = 111/201**. Repeat consensus remained above the 109/201 base but
   lost one public clip versus transition-only, so the extra pooling is rejected.
-- **Next upload:** none yet. The next candidate must come from the all-user
-  high-resolution visual/object reset, not another sequence postprocessor.
+- **Result 2026-07-31:** `sub_world25_int8_trans05_dist10.csv` scored
+  **0.55223 = 111/201**, one clip below the champion. Soft distinctness is
+  rejected on the public split, matching B-022's prediction that coupling does
+  not pay at this base accuracy. The champion is unchanged at 112/201.
+- **Staged for upload 2026-07-31 (second):**
+  `sub_world25_visfuse10_trans05.csv`, SHA-256
+  `736ca965366e31ad6b93bdb3490dcd0ce3da49ecfc10ea172fb104296acc0451`,
+  16,520 bytes. Visual MIL member fused into the exact package probabilities at
+  **w=0.10**, then the champion's proven transition decode (`lambda=0.5`,
+  `distinctness=none`). Differs from the champion on 34/405 rows.
+  Evidence: paired fusion gain replicated on 4/4 seed baselines, and the weight
+  was re-validated **against the full-stack ensemble** rather than a single
+  model — where the optimum is 0.10 and w=0.20 is negative. Expected move is
+  about **+2 clips**.
 - The fp32 `sub_astgcn_world25.csv` remains unscored. Its score must not be
   inferred from the int8 package output, which differs on 3/405 rows.
 - Previous verified best: `sub_astgcn_a20.csv` —

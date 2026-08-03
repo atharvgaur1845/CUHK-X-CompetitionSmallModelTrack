@@ -167,6 +167,12 @@ def main():
         "exp": args.exp,
         "tag": args.tag,
         "args": vars(args),
+        # args["aug"] is the store_true flag, NOT what the dataset received: line
+        # 26 is `aug = args.aug_spec if args.aug_spec else args.aug`, so a bare
+        # --aug-spec turns augmentation on while args.aug stays False.  Rebuilding
+        # a recipe from args["aug"] alone silently drops augmentation (EXP-057
+        # lost a 4-seed run to exactly that).  Record what the dataset got.
+        "effective_aug": args.aug_spec if args.aug_spec else args.aug,
         "best_epochs": best_eps,
         "fold_accuracies": accs,
         "params": n_par,

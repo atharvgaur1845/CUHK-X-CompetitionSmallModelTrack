@@ -32,7 +32,12 @@ Working representations
  ├── Alternative competition-data pretext/teacher           ? new premise required
  ├── Identity screen                                        ✗ fold0 −3.12
  ├── Radar early-cohort view                                ?
- └── Targeted hard-pair specialists                         ?
+ ├── High-res IR/Depth/Thermal MIL branch                   ✗ EXP-050b object .219 vs .32
+ ├── Confusion-cluster specialists                          ✗✗ EXP-054 paired 4-seed −0.0096 (−1.27σ), 3/4 neg — CONFIRMED
+ ├── Pair-only routing (MAX_CLUSTER=2, tens of clips)       ? different hypothesis, not a retest
+ ├── Person selection `first` vs `motion`                   ✗ EXP-057 +0.57±1.71 (0.34σ), 2/4 seeds neg — Q-86 retired
+ ├── Pair-only route w/ visual embedding as INPUT           ?
+ └── Mechanism behind the rank-1 outlier (181/201)          ? highest-value untested cell
 
 Rejected DG/temporal implementations
  ├── Aggressive geometric skeleton augmentation            ✗
@@ -70,7 +75,20 @@ Deployment
  └── One-command reproducible package                       ~ package+infer exist; clean rerun open
 ```
 
-### Current frontier
+### Current frontier (updated 2026-07-31 after EXP-050b/051)
+
+**Estimated search space remaining: ~25%.** Two predeclared screens closed the
+largest open branches. What remains is concentrated, not broad.
+
+0. **The model-side branch over skeleton-derived features is closed** (B-021).
+   EXP-050b added new visual features and failed; EXP-051 narrowed the decision
+   boundary over existing features and failed. Do not open a third variant of
+   either without a new premise.
+0b. **Highest-value untested cell: the rank-1 mechanism.** The verified board
+   shows 181/201 standing 20 clips clear of rank 2, while ranks 2--20 form a
+   smooth 161→131 ladder. A detached point usually indicates a different
+   method, not a better-tuned one. DA-002's mechanism posteriors were never
+   tested and the crazy tier remains starved.
 
 1. Preserve the verified transition champion:
    `0.55721 = 112/201`, derived from the 85.218 MB package.

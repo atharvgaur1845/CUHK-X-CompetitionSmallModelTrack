@@ -1,9 +1,18 @@
 # Belief Ledger
 
 ## B-001 — Cross-subject generalization (not capacity) is the primary bottleneck
-- **Confidence:** 90% (↑ from 80%)
+- **Confidence:** 70% (↓ from 90%) — **the headline evidence was misread; see EXP-055**
 - **Importance:** High
-- **Evidence for:** EXP-000b — dataset paper: random-split avg 76.5% / visual ~90% vs cross-subject LOSO ≈ 56.4%. A ~30-point cliff. The verified LB remains 54.228 despite 61.04% OOF.
+- **RETRACTED EVIDENCE (EXP-055):** the "~30-point cliff" compared incomparable numbers. The
+  paper's LOSO **56.38% is RGB-only, best-case with contrastive learning, and excludes
+  cross-domain and long-tail classes**. Our 56.90% is 40 classes, no RGB, all classes. **No
+  published all-modality cross-subject number exists for this dataset**, so the cliff's size —
+  and whether we sit at it — has never actually been measured.
+- **Evidence that survives:** EXP-006's own subject-split vs random-split diagnostics measured a
+  real domain gap on our data. The gap is real; its *magnitude* and the claim that we have
+  reached its floor are not established.
+- **Original (now non-load-bearing) note:** EXP-000b recorded random-split avg 76.5% / visual ~90%.
+  The random-split half of that is verified in the paper's Table 3; the LOSO half is not comparable.
 - **Evidence against / failed levers:** aggressive geometric augmentation hurt
   (EXP-007); DANN hurt −3 to −4 points (EXP-037); mixup was split-sign noise
   (EXP-038); pad+mask was flat (EXP-036); Identity and cross-user SupCon lost
@@ -122,10 +131,38 @@
   payload reconstruction.
 - **Last updated:** P-02/P-03
 
-## B-006 — Visual modalities are the accuracy backbone (REVISED: latent, recipe-gated)
-- **Confidence:** 80% that the missing object information is visual; 25% that
-  the proposed high-resolution from-scratch recipe can unlock a material
-  cross-user marginal
+## B-006 — Visual modalities are the accuracy backbone (UPGRADED by EXP-055; re-diagnosed by EXP-056)
+- **EXP-056 — the bottleneck moved.** The "recipe-gated" qualifier is **retired**. The MIL branch
+  reaches `final_train_losses.cross_entropy = 0.5763` (chance = ln 40 = 3.689), so it fits its
+  training data, then scores 0.3328 on held-out subjects. The visual branch is now
+  **DG-bottlenecked**, like skeleton — not recipe-bottlenecked as EXP-006 found for the old
+  120x160 recipe. EXP-006's "DG work on depth is premature" verdict is **expired** and had been
+  silently gating this branch for 50 experiments.
+- **Soft spot:** that CE is last-epoch loss on augmented training data, not a clean in-domain
+  validation number, so "fits" is not fully separated from "memorizes". A random-split run would
+  separate them but costs 9.3h (measured), and both readings imply the same remedy family.
+- **Confidence:** **92%** (↑ from 80%) that the missing object information is
+  visual; **50%** (↑ from 25%) that a high-resolution from-scratch visual recipe
+  unlocks a material cross-user marginal
+- **EXP-055 evidence:** the paper's own random-split table ranks
+  **Thermal 92.57 > RGB 90.89 > Depth 90.46 > IR 90.22 > Skeleton 79.08 >
+  mmWave 46.63 > IMU 45.52**. Our champion is built on the 4th-best and the
+  worst *for the skeleton/IMU members*. Rank-1's 90.05% sits exactly at the
+  Depth/IR/Thermal random-split level.
+- **CORRECTION (same day):** an earlier draft of this entry claimed Thermal was
+  never used. **False.** `visual_mil_cache.py:81` sets
+  `MODALITIES = ("ir", "depth", "thermal")` at 192x256 with frame/modality masks;
+  the branch has been deployed since EXP-050 and is in the champion at w=0.225.
+  The RESET-002 audit note that said "Thermal unused" was correct when written
+  and was superseded by EXP-050.
+- **The sharpened question:** that branch scores **0.3328 solo** while its three
+  modalities score **90-92% each** under the paper's random split. Even allowing
+  for cross-subject degradation, the shortfall is large and unexplained. The
+  bottleneck is the *recipe*, not modality availability -> OUT-011/OUT-012.
+- **Direct corroboration:** the first serious visual member (EXP-053) produced
+  the campaign's largest single jump, **+11 public clips (112→123)**, from a
+  branch that is weak solo (0.3328). Visual information is additive and mostly
+  untapped.
 - **Key lever:** only a genuinely new legal representation/pretraining objective, not another crop/width sweep
 - **Importance:** High — decides where most compute goes
 - **Evidence for:** EXP-000b — paper: Depth 90.5/IR 90.2/Thermal 92.6 vs IMU 45.5/mmWave 46.6 (random split); test has Depth+IR in all 405 clips; same apartment/stations in test → environment transfers.
@@ -228,8 +265,77 @@
   the one-clip gain is too small to establish the effect size on private users.
 - **Last updated:** EXP-046
 
+## B-022 — Distinctness coupling pays only above a base-accuracy threshold (NEW)
+- **Confidence:** 85%
+- **Importance:** High — it is predictive, not just descriptive
+- **Evidence for:** EXP-052 ran hard distinctness on all four folds and the
+  delta ordered monotonically with base accuracy: fold 1 (base 0.664) +6,
+  fold 0 (0.631) +5, fold 2 (0.591) −9, fold 3 (0.586) −3. Soft penalty 1.0
+  was the best trade-off at +10 clips overall and still fold-2 negative.
+- **Mechanism:** a distinctness constraint couples clips inside a recording.
+  With a reliable posterior it propagates correct information; with an
+  unreliable one a single wrong clip evicts a neighbour from its correct label,
+  so it propagates errors symmetrically.
+- **Retrodiction:** this explains EXP-004/005, where Hungarian assignment lost
+  public clips at a 0.458 base — the regime where coupling should hurt most.
+  Three separate results now share one account instead of three.
+- **Prediction (falsifiable):** the sign flips as base accuracy rises. Re-test
+  distinctness after any material base improvement; do not re-test before one.
+- **Remaining uncertainty:** the crossover point, and whether test recordings
+  are as class-distinct as the 741/741 train groups — that is assumed, never
+  verified on hidden users.
+- **Last updated:** EXP-052
+
+## B-021 — Object information is weakly represented in current inputs (DOWNGRADED by DA-006-A)
+- **Confidence:** 55%, down from 90%. **Half its evidence was retracted.**
+- **Importance:** Highest — but it no longer closes the family it appeared to
+- **Retraction:** this belief was written from two screens that DA-006-A then
+  showed were underpowered. The seed-variance floor on this exact partition is
+  **2.80 points**, and EXP-051's −0.0107 is −0.38 sigma: indistinguishable from
+  zero. The claim that narrowing the label space fails is **not supported**.
+  The EXP-050b fusion delta (+0.33 sigma) is likewise noise.
+- **Evidence that survives:** EXP-050b's *solo* visual result. 0.3328 against a
+  0.5445 seed mean is about −21 points (~7.6 sigma), with object classes at
+  21.9% versus gross motion at 64.7%. A from-scratch supervised visual branch is
+  genuinely weak on object classes at this data scale.
+- **Both reopened questions are now SETTLED, in opposite directions.**
+  (a) *Visual branch in fusion:* **helps** — EXP-053 measured +1.00 point paired,
+  std 0.15, 4/4 seeds positive, and it delivered **+11 public clips** (112→123).
+  (b) *Cluster-conditioned routing:* **does not help** — EXP-054's paired 4-seed
+  re-run gives mean −0.0096 (−6.2 clips of 652), std 0.0076, −1.27 sigma, 3/4
+  seeds negative. The surviving mechanism is that the base posterior is already
+  well-ordered inside a cluster (top-2 0.6641), so an equal-authority specialist
+  overwrites more than it repairs.
+- **The 44 visual-only rescues (35 object, union oracle 63.65% vs 56.90%) remain
+  unexplained** by any refuted mechanism, and are now the largest unexplained
+  error structure in the campaign → OUT-004.
+- **Lesson recorded:** a belief assembled from two same-direction results is
+  only as strong as the noise floor of the weaker one. The floor was never
+  measured until DA-006-A.
+- **Boundary:** the visual branch did rescue 44 clips (35 object) with a union
+  oracle of 63.65% versus 56.90%. Complementary signal exists; scalar fusion
+  and label-space narrowing are both unable to extract it.
+- **Implication (REVISED by EXP-055):** stop proposing new predictors over
+  **skeleton-derived** features — that half stands, and EXP-054 confirmed it with
+  power. But the stronger reading, that the model side as a whole is closed, is
+  **withdrawn**: it was conditioned on sitting at a ~56.4% published ceiling that
+  EXP-055 showed is an RGB-only, class-subsetted number measuring a different
+  problem. A genuinely different input is exactly what is called for — and the
+  paper's three strongest modalities (Thermal 92.57, Depth 90.46, IR 90.22
+  random-split) are unused, partially used, and reduced to motion maps
+  respectively, while our stack rests on Skeleton (79.08) and IMU (45.52).
+- **Remaining uncertainty:** whether a confidence-gated pair-level route using
+  the visual embedding as *input* behaves differently from either failure.
+- **Last updated:** EXP-051
+
 ## B-010 — Hard/rare classes need targeted handling, not global prior forcing
-- **Confidence:** 90%
+- **Confidence:** 90% for the "not global forcing" half; the "targeted
+  handling works" half is **falsified at cluster granularity with proper power**
+  by EXP-054 (paired 4-seed mean −0.0096, −6.2 clips of 652, std 0.0076,
+  −1.27 sigma, 3/4 seeds negative). EXP-051 reached the same verdict from one
+  seed; DA-006-A's withdrawal of it used an unpaired denominator and is itself
+  withdrawn. **Untested at finer granularity:** `MAX_CLUSTER=2` true-pair routing
+  touching tens of clips rather than 614 is a different hypothesis, not a retest.
 - **Evidence for:** EXP-000b — 12 vs 319 samples/class (27×); classes 25/26 present for only 4-6 users; duration varies 7× by class and test is trimmed shorter.
 - **Evidence against global correction:** balanced-prior adjustment and Sinkhorn catastrophically failed; test prior is approximately train-like. Recent ensembles predict no test examples for classes 16/28/35, but blindly forcing them would repeat the same error.
 - **Policy:** use nested class-specific diagnostics or constrained specialists only when they improve held-out users; never impose a uniform marginal.

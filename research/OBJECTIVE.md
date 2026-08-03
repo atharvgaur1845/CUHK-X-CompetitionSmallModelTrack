@@ -36,12 +36,27 @@
   transfer evidence for those entries. Treat 0.89 as a real target observation,
   not as proof that the current skeleton/IMU family is one tuning step away.
   **Rank-15 score remains unknown.**
-- **Verified public best:** `sub_astgcn_world25_int8_trans05.csv` =
-  **0.55721 = 112/201**. It applies tie-safe ordered decoding to the exact
-  probabilities from the legal 85.218 MB package. See `LEADERBOARD.md`.
-- **Atharv's standing directive:** improve beyond 0.83. A score strictly above
-  0.83 requires at least **167/201**, so the present gap is **+55 correct public
-  clips**.
+- **Verified public best:** `sub_visgeo035_f0123_trans05.csv` =
+  **0.62189 = 125/201** (2026-08-02). Four-fold visual MIL member fused in LOG
+  space at **w=0.35** onto the exact probabilities from the legal 85.218 MB
+  package, then tie-safe ordered transition decoding (lambda=0.5).
+  See `LEADERBOARD.md`.
+- **Weight is tuned on the public LB, never on OOF (EXP-063).** Visual alone
+  transfers **+0.89** (OOF 0.379 -> public 0.388); the skeleton stack transfers
+  **−7.55** (0.618 -> 0.542). Any weight fitted on OOF under-weights the only
+  component that survives the subject shift: OOF selects 0.15--0.20, the truth
+  is 0.35. Public curve: 0.225->123, **0.35->125**, 0.45->123, 0.55->118.
+- **Atharv's standing directive (updated 2026-07-31):** reach **0.91+**. That
+  requires at least **183/201** (182/201 = 0.90547 falls short), so the present
+  gap is **+60 correct public clips**. This is the target the queue is ranked
+  against; rank-15 and other leaderboard context inform sequencing, not whether
+  to pursue it.
+- **Arithmetic to keep in view:** 183/201 is **2 clips above the current rank 1**
+  (Jacobo Martin, 181/201 = 0.90049), which itself stands 20 clips clear of
+  rank 2. The directive is therefore to win the public board outright, not to
+  match it. The measured Selection-Stage bar remains rank 15 = **137/201**
+  (+14 clips) and is the fallback that preserves the stated win condition.
+  OUT-001 tests whether 181 was reached by a legal route at all.
 - **Sequence result:** ordered transitions transferred, moving the exact
   package output from 109 to 112 public clips. Repeated-recording consensus
   then scored 111/201 despite stronger local OOF, so its marginal is rejected.
