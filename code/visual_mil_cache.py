@@ -73,10 +73,30 @@ DEFAULT_TEST_ROOT = (
 DEFAULT_METADATA_DIR = ROOT / "cache"
 DEFAULT_OUTPUT_DIR = ROOT / "cache" / "visual_mil_v1"
 
-CACHE_VERSION = "visual_mil_highres_v1"
-SEGMENTS = 16
-HEIGHT = 192
-WIDTH = 256
+# Cache geometry is env-overridable so cache v2 can be built without forking this
+# module.  EXP-068 measured accuracy flat down to 96x128 (sedentary +0.45) while
+# 16->8 frames costs 4.1 points, so v2 spends the freed pixel budget on frames.
+# Defaults reproduce v1 byte-for-byte; CACHE_VERSION carries the geometry so a v2
+# build can never be mistaken for a v1 one by the manifest/SHA checks.
+SEGMENTS = int(os.environ.get("CUHKX_CACHE_SEGMENTS", "16"))
+HEIGHT = int(os.environ.get("CUHKX_CACHE_HEIGHT", "192"))
+WIDTH = int(os.environ.get("CUHKX_CACHE_WIDTH", "256"))
+CACHE_VERSION = (
+    "visual_mil_highres_v1"
+    if (SEGMENTS, HEIGHT, WIDTH) == (16, 192, 256)
+    else f"visual_mil_s{SEGMENTS}_{HEIGHT}x{WIDTH}_v2"
+)
+# Thermal carries no timestamps, so it is sampled at the same normalized positions
+# as the IR anchor.  That is valid only while both streams span the same window.
+# Measured over 572 clips the thermal/IR frame-count ratio is median 2.43 (24.2 Hz
+# against 10 Hz) but std 0.70, and 23.6% of clips fall outside 2.0-3.0 (min 0.02,
+# max 7.60).  For those the streams do not span the same interval and thermal
+# segment k is a different instant from IR segment k.  Rather than silently
+# feeding misaligned frames, those clips get their thermal modality mask cleared;
+# the network already handles an absent modality and EXP-062's modality dropout
+# trains it to.  Set the band to 0/inf to restore the v1 behaviour.
+THERMAL_RATIO_MIN = float(os.environ.get("CUHKX_THERMAL_RATIO_MIN", "0"))
+THERMAL_RATIO_MAX = float(os.environ.get("CUHKX_THERMAL_RATIO_MAX", "inf"))
 ALIGN_TOLERANCE_SECONDS = 0.075
 MODALITIES = ("ir", "depth", "thermal")
 EXPECTED_IDS = {"train": 2933, "test": 405}
@@ -127,6 +147,7 @@ def preprocessing_config() -> dict[str, Any]:
         "depth_decode": "build_cache.invert_jet",
         "depth_resize": "cv2.INTER_NEAREST",
         "thermal_sampling": "independent normalized segment centers",
+        "thermal_ratio_band": [THERMAL_RATIO_MIN, THERMAL_RATIO_MAX],
         "thermal_resize": "cv2.INTER_AREA",
         "thermal_color_order": "RGB",
         "source_dtype": "uint8",
@@ -522,6 +543,17 @@ def build_clip_arrays(job: ClipJob) -> dict[str, np.ndarray]:
         _read_thermal,
         (HEIGHT, WIDTH, 3),
     )
+    # Thermal has no timestamps, so normalized-position sampling is the only
+    # option -- and it is correct only when thermal and IR span the same window.
+    # Drop thermal for clips whose frame-count ratio says they do not (see the
+    # THERMAL_RATIO_MIN/MAX note at the top of this module).
+    if thermal_files and ir_files:
+        thermal_ratio = len(thermal_files) / len(ir_files)
+        if not (THERMAL_RATIO_MIN <= thermal_ratio <= THERMAL_RATIO_MAX):
+            # The cache invariant is that masked-out frames are zero-filled, so
+            # the payload must be cleared alongside the mask, not just the mask.
+            thermal_mask = np.zeros_like(thermal_mask)
+            thermal = np.zeros_like(thermal)
 
     ir_selected_times = np.full(SEGMENTS, np.nan, dtype=np.float64)
     depth_selected_times = np.full(SEGMENTS, np.nan, dtype=np.float64)

@@ -13,6 +13,656 @@ results.
 
 ---
 
+## EXP-079/080/081 — **THE CAMPAIGN WAS BUILT ON A FALSE RULE. Pretrained backbones are legal.**
+**Date:** 2026-08-10 · **Tier:** foundation · **Purpose:** INFORMATION+SCORE
+
+Atharv issued `research/DIRECTIVE.md` (no premature ceilings; investigate external
+evidence via API *before* ideating). Executing STEP 2 took ~10 minutes and overturned
+the campaign's foundation. Full quotes in **`research/RULES_VERIFIED.md`**; ledger in
+**`research/EVIDENCE.md`**.
+
+**R-1 (topic 711665, 2026-06-25):** *"the restriction 'no large pretrained backbones
+permitted' is specifically intended to prohibit … LLMs or large vision-language
+foundation models. **Small, standard pretrained CNNs such as ImageNet-pretrained
+ResNet18 (~44MB) are perfectly acceptable in the Small Model Track.**"*
+
+Also legal and previously assumed forbidden: external public datasets (**R-2**; NTU
+RGB+D, UCI HAR, PAMAP2, WISDM named), knowledge distillation from large teachers
+(**R-3**), pseudo-labeling test data (**R-4**), GBDT/SVM in-pipeline (**R-5**),
+ensembles bundled to one ≤100 MB file with fp16/int8 encouraged (**R-6**, which also
+closes Plan.md Phase 7's open packaging question).
+
+**How the error happened — LOG.md:2712**, a prior session: *"NO pretrained weights at
+all — strict from-scratch"* → concluded the 0.73–0.77 teams were *"DISQUALIFIABLE at
+reproduction"* → *"pretrained probes (EXP-015/T1) retain only diagnostic value; T1
+rerun cancelled."* It explained away the leaderboard and cancelled the one probe that
+would have caught it. EXP-015 had already measured ImageNet init at ~2× from-scratch
+**here**, and that factor was used to *discount* the paper's baselines as unreachable.
+
+**Live leaderboard (API, 2026-08-10):** 1st 0.91542 · 2nd 0.87064 · 3rd 0.82089 ·
+15th 0.74129 · ours 0.62686. The previously stated "0.65–0.73 achievable band" is
+**externally falsified**. The 07-31 snapshot in this file was stale (top-15 was
+0.68159; the field gained ~6 points in 10 days).
+
+**L-1 — a real test-label leak existed** (topic 714827): the public CUHK-X repo held
+labeled split metadata matchable to test skeleton filenames by timestamp + frame ID.
+Organizers confirmed, took it offline 2026-06-28, and said they will **widen Stage 2
+selection toward "teams that demonstrate genuine progress."** We do not touch it
+(cheating; anti-cheating checks; Stage 3 is on-site with 8 new subjects). Consequence
+for calibration: **the LB top is not a clean modelling target**, and Stage 2 selection
+rewards a legitimate reproducible pipeline over rank.
+
+### EXP-079 — frozen linear probe (the cheapest discriminating experiment)
+Frozen encoder, identical logistic-regression probe, identical fold-2 split, weights
+the only variable:
+
+| frozen encoder | micro | object (26 sedentary) | motion |
+|---|---:|---:|---:|
+| random-init ResNet18 | 0.18558 | 0.09603 (46/479) | 0.43353 |
+| **ImageNet ResNet18** | **0.26074** | **0.16284 (78/479)** | 0.53179 |
+
+**+70% relative on the object classes holding 75% of the error**, with no fine-tuning
+and no temporal model, for ~4 minutes of GPU. This measures information
+*accessibility* and is untouched by every fine-tuning result below.
+
+### EXP-080 — fine-tune, and two failed predictions of mine
+| fold 2 | micro | object | motion |
+|---|---:|---:|---:|
+| from-scratch MIL trunk (EXP-062/064) | 0.35123 | 0.24843 (119/479) | 0.63584 |
+| ResNet18, 8 frames, BN live | 0.33282 | 0.24843 (119/479) | 0.56647 |
+| ResNet18, 16 frames, BN live | 0.31442 | 0.22547 (108/479) | 0.56069 |
+| **ResNet18, 8 frames, BN FROZEN** | 0.34816 | **0.26931 (129/479)** | 0.56647 |
+
+1. I blamed EXP-080 on frame count (EXP-068 measured 16→8 at −4.1). **Refuted:**
+   stride 1 scored 0.31442, *below* both. Prediction was ≥0.37. Recorded as failed.
+2. BN was the real cause. IR/depth are grayscale-replicated colormaps whose channel
+   statistics are nothing like natural images; 2281 clips of BN re-estimation washed
+   out the ImageNet features. Freezing BN: **+2.09 object, first member ever to beat
+   0.24843 there**, while losing only on motion — which skeleton covers in fusion.
+
+### The confound that invalidated two "failures"
+`sub_visual_mil_v1.csv` (0.38805 public solo) matches `testprobs_visual_mil_f0123` at
+**405/405** — it is a **4-fold bag**. Both single-fold members were scored against it
+and called failures: SSL 0.28358, pretrained **0.24378**. `sub_visual_mil_v1_folds2.csv`
+exists on disk but **was never submitted**, so no single-fold control exists; and
+LEADERBOARD.md's "bagging is worth zero" was measured on the *fused* submission where
+the skeleton stack dominates, which does not transfer to a solo member.
+**Neither SSL nor ImageNet has had a fair public test.**
+
+### Target arithmetic, corrected (Atharv: "why are we aiming for >.37, goal is 0.8+")
+Member solo scores are intermediate: skeleton 0.542 + visual 0.38805 fuse to 0.62686.
+To fuse to ~0.80 against a 0.542 stack, the visual member needs ≈**0.70 solo** — not
+0.45. Paper baselines (Thermal 92.57 / Depth 90.5 / IR 90.2, pretrained in-domain)
+minus EXP-015's ~20-point cross-subject discount ≈ **0.70**. So the required member
+quality is exactly what a properly trained pretrained visual model should reach, and
+I had been anchoring targets on beating our own weak baseline instead.
+
+**EXP-081 running:** folds 0/1/3 with BN frozen (`code/run_pre_r18_folds.sh`, ~28
+min/fold vs the MIL trunk's 4.5h) → 4-fold bag, then a like-for-like public test
+against 0.38805.
+
+---
+
+## EXP-076 — **SSL pretraining works. First lever in the campaign that moves the sedentary error mass.**
+**Date:** 2026-08-10 · **Tier:** explore · **Purpose:** SCORE · **VERDICT: gate passed, directional pending folds 0/1/3**
+
+Cross-modal masked pretraining (`code/ssl_pretrain_visual.py`) on all 3,338 clips
+including unlabelled test, trunk identical to `train_visual_mil.py`. Masked-L1
+**0.43761 → 0.24666** over 40 epochs, converged (0.24710 at ep33 → 0.24666 at ep40,
+so more SSL *epochs* are not the lever). Checkpoint `checkpoints/ssl_trunk_v2.pt`,
+139 tensors, geometry [32, 96, 128].
+
+**The gate — two arms, fold 2, identical recipe/data/epochs, only `--init-trunk` differs:**
+
+| fold 2 | scratch | SSL-init | Δ |
+|---|---:|---:|---:|
+| micro | 0.33282 | **0.39417** | **+6.14** |
+| macro | 0.36135 | 0.39799 | +3.66 |
+| **object (26 sedentary)** | 0.23591 (113/479) | **0.32359 (155/479)** | **+8.77** |
+| gross_motion | 0.60116 | 0.58960 | −1.16 |
+
+Predeclared gate was +2.0 micro; it cleared 3×. **The reason this is read as mechanism
+rather than a seed draw** (σ = 2.80 on this partition) is not the magnitude but the
+*shape*: the entire gain lands on the 26 object classes and motion stays flat. A seed
+fluctuation does not respect that partition. This is precisely the capability EXP-068
+proved the supervised trunk never acquired — the visual branch was a pure motion model —
+and B-021's error mass is 75% inside those classes.
+
+**Cache v2 geometry decided on evidence, not preference.** v2-scratch vs v1-reg is
+−1.84 micro but only −1.25 object (113 vs 119 of 479, six clips, inside noise); the loss
+is almost entirely motion (−5.78), which skeleton already covers in fusion. So the
+96×128 downscale costs nothing on the axis that matters, and re-running SSL at v1
+geometry (~9h) was **not** worth it.
+
+**OOF fusion says the visual member does not help — and that is expected here.** On the
+552 fold-2 clips shared with the world25 OOF, base alone is 0.5942/0.4923 (all/object)
+and every fusion weight is ≤ that, including SSL (best 0.5906 at w=0.25). But on public,
+visual geometric fusion is what *built* the champion. The two are reconciled by the
+measured transfer asymmetry: skeleton loses 7.6 pts OOF→public, visual loses 0.1, so
+OOF systematically **understates** the visual member's fusion value. Corrected for
+transfer the members sit at ≈0.518 (base) vs ≈0.408 (SSL visual), which argues the
+public-optimal weight is *above* the champion's 0.35. **This OOF check therefore cannot
+veto the direction**, and is logged as reporting-only per the standing rule.
+
+---
+
+## EXP-077 — Champion fusion recipe recovered and committed; SSL member staged for public
+**Date:** 2026-08-10 · **Tier:** exploit · **Purpose:** SCORE · **STAGED, unscored**
+
+`sub_priorB_trans05.csv` (0.62686 = **126/201, new best**) was built ad hoc and was not
+reproducible from any committed script. Recovered as
+`code/fuse_prior_visual.py`: `geometric_mean(base / train_prior, visual; w=0.35)` then
+`ordered_transition_decoder --transition-weight 0.5 --transition-score conditional
+--distinctness none`. **Verified at 404/405 argmax parity**; the single differing clip
+is a 1.6e-4 top-2 tie, i.e. float32 storage precision.
+
+Also settled the prior question posed in EXP-075: **priorB (base → uniform space) 0.62686
+vs priorA (visual → train space) 0.58706**. Same mis-specification, opposite directions,
+20 clips apart — the visual member's balanced-softmax logits are the correct target space.
+
+Fold-2 SSL test probabilities inferred (`testprobs_v2ssl_f2.npz`); it disagrees with the
+deployed 4-fold visual member on **229/405** clips and is better calibrated (mean max
+prob 0.3875 vs 0.3119). Staged, single-change from the 126 champion:
+
+| submission | visual member | w | rowdiff vs champion |
+|---|---|---:|---:|
+| `sub_ssl035_trans05.csv` | SSL f2 | 0.35 | 79/405 |
+| `sub_ssl050_trans05.csv` | SSL f2 | 0.50 | 106/405 |
+| `sub_sslmix045_trans05.csv` | SSL f2 ⊗ v1 f0123 | 0.45 | 60/405 |
+
+**Handicap to keep in mind when reading these:** the SSL member is a *single* fold-2
+model (14 users) against a deployed *4-fold bag*. Any score it reaches is a floor on
+what the completed member does.
+
+**Running:** folds 0/1/3 SSL (`code/run_ssl_deploy.sh`, ~13.5h) — simultaneously the
+replication the σ=2.80 floor demands and the deployment artifact.
+
+**Defect fixed:** `model_config()` folds the dropout/augmentation constants into the
+checkpoint guard, so any infer/eval call that omits the `CUHKX_VMIL_*` recipe env fails
+with "model configuration changed" despite correct weights. Now one shared
+`code/ssl_v2_env.sh` is sourced by every script that touches a v2_ssl checkpoint.
+
+---
+
+## EXP-075 — Three-agent fresh audit; four deployed-pipeline defects found; cache v2 built
+**Date:** 2026-08-09 · **Tier:** foundation · **Purpose:** INFORMATION · **RUNNING**
+
+Atharv called a full re-audit ("don't assume the code is correct"). Three parallel
+agents: code correctness, ledger/artifact reconciliation, raw-data probes. Findings
+that were not in any ledger:
+
+**Defects in the DEPLOYED pipeline (code audit):**
+1. **Fusion prior mismatch.** The visual member trains with balanced softmax, so its
+   raw logits target a **uniform** prior; skeleton members use plain CE, so theirs
+   target the **27.9×-skewed train** prior. `fuse_visual_geo.py` fuses them
+   geometrically with no reconciliation — the two members disagree about base rates
+   by construction. Two principled corrections built and staged.
+2. **Transition decoder.** `--distinctness hard` is unused although **0/792 train
+   groups contain a duplicate label** while the deployed argmax produces 44
+   duplicate collisions on test (hard reduces them to 1, changing 30/405). Separately,
+   `pmi` vs `conditional` scoring is a **verified no-op** (0/405 differ) — that audit
+   item is closed. The decoder currently flips 93/405 = 23% of predictions.
+3. **Ensemble weight misallocated.** world25 = 48 members but ~4 distinct
+   architectures (32/48 are seed replicas); **38.1% of weight sits on two IMU
+   members at ~0.30 accuracy** while the best member (astgcn_v1, 0.595) gets 12.4%.
+   Inherited from EXP-040, never re-optimized.
+4. **32/48 packaged members trained with `aug=0`** on a cross-subject problem, and
+   no member was ever refit on all 18 users (old `cv_folds.json` holds out user5/21
+   permanently, so the 0.6178 OOF never covers them).
+
+**Raw-data gaps (probe agent, all measured):**
+- Skeleton stack loads `n_frames=8` → **73.2% of IR/Depth frames discarded**; visual
+  cache keeps 16 → 50.9% discarded; **thermal runs at 24.2 Hz** and is decimated 77.8%.
+- Multi-person is **21.2% of test vs 10.2% of train** — a 2× shift. No tracking exists;
+  slot-0 is the largest person in only 72% of frames and identity switches mid-clip.
+  Worst classes are clothing (Put_on 65%, Fold 54%, Take_off 37%) — the garment is
+  detected as a second skeleton — not the mirror classes. **`person="motion"` provably
+  selects the identity-switching slot**, so EXP-023/057 tested a broken policy.
+- Radar is **100.0% empty for users 16–24** and ~98% present for 1–9 → a free exact
+  cohort label for every test clip; radar *filenames* collapse 404 test clips into 143
+  user-pure sessions even when contents are empty.
+- Thermal's colormap is inferno-family and **strictly monotone in luma** → grayscale
+  averaging loses contrast only, not a dimension. Kills the "invert the colormap" idea.
+
+**Ceiling correction (ledger audit) — changes the campaign's arithmetic.** The
+paper's Depth 90.5 / IR 90.2 / Thermal 92.6 are **pretrained ResNet-50, random-split,
+in-domain**. EXP-015 already measured both discounts here: ImageNet init ≈ *doubles*
+from-scratch visual accuracy, and cross-subject costs ~20 pts even pretrained. So
+"visual reaches 0.90 from scratch" was never supported, and **competition-data SSL is
+the legal substitute for the init those numbers depend on** — not an optional extra.
+EXP-021 measured a cross-modal masked pretext at +3.0 and it was never re-attached to
+a CNN trunk. That re-attachment is now the highest-evidence untested experiment.
+
+**Also:** the prize weighting (Kaggle private 20%, on-site 8-new-subject 30%, repro
+10%, report 20%) makes cross-subject robustness worth 2.5× the leaderboard — which is
+the same filter the 4/4 transfer failures already impose.
+
+**Built this session:** `code/visual_mil_cache.py` geometry is now env-overridable
+(defaults reproduce v1 byte-for-byte; `CACHE_VERSION` carries the geometry so a v2
+build cannot be mistaken for v1), plus a **thermal span-reliability gate** — measured
+over 572 clips the thermal/IR ratio is median 2.43 but std 0.70 with 23.6% outside
+2.0–3.0 (min 0.02, max 7.60), i.e. for a quarter of clips the streams do not span the
+same window and normalized-position sampling aligns nothing. Those clips now get
+their thermal modality mask cleared rather than being fed misaligned frames.
+**cache v2 = 32 frames at 96×128** (`code/run_cache_v2.sh` → `cache/visual_mil_v2`).
+
+**Staged for public measurement (all single-change from the 125 champion):**
+`sub_priorA_trans05.csv` (prior→train space, 46/405 rows), `sub_priorB_trans05.csv`
+(prior→uniform, 64/405), `sub_champ_conditional_disthard.csv` (distinctness hard,
+30/405), plus the four never-scored EXP-074 members. `app_all` (all-18) disagrees with
+the 4-fold member on 36.5% of test clips, so that submission is a real measurement.
+
+**Next:** SSL pretrain on cache v2 (trunk identity with `train_visual_mil.py`
+mandatory), frame-level aux CE head to break the motion-only shortcut, skeleton
+multi-person tracking (OOF structurally cannot measure it — public item).
+
+---
+
+## EXP-073 — GBDT stacking works on OOF, fails on public. **FOURTH consecutive transfer failure — the pattern is the finding.**
+**Date:** 2026-08-08 · **Tier:** explore · **Purpose:** SCORE · **VERDICT: rejected; audit triggered**
+
+**Prompted by Atharv:** "linear failure does not imply nonlinear failure" and
+"build an expert only for those 26 classes". Both were correct criticisms. The
+ledger had **zero** GBDT/stacking attempts — one "learned logit gate" (−6.8) had
+been standing in for the whole family — and I had written off +7.1 clips of
+measured information after testing only weighted fusion.
+
+**Both ideas worked on OOF:**
+
+| configuration | overall | sedentary | vs w=0.35 |
+|---|---:|---:|---:|
+| weighted fusion, best (T, w) | 0.6170 | — | +0.3 |
+| GBDT pairwise stacker, 3 members | 0.6307 | 0.4982 | +3.1 |
+| GBDT pairwise stacker, 8 members | 0.6418 | 0.5149 | +4.7 |
+| **+ 26-class sedentary specialist (9)** | **0.6485** | **0.5173** | **+6.1** |
+
+The specialist beat the generalist appearance member on its own classes,
+**0.2473 vs 0.2171**, purely from restricting the label space.
+
+**PUBLIC RESULT (user-verified):**
+
+| submission | public | vs champion 125 |
+|---|---:|---:|
+| `sub_stack9_trans05.csv` | 0.61691 = **124** | **−1** |
+| `sub_stack9_classid.csv` | 0.59203 = **119** | −6 |
+| `sub_stack9_noclassid.csv` | 0.58706 = **118** | −7 |
+
+**+6.1 OOF → −1 public.** Two useful signals inside it: class-id helped on public
+too (119 vs 118), matching its OOF sign; and **the transition decoder is worth
++5 clips** (124 vs 119), not the +3 in the ledger.
+
+**THE PATTERN, now four for four.** Everything that *learns something from the
+training users* collapses on the public split:
+
+| lever | OOF | public |
+|---|---:|---:|
+| skeleton stack | 0.618 | −7.6 transfer |
+| ordered-transition decoder | +10.4 | +3…+5 |
+| recording-structure decoder | +11.6 | 0 / −2 / −9 |
+| GBDT pairwise stacker | +6.1 | −1 |
+
+This is no longer a series of separate disappointments; it is one property of the
+problem. **Cross-subject shift destroys fitted combination rules.** Stop proposing
+them.
+
+**A specialist bug worth remembering.** The first 26-class run scored exactly
+**0.0000** on sedentary clips and 0.1803 on motion — inverted. Balanced softmax
+adds log(prior) in training and infers without it; the 14 absent classes got
+prior log(1e-9) = −20.7, so training never constrained their logits and raw
+inference predicted only them. Masking unsupported classes at inference fixed it.
+Read as a headline number it looked like a clean negative, and **EXP-054's
+original specialist verdict deserves re-examination for the same reason.**
+
+---
+
+## EXP-074 — Audit pivot: rebuild the family that actually transfers
+**Date:** 2026-08-08 · **Tier:** explore · **Purpose:** SCORE · **RUNNING**
+
+**The audit finding, in one table:**
+
+| family | OOF | public | transfer |
+|---|---:|---:|---:|
+| skeleton / IMU base | 0.618 | 0.542 | **−7.6** |
+| visual MIL | 0.389 | 0.388 | **−0.1** |
+
+**Three weeks went into the family that leaks 7.6 points, and almost nothing into
+the family that leaks 0.1.** Every point added to a visual member should reach the
+leaderboard intact; every point added to skeleton is taxed. The organizers' own
+paper reaches 90.2 / 90.5 / 92.6 in-domain on IR / Depth / Thermal against 79.1
+for skeleton, so the visual ceiling is far higher than what the 2.78 M-parameter
+member reaches.
+
+**Two levers chosen specifically because they are NOT fitted combination rules**
+(see EXP-073's pattern):
+1. **All-18-user training.** `SEARCH_MAP.md:72` has read
+   `Validated full-data checkpoint strategy ?` for the entire campaign while every
+   deployed member is a 4-fold ensemble whose models each saw 13–14 users. More
+   training subjects generalising better across subjects is a mechanism, not a
+   correlation, so it has an argument for surviving the shift.
+2. **Capacity**, width 32 → 48 (2.78 M → 6.23 M parameters), on the visual family
+   only. Three seeds each for the generalist and the 26-class specialist.
+
+No epoch selection is performed for the all-18 members — there is no honest
+held-out set left, so the budget is fixed at the value the fold runs converged on
+and the last epoch is kept.
+
+**Also queued (pure inference, no transfer risk in the parameter):** the
+transition decoder's λ has only ever been set to 0.5 from an OOF fit, and it is
+now measured at +5 public clips. λ ∈ {0.3, 0.7, 1.0} submissions are staged.
+
+---
+
+## EXP-071 — Single-frame appearance member: mechanism confirmed, value not extractable (+0.3 clips)
+**Date:** 2026-08-08 · **Tier:** explore · **Purpose:** SCORE → INFORMATION · **VERDICT: not deployable**
+
+**Setup:** `code/train_frame_appearance.py`, a 2.78 M-parameter 2D CNN over single
+frames at 96×128 (EXP-068 showed finer detail is unused). One frame carries no
+motion, so the model must learn appearance — the capability EXP-068 proved the
+visual MIL branch entirely lacks. 4 folds, 40 epochs, ~10 min/fold against the MIL
+branch's 9.3 h/fold. Fold accuracies 0.3170/0.3182/0.3206/0.3185 — a very stable
+member.
+
+**Result on the full 4-fold OOF (2700 overlapping clips):**
+
+| member | overall | sedentary | unique on sedentary |
+|---|---:|---:|---:|
+| stack (base + visual, w=0.35) | 0.6156 | 0.4722 | — |
+| visual MIL | 0.3893 | **0.2364** | 0.0284 |
+| **appearance** | 0.3233 | 0.2183 | **0.0411** |
+
+- The appearance model has the **highest unique contribution of any member** —
+  4.11% of sedentary clips right where the stack is wrong, against visual MIL's
+  2.84% — confirming the construction argument: denying a model motion makes it
+  learn something genuinely different.
+- **Oracle stack+appearance = 0.6511, i.e. +7.1 clips of real information.**
+- **No fusion rule reaches it.** Log-space fusion at T=1 costs up to −51.7 clips
+  because the model is overfit and overconfident. Temperature scaling recovers
+  the loss but not the gain: the best cell of a 7×6 (T, w) sweep is
+  **T=2, w=0.02 → +0.3 clips**. Arithmetic fusion peaks at +0.7 on one fold and
+  does not survive. The 4-fold ensemble did not fix calibration.
+
+**CORRECTION to the fold-2 reading.** On fold 2 alone the appearance model scored
+0.2402 sedentary against visual MIL's 0.2039, and I called it the best sedentary
+member in the repository. On all four folds it is **0.2183 against 0.2364** — it
+is slightly *worse*. That claim was a single-fold artifact, the same error mode as
+EXP-060 and EXP-066. Only the unique-contribution advantage survives four folds.
+
+**Conclusion:** the diagnosis chain EXP-067 → EXP-068 → EXP-071 is sound and ends
+in a wall. The error mass is fine-grained hand-object discrimination; the visual
+branch is motion-only; a model forced onto appearance does learn complementary
+information; and that information cannot be extracted by any weighted fusion,
+because the member cannot signal when it is right. A learned gate is the obvious
+answer and was already rejected (−6.8 nested).
+**Kept:** `code/train_frame_appearance.py`, `code/build_frame_memmap.py`, the
+1.73 GB frame memmap, and `oof_frame_app_mm.npz`. Cheap to retrain (40 min for
+4 folds) if a per-clip gating mechanism is ever found.
+**Beliefs updated:** B-024 confirmed; NEW B-025 (complementary information exists
+at +7.1 clips but is not linearly extractable).
+
+---
+
+## EXP-070 — **REFUTED ON PUBLIC.** Structure recovers perfectly from timestamps and pays nothing
+**Date:** 2026-08-08 · **Tier:** exploit · **Purpose:** SCORE · **VERDICT: REJECTED**
+
+> **PUBLIC RESULT (user-verified, 2026-08-08) — the prediction was wrong.**
+>
+> | submission | public | vs champion 125 |
+> |---|---:|---:|
+> | `sub_w25vg035_consensus_trans05.csv` | 0.62189 = **125/201** | **0** |
+> | `sub_w25vg035_consensus_trans05_dist.csv` | 0.61194 = **123/201** | **−2** |
+> | `sub_w25vg035_struct_both.csv` | 0.57711 = **116/201** | **−9** |
+>
+> Predicted +5.5 clips (range +4.4…+6.6) at 90% confidence on the sign. Actual:
+> **0 to −9.** Distinctness, which validated at **781/781 = 100%** on train, is
+> *negative* on public. Three submissions spent.
+>
+> **This is EXP-063's transfer asymmetry again, and I walked into it having
+> written the warning myself.** OOF gains in this repository do not transfer:
+> the skeleton stack transfers −7.55, the transition decoder gained +10.4 OOF
+> and delivered +3 public, and this gained +11.6 OOF and delivered ≤0. A
+> constraint being *combinatorially true on train* is not evidence it pays on
+> the public split, because the gain depends on the model's error distribution
+> over the group, not on the constraint's validity.
+>
+> **Standing rule from this failure: no submission is spent on an OOF-validated
+> lever again unless the mechanism has an argument for why it survives the
+> subject shift.** The only trustworthy instrument is the public LB itself
+> (5/day), which is how w=0.35 was found in the first place.
+>
+> The structure recovery itself is correct and is kept in
+> `code/recording_structure.py` — 781/781 runs exact — it simply has no value
+> as a decoder. Do not retry it under a new parameterisation.
+
+**Original predeclaration and evidence follow.**
+
+**Setup:** EXP-069 showed the block/repetition constraint is worth up to +8 oracle
+clips but needs the grouping, which test does not label. Measured the inter-clip
+gap distribution on train (n=2713):
+
+| | median | p25 | p90 |
+|---|---:|---:|---:|
+| within a repetition | **1.3 s** | 0.6 | 4.2 |
+| repetition boundary | **81.9 s** | 65.8 | 199.6 |
+| block boundary | **185.1 s** | 126.4 | 606.6 |
+
+The populations separate cleanly. A 20 s cut catches **100% of repetition and
+block boundaries with a 0.1% false-positive rate inside repetitions**.
+
+**Validation on train, against the true trial names (`code/recording_structure.py`):**
+- runs matching exactly one true (group, repetition): **781/781 = 1.0000**
+- runs with pairwise-distinct classes: **781/781 = 1.0000**
+- positional triples that are truly one class: **694/734 = 0.9455**, covering 75.7%
+
+Independent corroboration: `ordered_transition_decoder.py` recovers 144 groups /
+376 clips in multi-clip groups on test, identical to this module's runs.
+
+**Gain on 2700 OOF clips, fused w=0.35 (baseline 0.6156):**
+
+| | overall | Δ clips/201 |
+|---|---:|---:|
+| distinctness only | 0.6352 | +3.9 |
+| consensus only | 0.6522 | +7.4 |
+| consensus + distinctness | **0.6733** | **+11.6** |
+| **coverage-matched to test** | 0.6427 ± 0.0043 | **+5.5 (+4.4…+6.6)** |
+
+The coverage-matched row is the honest estimate: test is a released *subset*, so
+consensus reaches only 17% of its clips against 75.7% on train, while distinctness
+reaches 376/405. The +11.6 figure is not what test will pay.
+
+**Why this should transfer better than the transition decoder.** That decoder gained
++10.4 clips on OOF and delivered +3 on public — it *estimates* transition statistics
+from train users. This module fits nothing: distinctness and 3× repetition are
+properties of the recording protocol, and the only inputs are frame timestamps.
+
+**Rejected inside this experiment:** extending consensus coverage on test by
+matching clips across repetitions instead of by position. Free Hungarian on
+Bhattacharyya affinity reached 0.537 clip-weighted purity; monotone
+(Needleman-Wunsch) alignment 0.579; adding a positional prior made it *worse*
+(0.522), and under simulated test subsampling all variants fell to 0.30–0.46.
+The model's own predictions are too noisy to align with. Only the exact-triple
+rule is shipped.
+
+**Staged submissions** (from `testprobs_w25vg035_f0123`, the 125/201 member):
+
+| file | pipeline | differs from champion |
+|---|---|---:|
+| `sub_w25vg035_consensus_trans05_dist.csv` | consensus → transition λ=0.5 → distinctness | 49/405 |
+| `sub_w25vg035_struct_both.csv` | consensus + distinctness, no transition | 118/405 |
+| `sub_w25vg035_consensus_trans05.csv` | consensus → transition λ=0.5 | 25/405 |
+| `sub_w25vg035_struct_distinct.csv` | distinctness only | 106/405 |
+
+**Confidence:** 90% that the sign is positive (constraints validated at 100%/94.6%
+without labels); 60% on the +4…+7 magnitude.
+**Beliefs updated:** B-022 upgraded — distinctness is exactly recoverable on test,
+not merely plausible.
+**Next ideas:** single-frame appearance model (EXP-068's diagnosis); the 26-class
+sedentary specialist.
+
+---
+
+## EXP-069 — Recording block/repetition structure: real, but a +8 clip ceiling
+**Date:** 2026-08-08 · **Tier:** explore · **Purpose:** INFORMATION · **Cost:** ~0 (CPU)
+
+**Setup:** train timestamps parsed from Depth_Color filenames (2910 clips), sessions
+split on a 20-minute gap, groups keyed `(user, station, block)` from the `A-B-C`
+trial name.
+
+**The structure is exact.** 267 groups. Class multiplicity within a group is
+**3× for 926 of 1013 (group, class) pairs**; group sizes are multiples of 3
+(6/9/12/15/18); **100% of repetitions contain pairwise-distinct classes**; median
+3, mean 3.8 distinct classes per group. A block is an ordered list of K classes
+performed three times, e.g. user1 `3-2-*` = `[32,36,13,34,17,20,29,35]` × 3.
+
+**Ceilings measured on 2700 OOF clips over the fused stack (0.6363 baseline):**
+
+| exploitation | overall | sedentary | vs baseline |
+|---|---:|---:|---:|
+| oracle repetition triples (upper bound) | 0.6767 | 0.5466 | **+8.1 clips** |
+| group + rep-position triples (recoverable) | 0.6544 | 0.5308 | +3.6 clips |
+| distinctness within each repetition | 0.6556 | 0.5187 | +3.9 clips |
+| group + at-most-3-per-class assignment | 0.6411 | 0.5018 | +1.0 clips |
+
+**Conclusion:** the constraint is real and legal (transduction is permitted) but
+its *oracle* ceiling is +8 clips, and realistic recovery is +4 to +6. Repetitions
+are not independent votes — same user, same station, same activity means errors
+correlate, which is why EXP-04x repeat-consensus scored 112→111. Worth banking,
+not a path to 0.90.
+**Beliefs updated:** B-022 (distinctness) — quantified, ceiling now known.
+
+---
+
+## EXP-068 — **THE VISUAL BRANCH IS A MOTION MODEL WITH NO APPEARANCE.** Spatial detail is unused; temporal detail is everything
+**Date:** 2026-08-08 · **Tier:** explore · **Purpose:** INFORMATION · **Cost:** ~15 min GPU
+
+**Why run it:** EXP-067 said the prize is fine-grained hand-object discrimination,
+which pointed at "crop to the hands / add resolution". Three iterations of a depth
+based person-box detector reached only ~5/12 usable crops, and I was about to
+spend 10+ GPU-hours on a cache rebuild. The assumption underneath the whole plan —
+*that the model is resolution-starved* — had never been tested. It is testable for
+free: hold a trained checkpoint and its tensor shapes fixed, and destroy either
+spatial or temporal information in the input.
+
+**Setup:** `visual_mil_reg1_f2`, fold-2 val (652 clips, 440 sedentary).
+Spatial: downsample by scale s then upsample back to 192×256.
+Temporal: hold each frame for k steps (16 frames → 16/k effective).
+
+**Spatial — accuracy is flat to a quarter resolution:**
+
+| input detail | overall | sedentary | Δ sedentary |
+|---|---:|---:|---:|
+| 192×256 (as trained) | 0.3512 | 0.2250 | — |
+| 96×128 | 0.3528 | 0.2295 | **+0.45** |
+| 48×64 | 0.3420 | 0.2159 | −0.91 |
+| 28×38 | 0.3206 | 0.1932 | −3.18 |
+
+**Temporal — accuracy collapses immediately:**
+
+| effective frames | overall | sedentary | motion |
+|---|---:|---:|---:|
+| 16 (as trained) | 0.3512 | 0.2250 | 0.6132 |
+| 8 | 0.3098 | 0.2068 | 0.5236 |
+| 4 | 0.2485 | 0.1818 | 0.3868 |
+| 1 (still image) | 0.0752 | 0.1114 | **0.0000** |
+
+**Conclusion — the model has learned motion and essentially zero appearance.**
+Throwing away 94% of the pixels costs nothing; throwing away half the frames costs
+4.1 points. At a single frame the motion classes score **exactly 0.000** while
+sedentary still scores 0.111, i.e. the entire visual branch is a motion classifier.
+The objects *are* in the pixels — a glass, a spoon and a phone screen are plainly
+visible in `cache/train_roi224` — but with 2933 clips over 40 classes the network
+latched onto motion, which solves the 39% of data that is whole-body activity, and
+never learned what is in the hand.
+
+**What this kills:** higher-resolution caches, hand/upper-body crop streams, and
+the person-box detector work. They cannot help a model that discards its existing
+spatial detail. This retires C-01/Q-97 and the EXP-027 line for good, and it
+retroactively explains EXP-027 and the ROI-CNN failures — those were never crop
+quality problems.
+
+**What this opens:** the sedentary curve has **not saturated in time** (16→8 still
+costs 1.82 points), so frame count is a live lever; `cache/train_roi224` already
+stores every frame. And the appearance gap is now a *diagnosed* deficit rather
+than a guess, which is the first principled argument for competition-data SSL:
+the missing capability is object appearance, and appearance is exactly what an
+unlabeled pretext task over 3,338 clips could supply.
+
+**Confidence:** 95%. Two independent ablations on a trained checkpoint, and the
+station-prior control (fold-safe P(class|station) scores 0.0115 on sedentary vs
+the branch's 0.2281, agreement 9.1%) rules out "it is only recognising the room".
+**Beliefs updated:** NEW B-024 (visual branch is motion-only); B-023 sharpened;
+kills the crop/resolution family.
+**Next ideas:** 32-frame visual member; sedentary-only specialist; SSL for
+appearance; bank EXP-069's structural gain.
+
+---
+
+## EXP-067 — **THE ERROR IS ONE SHAPE.** 75% of all error is fine-grained sedentary hand-object confusion
+**Date:** 2026-08-08 · **Tier:** explore · **Purpose:** INFORMATION · **Cost:** ~0 (CPU, existing artifacts)
+
+**Why run it:** after EXP-065's fusion marginal came in at +0.96 points (~2 public
+clips) for 14 GPU-hours, Atharv asked whether waiting on more folds was worth the
+compute. It was not. The campaign had never measured *where* the missing clips
+are — only which member scores higher. Every experiment since EXP-050 tuned a
+component without knowing which errors that component was supposed to fix.
+
+**Setup:** OOF overlap of `astgcn_world25` (base) and `visual_mil_v1` (visual),
+2700 clips with labels, geometric fusion at the OOF-optimal w=0.20. Errors
+partitioned by an 11-way semantic clustering of the 40 classes, then by a coarser
+2-way split: 26 **sedentary hand-object** classes (person static, hands
+manipulating an object) vs 14 **whole-body motion** classes.
+
+**Findings:**
+
+| split | classes | n | % data | base | visual | fused |
+|---|---:|---:|---:|---:|---:|---:|
+| whole-body motion | 14 | 1046 | 38.7% | 0.822 | 0.631 | **0.849** |
+| sedentary hand-object | 26 | 1654 | 61.3% | 0.489 | 0.236 | **0.502** |
+
+- **75.4% of all errors are sedentary-class confused with sedentary-class.**
+  That is **55.1 public clips** of error mass in one place.
+- The coarse split is nearly solved: only 107 errors cross the
+  sedentary/motion boundary. The model knows someone is sitting using their
+  hands; it cannot tell *what they are doing with them*.
+- **Perfect sedentary discrimination would score 0.9104** — the 0.91 directive,
+  almost exactly. The whole target is inside this one cluster.
+- Top confusions are all object-identity pairs, not pose pairs: 6 Drink_water ↔
+  7 Eat_food (33), 8/9/10/11 tableware/pour/stir/peel (94 within-cluster),
+  12 Sweep ↔ 13 Mop (31), 21 Read_documents ↔ 22 Turn_pages (24), 37
+  Take_medicine → 6/7 (20). **Class 26 Play_games scores 0.025** (39/40 wrong,
+  → 24 Use_a_mobile_phone / 19 Make_a_phone_call).
+- Per-member ranking on sedentary classes only: skeleton `world25` **0.489**,
+  visual MIL **0.236**, every IMU variant **0.15–0.17**, depth/IR ROI CNNs
+  0.11–0.18. Nothing in the repository is good at this.
+- Fusion already extracts most of the base/visual complementarity: oracle
+  best-of-two on sedentary is 0.556 vs fused 0.502, and visual-right/base-wrong
+  is only 6.8%. **The visual branch adds almost no unique information where it
+  matters.**
+
+**Conclusion:** the competition is not a 40-class HAR problem. It is a 26-class
+fine-grained hand-object problem wearing a 40-class costume, and the skeleton
+family is structurally blind to it — hand-to-mouth pose is identical for drink,
+eat and take-medicine. This explains three previously separate puzzles: why
+three weeks of skeleton tuning bought nothing (B-021's "model side is closed"),
+why EXP-065's regularization gains did not survive fusion (it improved classes
+that were already solved), and why rank 1 at 181/201 must use a categorically
+different signal rather than a better-tuned version of this one.
+
+**What this retires:** any further member-level tuning evaluated on overall
+accuracy. Overall accuracy is 39% dominated by a solved sub-problem, so it
+cannot resolve progress on the part that matters. **All future experiments
+report sedentary-class accuracy as the primary metric.**
+
+**Confidence:** 95% on the decomposition (direct measurement, 2700 clips);
+70% that closing it is reachable before 2026-09-15.
+**Beliefs updated:** B-021 (model side closed) — REFRAMED, it was closed only
+over skeleton-derived features; NEW B-023 (error mass is one fine-grained
+cluster); B-013 downgraded further.
+**Next ideas:** EXP-068 spatial/temporal information ablations on a trained
+checkpoint (is the visual branch even resolution- or motion-limited?);
+sedentary-only specialist; class-group-specific fusion weights.
+
+---
+
 ## EXP-063 — **THE TRANSFER ASYMMETRY.** Visual transfers, skeleton does not; OOF cannot tune fusion.
 **Date:** 2026-08-02 · **Tier:** explore · **Purpose:** INFORMATION · **New best 125/201**
 
@@ -120,7 +770,111 @@ longer is the standard pairing, and the cosine schedule scales with `EPOCHS`.
 
 ---
 
-## EXP-064 — Regularized recipe at 150 epochs (RUNNING, ~23h)
+## EXP-064 — RESULT: 150 epochs = 60 epochs, exactly. Epochs are NOT a lever.
+**Date:** 2026-08-07 · fold 2 · tag `visual_mil_reg2_e150`
+
+| | EXP-062 (60 ep) | EXP-064 (150 ep) |
+|---|---:|---:|
+| **micro** | **0.35123** | **0.35123** |
+| macro | 0.36083 | 0.34934 |
+| object | 0.24008 | 0.24843 |
+| gross motion | 0.65896 | 0.63584 |
+| **final train CE** | **1.1823** | **0.8002** |
+
+**Micro is identical to five decimals — 229/652 in both.** 90 extra epochs drove train CE from
+1.182 to 0.800 (a large increase in training-set fit) and bought **exactly zero** held-out
+accuracy. This is the third branch of the predeclared read: the regularized recipe converges by
+60 epochs, and **additional optimization does not transfer**.
+
+Combined with EXP-062, the picture is now specific: the branch's bottleneck is neither
+optimization nor capacity. Regularization moved it (0.333 -> 0.351) and saturated; epochs do
+nothing. What remains is the representation and the data regime.
+
+**Cost note:** this run lost ~12h to a stall and ~3 days idle to two process-group kills. The
+work survived only because of checkpointing. `setsid` never survived teardown — the watchdog died
+alongside the trainer both times, which is why no restart was ever logged. Now run under **tmux**
+(session teardown) **plus** the watchdog (stalls); the two failures are different and need
+different protection. Launcher moved out of `/tmp` (cleared between sessions, which broke one
+restart) into `code/run_exp064_reg2.sh`.
+
+---
+
+## EXP-066 — Visual models are strongly DECORRELATED; averaging helps them and HURTS the stack
+**Date:** 2026-08-07 · **Tier:** explore · **Purpose:** INFORMATION · **Cost: 0 GPU**
+
+Pairwise agreement between the three fold-2 visual models is only **0.371-0.400**, with a 3-way
+union oracle of **0.51534** against individual accuracies of 0.333-0.351.
+
+| combination | standalone | marginal in the full stack (552-clip overlap) |
+|---|---:|---:|
+| fixed only | 0.33282 | +1.27 |
+| **reg1 only** | 0.35123 | **+2.90** |
+| reg1 + reg2 | **0.40337** | +1.99 |
+| 3-way | **0.40644** | +2.72 |
+
+**Averaging the visual models improves them standalone by +5.2 points and makes them WORSE in
+fusion.** The stack does not want a more accurate visual member; it wants a *complementary* one.
+Averaging regresses the member toward consensus and destroys the idiosyncratic rescues that gave
+it value — consistent with EXP-050b's 44 visual-only rescues and with B-017's repeated finding
+that complementary error mechanisms beat better-but-similar members.
+
+**Caveat, stated plainly:** 552 clips with the fusion weight selected on those same clips. The
+ranking is suggestive, not established; the +2.90 vs +1.99 difference is ~5 clips.
+
+**Actionable signal:** the regularized member contributes **+2.90** to the stack versus the fixed
+recipe's **+1.27** — more than double, on the same clips with the same procedure.
+
+---
+
+## EXP-065 — REGULARIZATION REPLICATES ON FOLD 0, larger than on fold 2
+**Date:** 2026-08-08 · fold 0 complete, fold 1 at epoch 36/60, fold 3 pending
+
+| fold | metric | fixed recipe | regularized | delta |
+|---:|---|---:|---:|---:|
+| **0** | micro | 0.37838 | **0.41032** | **+3.19** |
+| 0 | macro | 0.29221 | 0.32216 | +3.00 |
+| 0 | object | 0.21467 | **0.25403** | **+3.94** |
+| 0 | gross motion | 0.73725 | 0.75294 | +1.57 |
+| 2 | micro | 0.33282 | 0.35123 | +1.84 |
+| 2 | macro | 0.33046 | 0.36083 | +3.04 |
+| 2 | object | 0.21920 | 0.24008 | +2.09 |
+| 2 | gross motion | 0.64740 | 0.65896 | +1.16 |
+
+**Eight metric-fold combinations, all positive**, on two independent folds with different user
+subsets. EXP-062's caveat ("direction supported on 4 metrics, magnitude unresolved on 1 fold") is
+now discharged: this is a replicated effect of roughly **+2.5 micro / +3.0 object**.
+
+**Object classes gain most in both folds** (+3.94, +2.09), which is where B-021's error mass sits
+and where every previous attempt failed. The mechanism remains the one EXP-062 identified:
+`SPATIAL_CROP_MIN=0.90` gave essentially no spatial augmentation to a 2.31M-parameter model on
+~2.1k clips, so the branch was regularization-starved rather than capacity- or optimization-limited
+(EXP-064 having ruled out epochs).
+
+**Still unmeasured:** the visual branch's seed variance. Two folds agreeing in sign on 8/8 metrics
+is much stronger than one fold, but a same-recipe seed replicate has never been run, so the
+effect size carries no error bar. Worth one 9.3h run once the fold sweep finishes.
+
+**Infrastructure:** fold 0 completed cleanly under tmux+watchdog (no restarts). The tmux server
+itself disappeared overnight — likely a host reboot rather than a session teardown, since a tmux
+server survives shell exit. Fold 1's work was preserved by checkpointing and resumed at epoch 36.
+
+---
+
+## EXP-065 — predeclaration (kept for provenance)
+**Date:** 2026-08-07 · `code/run_reg_folds.sh` · tag `visual_mil_reg1`
+
+60 epochs (EXP-064 showed 150 buys nothing). Direct test of whether EXP-066's +2.90 fold-2 signal
+survives into a deployed 4-fold member and a public submission. Fold 2 already exists.
+
+**Note the tension this experiment must resolve:** EXP-066 says averaging visual models hurts
+fusion, and a 4-fold member *is* an average. The distinction being bet on is that folds average
+over *different training users* (coverage) rather than over *the same data* (consensus). If the
+4-fold regularized member underperforms the single reg1 fold-2 member in fusion, that bet is wrong
+and the deployed member should be a single regularized model.
+
+---
+
+## EXP-064 — predeclaration (kept for provenance)
 **Date:** 2026-08-03 · fold 2 · tag `visual_mil_reg2_e150`
 
 EXP-062's overrides, unchanged, plus `CUHKX_VMIL_EPOCHS=150`. Single isolated change from

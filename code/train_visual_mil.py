@@ -100,10 +100,15 @@ DEFAULT_BASELINE_OOF: Path | None = None
 
 SCREEN_FOLD = 2
 N_CLASSES = 40
-CACHE_STEPS = 16
-INPUT_HEIGHT = 192
-INPUT_WIDTH = 256
-PARAMETER_CAP = 4_000_000
+# Cache geometry, env-overridable to match whichever cache is mounted.  Defaults
+# are v1 (16 frames at 192x256); cache v2 is 32 frames at 96x128 -- EXP-068
+# measured accuracy flat down to 96x128 while 16->8 frames costs 4.1 points, so v2
+# trades unused pixels for frames.  These must agree with the mounted cache or the
+# dataset's derived-shape assertion fires.
+CACHE_STEPS = int(os.environ.get("CUHKX_CACHE_SEGMENTS", "16"))
+INPUT_HEIGHT = int(os.environ.get("CUHKX_CACHE_HEIGHT", "192"))
+INPUT_WIDTH = int(os.environ.get("CUHKX_CACHE_WIDTH", "256"))
+PARAMETER_CAP = int(os.environ.get("CUHKX_VMIL_PARAM_CAP", "4000000"))
 FP32_BYTE_CAP = 16_000_000
 
 CHECKPOINT_KIND = "cuhkx_visual_mil"
@@ -554,12 +559,18 @@ def load_visual_sample(
         ir = np.asarray(archive["ir"])
         depth = np.asarray(archive["depth"])
         thermal = np.asarray(archive["thermal"])
-        if ir.shape != (CACHE_STEPS, 192, 256) or ir.dtype != np.uint8:
+        # Cache geometry comes from the module constants, which are env-driven,
+        # so the same loader validates v1 (16 at 192x256) and v2 (32 at 96x128).
+        # These were hardcoded to 192x256 while CACHE_STEPS was already a
+        # constant -- a half-parameterised check that silently rejected any
+        # re-geometried cache.
+        cache_hw = (INPUT_HEIGHT, INPUT_WIDTH)
+        if ir.shape != (CACHE_STEPS, *cache_hw) or ir.dtype != np.uint8:
             raise ValueError(f"{path}: invalid IR {ir.shape}/{ir.dtype}")
         if depth.shape != ir.shape or depth.dtype != np.uint8:
             raise ValueError(f"{path}: invalid Depth {depth.shape}/{depth.dtype}")
         if (
-            thermal.shape != (CACHE_STEPS, 192, 256, 3)
+            thermal.shape != (CACHE_STEPS, *cache_hw, 3)
             or thermal.dtype != np.uint8
         ):
             raise ValueError(
@@ -2106,6 +2117,34 @@ def train_command(args: argparse.Namespace) -> None:
         raise RuntimeError("training loader is empty")
 
     model = VisualMILNet().to(device)
+    if getattr(args, "init_trunk", None):
+        # Load a self-supervised trunk (code/ssl_pretrain_visual.py).  Only the
+        # adapters and shared trunk are transferred -- heads stay randomly
+        # initialised -- and loading is strict over the keys that do exist, so a
+        # geometry or architecture drift fails loudly instead of silently
+        # training from scratch and being reported as an SSL result.
+        package = torch.load(args.init_trunk, map_location="cpu", weights_only=False)
+        ssl_state = package["state_dict"]
+        target = model.state_dict()
+        transferable = {
+            k: v for k, v in ssl_state.items()
+            if k in target and target[k].shape == v.shape
+        }
+        expected = [k for k in target if k.startswith(
+            ("ir_adapter", "depth_adapter", "thermal_adapter", "shared_trunk"))]
+        missing = [k for k in expected if k not in transferable]
+        if missing:
+            raise RuntimeError(
+                f"{args.init_trunk}: {len(missing)} trunk tensors did not transfer "
+                f"(first={missing[0]}); refusing to pass this off as an SSL init"
+            )
+        model.load_state_dict({**target, **transferable})
+        print(
+            f"SSL init: transferred {len(transferable)} tensors from "
+            f"{args.init_trunk} (epoch {package.get('epoch')}, "
+            f"geometry {package.get('cache_geometry')})",
+            flush=True,
+        )
     footprint = model_footprint(model)
     train_class_counts = torch.bincount(
         torch.as_tensor(training.labels, dtype=torch.long),
@@ -3074,6 +3113,15 @@ def make_parser() -> argparse.ArgumentParser:
     )
     train.add_argument(
         "--artifact-dir", type=Path, default=DEFAULT_ARTIFACTS
+    )
+    train.add_argument(
+        "--init-trunk",
+        type=Path,
+        default=None,
+        help=(
+            "self-supervised trunk checkpoint from code/ssl_pretrain_visual.py; "
+            "transfers adapters + shared trunk only, heads stay random"
+        ),
     )
     train.set_defaults(function=train_command)
 

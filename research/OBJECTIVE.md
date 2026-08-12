@@ -51,6 +51,18 @@
   gap is **+60 correct public clips**. This is the target the queue is ranked
   against; rank-15 and other leaderboard context inform sequencing, not whether
   to pursue it.
+- **BAR MOVED (Atharv, 2026-08-08): Top 15 now sits at 0.73 = 147/201**, not the
+  137 recorded from the older snapshot. The gap to the Selection Stage is
+  therefore **+22 clips from 125**, and the earlier "137 is the honest target"
+  framing is obsolete.
+- **HARD RULE ADDED 2026-08-08 after EXP-070 was refuted on public.** No
+  submission is spent on a lever validated only on OOF unless there is a stated
+  mechanism for why it survives the subject shift. The evidence: the skeleton
+  stack transfers **−7.55**; the transition decoder gained **+10.4 OOF → +3
+  public**; EXP-070's structure decoder gained **+11.6 OOF → 0/−2/−9 public**
+  despite its constraints validating at 100% and 94.6% on train. OOF is not
+  evidence in this repository. The public LB (5/day, ~185 remaining before
+  2026-09-15) is the only trustworthy instrument, and it is how w=0.35 was found.
 - **Arithmetic to keep in view:** 183/201 is **2 clips above the current rank 1**
   (Jacobo Martin, 181/201 = 0.90049), which itself stands 20 clips clear of
   rank 2. The directive is therefore to win the public board outright, not to
