@@ -13,6 +13,133 @@ results.
 
 ---
 
+## EXP-088 — Thermal through the video recipe: strong member, decorrelated, and it adds NOTHING.
+**Date:** 2026-08-16 · `code/build_thermal_cache.py`, `code/train_video_thermal.py` · **Tier:** explore
+**Purpose:** SCORE. Thermal is the paper's top-ranked sensor (92.57) and both public notebooks discard it.
+
+**Setup:** identical to EXP-086 except the input tensor — YOLO person-crop on thermal's
+own frames, 3-channel (ironbow JPG kept as RGB, so the Kinetics stem needs no surgery
+at all), 2165 train clips after dropping 116 with no thermal, same fold-2 outer set.
+
+**Result:** micro **0.54448**, object 0.46764 (224/479), motion 0.75723. Against the 2D
+ImageNet thermal member's 0.34783 that is **+19.7 points** — the crop+video recipe
+transfers to a third modality, so EXP-086 was not an IR/depth-specific fluke.
+
+**And yet it contributes zero.** Added to the champion fusion at every weight from 0.05
+to 0.35, the best result is +0.00 (flat at w=0.15) and it degrades from w=0.20 up. This
+despite video/thermal argmax agreement of only **0.5435** — as decorrelated a pair as we
+have ever measured.
+
+**Why (measured, not assumed):** thermal is uniquely correct on **34 of 552 clips the
+champion gets wrong** — real headroom, ~12 public clips. But it is wrong on 247, and its
+mean top-1 confidence is **0.511 on its unique-correct clips vs 0.413 on its errors**. The
+separation is far too small for any global weight or confidence gate to harvest the 34
+without importing a larger share of the 247.
+
+**Conclusion:** decorrelation is NOT sufficient for fusion gain. A member must be either
+accurate or *calibrated* — thermal is neither enough of the first nor remotely the second.
+This kills the "add more decorrelated modalities" line as a general strategy and explains
+retrospectively why IMU worked (its errors are confined to classes where it is reliably
+unconfident) while thermal does not.
+**Beliefs updated:** B-027 NEW (decorrelation is insufficient; calibration separation is
+the binding requirement for a fusion member).
+**Not doing:** thermal folds 0/1/3. 8 GPU-hours for a member with no extractable signal.
+
+---
+
+## EXP-086b/089 — Four video folds complete; all-18 members training.
+**Date:** 2026-08-16 · `code/run_vid_folds.sh`, `code/run_all18.sh` · **Tier:** exploit
+
+| fold | micro | object | motion |
+|---|---|---|---|
+| 0 | 0.62776 | 0.49732 (278/559) | 0.91373 |
+| 1 | 0.61916 | 0.54188 (317/585) | 0.81659 |
+| 2 | 0.63957 | 0.54906 (263/479) | 0.89017 |
+| 3 | 0.69832 | 0.60181 (266/442) | 0.90047 |
+
+Mean 0.6462, spread 0.079 — the recipe replicates; fold 2 was not a lucky draw. Pairwise
+test-set argmax agreement between folds is only **0.625–0.686**, so the 4-fold bag is
+genuinely additive rather than four copies of one model.
+
+**Bug (mine, cost ~1 GPU-hour):** `build_model()` unconditionally rebuilt the stem as
+4-channel, so the first thermal run failed every forward pass and the watchdog burned its
+8 restarts. `build_model` now takes `in_channels` (default 4, so all existing checkpoints
+rebuild identically). Fold 1 was interrupted at epoch 9 to re-prioritize thermal and
+resumed from its per-epoch state, costing one partial epoch.
+
+**Running:** `vid_all18_s*` — two seeds trained on all 2,933 clips with no held-out fold.
+Each fold member sees only ~2,200; the published notebook trains on everything and its
+single model scores 143/201 against our best single fold's 121 solo, so part of that gap
+is simply data volume.
+
+---
+
+## EXP-086 — **Person-crop + Kinetics video backbone: +23.9 micro over the best prior member.**
+**Date:** 2026-08-15 · `code/build_crop_cache.py`, `code/train_video_crop.py`, `code/infer_video_crop.py` · **Tier:** exploit
+**Purpose:** SCORE. Ports the published LB 0.711 recipe (143/201 vs our 131).
+
+**Setup:** YOLO11n person crop (union of 8 per-probe top-confidence boxes, margin 1.4,
+floored at 0.35·max(W,H), ONE fixed window for all 16 frames) → 128×128×4ch
+(Depth_Color RGB + IR) → torchvision `r2plus1d_18` Kinetics-400, 4-ch stem with the IR
+kernel initialized to the mean of the RGB kernels. lr 5e-5, EMA 0.99, 30 epochs, last
+epoch kept (never best), clip-level augmentation only. Fold 2, identical outer subjects
+as EXP-083/084.
+
+**Result — single change (backbone+crop) against every prior visual member, same fold:**
+
+| member | micro | object (/479) | motion |
+|---|---|---|---|
+| from-scratch MIL trunk | 0.35123 | 0.24843 (119) | 0.63584 |
+| ImageNet ResNet18 | 0.34816 | 0.26931 (129) | 0.56647 |
+| ImageNet ResNet50 | 0.40031 | 0.34238 (164) | 0.56069 |
+| **crop + Kinetics R(2+1)D** | **0.63957** | **0.54906 (263)** | **0.89017** |
+
+**+23.9 micro / +99 object clips / +25.4 motion** over the best prior member. Three times
+the largest effect previously measured in this campaign, and unlike every earlier lever it
+moves BOTH error masses at once.
+
+**Fusion (fold-2 OOF, 552 clips overlapping the world25 base; 1 clip = 0.18 pts):**
+
+| configuration | micro | object |
+|---|---|---|
+| base (world25 skeleton stack) alone | 0.56341 | 0.46649 |
+| video alone | 0.61957 | 0.50515 |
+| imu_stats alone | 0.36051 | 0.23196 |
+| base + video, w=0.55 | 0.65399 | 0.55155 |
+| base + {video, r50} | 0.61594 | 0.51289 |
+| base + {video, mil_v1} | 0.62500 | 0.52577 |
+| **base + {video, imu_stats}, w=0.55** | **0.68841** | **0.59794** |
+| base .30 / video .25 / imu .45 (grid argmax, fitted) | 0.70833 | 0.62629 |
+
+**Two findings beyond the headline:**
+1. **The older visual members are now dead weight.** Adding ResNet50 to the visual slot
+   COSTS 3.8 micro (0.65399 → 0.61594); mil_v1 costs 2.9. Every visual member built before
+   this one is superseded, not complementary — they should be dropped, not re-weighted.
+2. **IMU is strongly complementary**, +3.4 micro / +4.6 object over video alone, and the
+   fitted grid wants w_imu ≈ 0.45 despite imu solo being 0.36051. Weak-but-decorrelated is
+   exactly the profile that earns high fusion weight.
+
+**Candidates built** (rowdiff vs champion `sub_champ_bounigram` = 131/201): `sub_vidimu_A_trans05`
+88, `sub_vidimu_C_trans05` 102, `sub_vidimu_A_raw` 123, `sub_vidcrop_f2_solo` 176. All far
+above the ±9–10 clip noise floor. Weights taken from the plateau, NOT the grid argmax:
+fitted combinations have failed 4/4 on this competition.
+
+**Packaging constraint (new, load-bearing):** r2plus1d_18 is 31.3M params = 62.6 MB fp16,
+31.3 MB int8. A 4-fold bag does NOT fit the 100 MB single-file budget in fp16. Rules §2.8.b
+makes a >10% Stage-2/Kaggle gap a disqualification, so the LB configuration and the
+shippable configuration must be reconciled before the final submission, not after.
+
+**Conclusion:** The diagnosis was right — our members were weak, and the fusion was
+polishing weak components. This is the first member strong enough to carry the ensemble.
+**Confidence:** 90% that a public gain lands; unmeasured until scored.
+**Beliefs updated:** B-026 NEW (crop+video pretraining dominates). The "visual family is
+near its ceiling" belief is falsified — the family was never at a ceiling, only the
+from-scratch/ImageNet-2D sub-family was.
+**Next:** folds 0/1/3 running (`code/run_vid_folds.sh`, ~8 h); then thermal, which both
+public notebooks discard and which the paper rates the best single modality (92.57).
+
+---
+
 ## EXP-079/080/081 — **THE CAMPAIGN WAS BUILT ON A FALSE RULE. Pretrained backbones are legal.**
 **Date:** 2026-08-10 · **Tier:** foundation · **Purpose:** INFORMATION+SCORE
 

@@ -36,6 +36,8 @@ def main() -> int:
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--output", default=None)
     p.add_argument("--submission", default=None)
+    p.add_argument("--no-flip-tta", action="store_true",
+                   help="disable the horizontal-flip test-time average")
     args = p.parse_args()
 
     device = torch.device("cuda")
@@ -46,11 +48,15 @@ def main() -> int:
     # Per-modality members carry a different head width, so the checkpoint's own
     # modality list -- not the module default -- has to rebuild the architecture.
     mods = tuple(saved.get("modalities") or ("ir", "depth", "thermal"))
+    # Backbone family and resize both live in the checkpoint's args; rebuilding from
+    # module defaults silently constructs a resnet18 and fails on every shape.
+    arch = str(saved.get("arch") or "resnet18")
+    resize = saved.get("resize")
     model = PretrainedVisual(dropout=float(saved.get("dropout", 0.4)), pretrained=False,
-                             n_modalities=len(mods))
+                             n_modalities=len(mods), arch=arch)
     model.load_state_dict(package["state_dict"])
     model = model.to(device).eval()
-    print(f"{args.tag}: stride={stride} mods={','.join(mods)}  "
+    print(f"{args.tag}: stride={stride} arch={arch} mods={','.join(mods)}  "
           f"OOF micro={package.get('micro'):.5f} object={package.get('object'):.5f}")
 
     with open(SAMPLE) as handle:
@@ -62,7 +68,8 @@ def main() -> int:
     sids = [p.strip("/").split("/")[-1] for p in paths]
 
     loader = torch.utils.data.DataLoader(
-        ClipSet(sids, None, "test", stride, False, modalities=mods),
+        ClipSet(sids, None, "test", stride, False, modalities=mods,
+                resize=tuple(resize) if resize else None),
         batch_size=args.batch_size, shuffle=False, num_workers=args.workers)
 
     out = []
@@ -70,8 +77,17 @@ def main() -> int:
         for x, _ in loader:
             x = (x.to(device) - MEAN.to(device)) / STD.to(device)
             with torch.autocast("cuda", dtype=torch.float16):
-                logits = model(x)
-            out.append(torch.softmax(logits.float(), -1).cpu().numpy())
+                probs = torch.softmax(model(x).float(), -1)
+                if not args.no_flip_tta:
+                    # Training applies a p=0.5 horizontal flip but inference never
+                    # did, and the model is NOT flip-invariant: it disagrees with its
+                    # own mirrored input on ~30% of clips, concentrated exactly on the
+                    # handedness/hand-object classes (Put_on_clothes 0.667, Write
+                    # 0.600, Drink_water 0.548) and ~0 on gross motion. Averaging the
+                    # two views is worth +50/2933 outer-fold clips, positive on 4/4.
+                    probs = 0.5 * (probs + torch.softmax(
+                        model(torch.flip(x, dims=[-1])).float(), -1))
+            out.append(probs.cpu().numpy())
     probs = np.concatenate(out).astype(np.float32)
     assert probs.shape == (len(sids), 40), probs.shape
 
