@@ -50,7 +50,7 @@ research/*
 /wandb/
 /lightning_logs/
 /mlruns/
-
+/third_party/
 # Model and array artifacts created outside the directories above
 *.pt
 *.pth

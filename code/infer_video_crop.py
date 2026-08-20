@@ -21,7 +21,9 @@ import os
 import numpy as np
 import torch
 
-from train_video_crop import CropClips, build_model, predict
+import torch.nn as nn
+
+from train_video_crop import CropClips, build_model, predict, KIN_MEAN, KIN_STD
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 CACHE = os.path.join(ROOT, "cache", "crop_v1")
@@ -37,6 +39,11 @@ def main() -> int:
     p.add_argument("--output", default=None)
     p.add_argument("--submission", default=None)
     p.add_argument("--no-flip-tta", action="store_true")
+    p.add_argument("--adabn", action="store_true",
+                   help=("re-estimate BatchNorm running statistics from the UNLABELED "
+                         "test clips before predicting (AdaBN, EXP-099). Parameter-free "
+                         "test-time adaptation: +1.53 micro / +11 object clips measured "
+                         "on held-out fold 2 with vid_ig65m_f2. Labels are never used."))
     p.add_argument("--cache", default="crop_v1",
                    help="cache directory under cache/ (crop_v1 = IR+depth 4ch, "
                         "thermal_v1 = thermal 3ch)")
@@ -75,12 +82,34 @@ def main() -> int:
     loader = torch.utils.data.DataLoader(
         CropClips(memmap, order, None, False),
         batch_size=args.batch_size, shuffle=False, num_workers=0, pin_memory=False)
+    if args.adabn:
+        # Cumulative-average re-estimation over the target inputs. momentum=None makes
+        # each BN layer average over every batch seen, so the result is independent of
+        # batch order; only the running buffers change, never a weight.
+        bn = [m for m in model.modules() if isinstance(m, nn.modules.batchnorm._BatchNorm)]
+        for m in bn:
+            m.reset_running_stats()
+            m.momentum = None
+            m.train()
+        amean = (KIN_MEAN if mean is None else mean).to(device)
+        astd = (KIN_STD if std is None else std).to(device)
+        with torch.no_grad():
+            for x, _ in loader:
+                x = (x.to(device) - amean) / astd
+                with torch.autocast("cuda", dtype=torch.float16):
+                    model(x)
+        for m in bn:
+            m.eval()
+        print(f"  AdaBN: re-estimated {len(bn)} BatchNorm layers on {len(sids)} "
+              f"unlabeled test clips")
+
     probs, _ = predict(model, loader, device, flip_tta=not args.no_flip_tta,
                        mean=mean, std=std)
     probs = probs.astype(np.float32)
     assert probs.shape == (len(sids), 40), probs.shape
 
-    output = args.output or os.path.join(ART, f"testprobs_{args.tag}.npz")
+    suffix = "_adabn" if args.adabn else ""
+    output = args.output or os.path.join(ART, f"testprobs_{args.tag}{suffix}.npz")
     np.savez_compressed(output, probs=probs, sids=np.array(sids, dtype="<U15"))
     with open(output, "rb") as handle:
         print(f"wrote {output}\n  sha256={hashlib.sha256(handle.read()).hexdigest()}")

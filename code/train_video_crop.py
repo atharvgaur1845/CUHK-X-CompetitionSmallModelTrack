@@ -77,7 +77,17 @@ class CropClips(Dataset):
         return x, y
 
 
+IG65M_CKPT = os.path.join(ROOT, "third_party", "ig65m",
+                          "r2plus1d_34_ig65m_kinetics.pth")
+
+
 def build_model(arch: str, n_classes: int = 40, in_channels: int = 4) -> nn.Module:
+    if arch == "ig65m_34":
+        # R(2+1)D-34, IG-65M (65M videos) -> Kinetics-400. See code/ig65m_model.py for
+        # the midplane discrepancy that makes a naive torchvision build load 18 tensors
+        # short, silently randomising every downsampling path.
+        from ig65m_model import build_ig65m
+        return build_ig65m(IG65M_CKPT, n_classes, in_channels)
     # in_channels defaults to 4 so every existing checkpoint and the in-flight folds
     # rebuild identically. The 3-channel case (EXP-088 thermal) skips the stem surgery
     # entirely and uses the Kinetics RGB kernels exactly as pretrained.
@@ -127,7 +137,7 @@ def main() -> int:
     p.add_argument("--tag", default="vid_f2")
     p.add_argument("--fold-oof", default="oof_visual_mil_v1_f2.npz")
     p.add_argument("--arch", default="r2plus1d_18",
-                   choices=("r2plus1d_18", "mc3_18", "r3d_18"))
+                   choices=("r2plus1d_18", "mc3_18", "r3d_18", "ig65m_34"))
     p.add_argument("--epochs", type=int, default=30)
     p.add_argument("--batch-size", type=int, default=4)
     p.add_argument("--accum", type=int, default=4)

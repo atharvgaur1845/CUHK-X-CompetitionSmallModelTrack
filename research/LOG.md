@@ -13,6 +13,136 @@ results.
 
 ---
 
+## EXP-099 — AdaBN: parameter-free test-time BN re-estimation is worth +1.53 micro, all of it in OBJECT.
+**Date:** 2026-08-20 · scratchpad `adabn_probe.py` · **Tier:** explore
+**Purpose:** SCORE + robustness. Targets cross-subject shift, which is worth 2.5x the public LB.
+
+Video models carry BatchNorm running statistics estimated on the 18 training
+subjects and apply them unchanged to unseen subjects. Re-estimating those buffers
+from the **unlabeled** held-out clips (labels never touched) on `vid_ig65m_f2`:
+
+| | micro | object | motion |
+|---|---|---|---|
+| as deployed | 0.67638 | 0.60334 (289/479) | 0.87861 |
+| AdaBN w=0.50 | 0.68558 | 0.61587 (295/479) | 0.87861 |
+| AdaBN w=0.75 | 0.69018 | 0.62213 (298/479) | 0.87861 |
+| **AdaBN w=1.00** | **0.69172** | **0.62630 (300/479)** | 0.87283 |
+
+**Monotone in w, optimum at the endpoint.** This is the property that matters: the
+best setting is "replace the statistics", not an interior value, so there is no
+fitted parameter and none of the failure mode that killed six previous fitted
+levers. +11 object clips, -1 motion clip: the gain sits exactly on the 75% of the
+error mass.
+
+Costs one extra forward pass, no labels, no training, no packaging bytes. It should
+also help the on-site 8-new-subject stage by construction.
+**Beliefs updated:** B-028 NEW (feature-space adaptation transfers where
+probability-space fitting does not).
+
+---
+
+## EXP-098 — Weight axis closed on the CURRENT members; the oracle gap has collapsed to 7.85 pts.
+**Date:** 2026-08-20 · **Tier:** exploit · **Purpose:** INFORMATION
+
+Re-measured on pooled 2,700-clip OOF with the IG-65M-era members, because the
+deployed weights were fitted when the video branch was 4.4 points weaker.
+
+| branch | solo OOF | cost to drop |
+|---|---|---|
+| `world25` skeleton (48 members) | 0.5919 | -37 clips |
+| `imu_stats` ExtraTrees | 0.4033 | -22 clips |
+| **video bag8** | **0.6981** | **-313 clips** |
+
+Full 3-way grid optimum = 1982 vs champion 1969 = **+13 clips on 2,700 = +1 public
+clip**, and that is the selection-biased number. The axis is flat *for the new
+members too* — this is now measured, not inherited.
+
+**Oracle: any-branch-correct 0.8078 vs fused 0.7293 = 7.85 pts**, down from the
+15.4 pts measured when video was weak. As the video branch improved, the headroom
+inside the existing members disappeared. **"Extract more from the members we have"
+is no longer a large prize.**
+
+Post-decoder, base+imu are worth **137 clips (5.1 pts)**, more than their 2.2 pts
+pre-decoder — the decoder amplifies them, so they cannot be dropped for packaging
+cheaply.
+
+---
+
+## EXP-097 — Session-structure audit: distinctness dead at session scale, cross-group chaining refuted, start-weight found unused.
+**Date:** 2026-08-20 · **Tier:** explore · **Purpose:** INFORMATION
+
+The radar key is a timestamp (`2025-06-17_14-32-57.263`), so sessions are
+recoverable. 404/405 test clips carry one; **7 distinct days**, 262 of 397
+same-day consecutive gaps under one minute.
+
+Three results, two of them kills:
+
+1. **Distinctness at session scale is FALSE.** Clustering train by (user, day,
+   gap<=5min) gives 147 sessions with **1,937 duplicate-label clips in 125 of
+   them** — trials `1-1-1/2/3` repeat each activity. Killed in minutes.
+2. **The chain does not continue across group boundaries.** Cross-group transition
+   top-1 = 0.340 against a **0.392** unigram baseline: the transition model is
+   *worse* than knowing "this clip is first in its group". Within-group is
+   0.351 vs 0.068, a 5x lift. Do not merge groups.
+3. **`--start-weight` defaults to 0.0** ("the fold-safe gate selected zero" — gated
+   when public was ~125). P(class | first-in-group) vs global: **KL 0.428 nats**,
+   H 3.492 -> 2.708, class 36 `Walk` enriched 3.4x (38.8% vs 11.4%), and four
+   classes (21 `Read_documents`, 22 `Turn_pages`, 5 `Put_on_clothes`, 33 `Lie_down`)
+   are **hard zeros in 783 groups**. Physically grounded: every pass begins with the
+   subject walking into the scene. 143 of 405 test clips are group-first.
+
+Re-measured on the current fusion: sw=0.5 gives **+14 clips on 2,700** (unimodal,
+3/4 folds positive) = **~+1 public clip**. Real but small; free, so it rides along
+with the next member change rather than spending a submission.
+
+Also verified: train `radar:` groups (783, sizes 1-10) and test groups (143, sizes
+1-8) are the same shape, and `trial:` ~= `radar:` (792 vs 783). **The old plan's
+"train and test group by different partitions" concern is wrong.** Self-transitions
+are 0/2141.
+
+---
+
+## EXP-090..096 — The IG-65M campaign: 156 -> 162.
+**Date:** 2026-08-19/20 · `code/ig65m_model.py`, `code/train_video_crop.py` · **Tier:** exploit
+
+**EXP-090 IG-65M R(2+1)D-34 adopted.** Per-fold vs the K400 r2plus1d_18 member:
++5.16 / +5.65 / +3.68 / +2.45, positive 4/4. Pooled 0.64371 -> **0.68735**, paired
+**p=1.04e-08**, net +128 clips on 2,933.
+*A midplane bug was caught before execution:* torchvision reuses conv1's midplanes
+for conv2 (230/460/921) where the checkpoint uses (planes,planes) (288/576/1152).
+18 of 416 tensors would have silently failed to load, randomising every
+downsampling path and producing a **false negative on the largest lever of the
+campaign**. `build_ig65m` now asserts a complete load.
+
+**EXP-091 additions, not replacements — confirmed 3x.** `g4only` (IG-65M *replacing*
+K400) = **157**, identical to `bag4_prior25` (K400 alone) = 157. `g5` (IG-65M
+*added*) = **161**. A provably stronger member swapped in is worth +0.00; bagged in
+it is worth +4.
+
+**EXP-092 MotionBERT skeleton member.** The load-bearing detail was the coordinate
+system: our skeleton is world-frame with **z up**, so the image-plane feed is
+(x, -z), not (x, y). Measured on 400 clips: head-minus-foot z +1.131 vs y -0.119.
+Feeding (x,y) would have looked like "MotionBERT does not transfer".
+
+**EXP-093 variants.** `f32` / `res160` / `upper` are individually null or marginal
+but bag-positive. `ig65m_upper` is the sharpest case: **identical object accuracy
+solo (the same 289/479 clips)** yet the best bag member tested —
+ig65m+k400+ig65m-upper+k400-upper = 0.70399 vs ig65m alone 0.67638. Solo null,
+bag +2.76. Do not screen bag members on solo score.
+
+**EXP-094 prior tilt.** alpha=0.25 -> **157**; alpha=0.50 -> 152. Adopted at 0.25.
+
+**EXP-095 composition ladder** (public, all with the champion decoder):
+`gonly` 151 · `bag4_prior25` 157 · `g4only` 157 · `h8` 160 · `g5`/`g5mb`/`h8mb` 161
+· **`h8all` 162**. Among >=5-member bags the whole axis spans 157-162, i.e. about
+one SD. **The composition axis is saturated; a 12th member buys ~0-1 clip.**
+
+**EXP-096 dilution.** `m15` (adds 2 all-18 seeds + mc3_18 + r3d_18 = 15 members) =
+**160, -2 clips**. The video slot is an equal-weight log-mean, so weak members
+dilute strong ones. `m16` (+thermal) and `m11e` (13 members) remain unscored.
+
+---
+
 ## EXP-088 — Thermal through the video recipe: strong member, decorrelated, and it adds NOTHING.
 **Date:** 2026-08-16 · `code/build_thermal_cache.py`, `code/train_video_thermal.py` · **Tier:** explore
 **Purpose:** SCORE. Thermal is the paper's top-ranked sensor (92.57) and both public notebooks discard it.

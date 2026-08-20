@@ -1,5 +1,31 @@
 # Belief Ledger
 
+## B-028 — Feature-space adaptation transfers where probability-space fitting does not
+- **Confidence:** 75% (new, 2026-08-20) — OOF-measured, **awaiting public verification**
+- **Importance:** High
+- **Claim:** the cross-subject shift lives in the *features*, and correcting it there is
+  cheap and safe, whereas every attempt to correct it in *probability space* has failed.
+- **Evidence for (EXP-099):** re-estimating BatchNorm running statistics from the
+  unlabeled held-out clips of `vid_ig65m_f2` moves micro **0.67638 → 0.69172**
+  (+11 object clips), monotone in the blend weight with the optimum at the **endpoint**
+  (w = 0.25/0.50/0.75/1.00 → 0.67945/0.68558/0.69018/0.69172). Adapting per *subject*
+  instead of pooled reaches **0.70092** and raises motion accuracy too (0.89595 vs the
+  deployed 0.87861), so the residual shift really is subject-specific.
+- **Why this is a different class from the graveyard:** six fitted-combination levers
+  (GBDT stacker, structure decoder, cohort weights, learned gate, temperature
+  calibration ×2) all posted large OOF gains and landed ≤0 on public. Those fit
+  *parameters on held-out probabilities*. AdaBN fits **nothing** — the optimum is the
+  endpoint, so there is no parameter to overfit and no train/test recipe drift.
+- **Falsification test:** `sub_n1.csv` (single change: AdaBN, rowdiff 14 vs the 162
+  champion) scores at or below 162 on public. If it does, this belief drops to ~35% and
+  the fitted-lever graveyard grows by one.
+- **Caveat, measured:** purity does not beat sample size. Adapting per timestamp-block
+  (100% subject-pure but median 10 clips) gives only 0.67945 — **worse than pooled**.
+  Groups must be both pure and large, which is why per-subject recovery (clustering
+  blocks) is the follow-up rather than per-block.
+- **Bonus:** parameter-free and adds no packaging bytes, and it adapts to whoever shows
+  up — so it should also help the **on-site 8-new-subject stage (30% of the grade)**.
+
 ## B-001 — Cross-subject generalization (not capacity) is the primary bottleneck
 - **Confidence:** 70% (↓ from 90%) — **the headline evidence was misread; see EXP-055**
 - **Importance:** High

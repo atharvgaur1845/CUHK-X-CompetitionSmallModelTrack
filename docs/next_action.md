@@ -17,80 +17,81 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
-**Public best is `sub_vidimu_bag4_trans05.csv` = 0.77611 = 156/201, set 2026-08-16.**
-The standing target is **top-7 ≈ 0.80 = 161/201**, so **+5 clips**. The campaign moved
-131 → 151 → 156 in one day once pretrained video backbones were adopted; the weight and
-decoder axes are now both exhausted, so the remaining gain has to come from stronger
-members, not from re-tuning the fusion.
+**Public best is `submissions/sub_h8all.csv` = 0.80597 = 162/201, set 2026-08-20.**
+Top-10 is 163 (one clip). The user's standing target is **0.85 = 171/201 → +9 clips.**
 
 | | |
 |---|---|
-| Current best (verified on Kaggle) | **0.77611 = 156/201** — `submissions/sub_vidimu_bag4_trans05.csv` |
-| Target | top-7 ≈ 0.80 = 161/201 → **+5 clips** |
+| Current best (verified on Kaggle) | **0.80597 = 162/201** — `submissions/sub_h8all.csv` |
+| Target | 0.85 = 171/201 → **+9 clips**; top-10 = 163 → +1 |
 | Deadline | Kaggle 2026-09-15; code upload 09-22 |
-| Noise floor | **±9–10 clips** (SD 4.5–5.0 pts). A change moving <20 rows cannot be read |
-| Champion recipe | base `world25` 0.35 / video-bag4 0.2925 / `imu_stats` 0.3575, geometric in log space, then transition decoder λ=0.5 conditional unigram |
+| Noise floor | **±6 clips.** A change moving <20 of 405 rows cannot be read |
+| Champion recipe | video slot = log-mean of 11 members (K400 f0-3, IG-65M f0-3, f32/res160/upper f2); fusion `0.35·log(B/prior) + 0.2925·log(V̄) + 0.3575·log(I)`, then `0.9·that + 0.10·log(MB)`, then `+0.25·log(prior)`, then the transition decoder λ=0.5 conditional unigram |
 
-> ### ⚠ THE PACKAGING BUDGET IS ALREADY BLOWN, AND IT IS A DISQUALIFICATION RISK
-> The Stage-2 package is **one file ≤100 MB**, and Rules §2.8.b treats a **>10% gap**
-> between the Stage-2 verification run and the Kaggle private score as cheating →
-> disqualification. Current champion, measured:
->
-> | component | size |
-> |---|---|
-> | `world25` skeleton stack, int8 | 85.2 MB |
-> | video bag4 | 4 × 31.3 MB int8 = **125 MB** |
-> | `imu_stats` ExtraTrees (1000 trees × 545 feat) | **unmeasured — measure before trusting any plan** |
->
-> We are several times over. Every member added widens the gap between what scores on
-> Kaggle and what can legally ship. **This cannot be deferred to September.** 32 of
-> `world25`'s 48 members are seed replicas, so pruning is the obvious first cut.
+> ### ⚠ THREE AXES ARE NOW MEASURED FLAT. DO NOT RE-OPEN THEM.
+> Fusion weights (+1 clip at the *selection-biased* grid optimum), decoder λ, and
+> **video-bag composition** (157–162 across every ≥5-member bag = about one SD). The
+> oracle gap inside the existing members has collapsed from 15.4 pts to **7.85 pts**
+> (EXP-098). Gain must come from a *stronger or genuinely new member*, or from
+> inference-time adaptation — not from recombining what we have.
+
+> ### ⚠ THE PACKAGING BUDGET IS BLOWN, AND IT IS A DISQUALIFICATION RISK
+> One file ≤100 MB, and Rules §2.8.b treats a **>10% gap** between the Stage-2
+> verification run and the Kaggle private score as cheating. 11 video members at
+> ~63.5 MB int8 each ≈ **700 MB**, plus `world25` 85.2 MB. **Measured 2026-08-20:
+> dropping skeleton+IMU costs 137 clips of 2,700 post-decoder (5.1 pts ≈ 10 public
+> clips)** — they are expensive *and* load-bearing, so the cheap cut does not exist.
+> R-3 distillation from an any-size teacher is the only identified route.
 
 ---
 
-### ① Measure the shippable package, then re-plan around it
+### ① AdaBN — deploy it, then sharpen it   ← **the live lever**
 
-**What:** size `imu_stats`, prune `world25` to its distinct architectures, and produce a
-≤100 MB package whose CSV is argmax-compared to the champion. Report the clip gap.
-**Why now:** it is the only open item that can *disqualify* us, and it constrains every
-future member. It is also cheap — no GPU.
-**Already tried:** `code/package_ensemble.py` + `code/infer_packaged.py` are bit-parity
-verified on `world25` alone; four blockers were noted for visual members and never fixed.
-fp16 is measured free (0/405 argmax changes, identical sha256).
-**Done when:** a single ≤100 MB artifact exists and its public-equivalent clip count is
-known. If the gap exceeds ~10 clips, the LB configuration must change, not the package.
+**What:** re-estimate BatchNorm running statistics from the **unlabeled** target clips
+before predicting. One extra forward pass; no labels, no training, no packaging bytes.
 
-### ② Harvest the GPU queue — two candidates are BUILT AND UNSCORED
+**Why first:** measured on held-out fold 2 with `vid_ig65m_f2` (EXP-099):
 
-| file | members | rowdiff vs 156 champion |
-|---|---|---|
-| `sub_bag6_all_trans05.csv` | 4 folds + 2 all-18 seeds | 16 |
-| `sub_bag2_all18_trans05.csv` | 2 all-18 seeds only | 33 |
+| | micro | object | motion |
+|---|---|---|---|
+| as deployed | 0.67638 | 289/479 | 0.87861 |
+| **AdaBN** | **0.69172** | **300/479** | 0.87283 |
 
-**Why now:** already paid for. `bag6` is the safer bet (more members); `bag2_all18`
-isolates whether training on all 2,933 clips beats fold training, which is the live
-explanation for the 22-clip gap to the published single model (143 vs our 121 solo).
-**Already tried:** 4-fold seed-diverse bagging was worth **+5** (151 → 156). Folds agree
-pairwise only 0.625–0.686; the two all-18 seeds agree only **0.758** with each other, so
-even same-data same-architecture members here are strongly decorrelated.
-**Still running:** `mc3_18` then `r3d_18` (`code/run_arch_diverse.sh`). **`mc3_18` is
-11.5M params = 23.0 MB fp16 against r2plus1d_18's 62.6 MB** — if it scores comparably it
-is worth far more than its accuracy, because item ① is a size problem.
-**Done when:** both scored and the better one is the new reference.
+**+1.53 micro, +11 object clips**, monotone in the blend weight with the optimum at the
+**endpoint** — so it is not a fitted knob, which is why it is not expected to join the six
+fitted levers in the graveyard. The gain lands on OBJECT, which is 75% of the error mass.
+It should also help the **on-site 8-new-subject stage (30% of the grade)** by construction.
 
-### ③ Close the gap to the published single model
+**Next steps, in order:**
+1. Per-session AdaBN (scratchpad `adabn_group.py --group user`) — if the shift is
+   subject-specific, adapting per recording session beats pooling. On test the
+   recoverable key is the radar **day** (7 of them, 404/405 clips carry a timestamp).
+2. Apply to all 8 fold members' test inference, rebuild `h8all`, rowdiff, submit.
+3. Screen it on a K400 member too — if it only helps IG-65M that is worth knowing.
 
-**What:** the published notebook's single model = **143** public; our best single fold =
-**121**. Two known differences remain after ②: they use **R(2+1)D-34 IG-65M** (63M params)
-where we use `r2plus1d_18` Kinetics-400 (31M), and their input may differ in resolution.
-**Why now:** the largest identified gap that is not yet explained by anything we control.
-**Caution — decide with the user, do not adopt unilaterally:** IG-65M is a much larger
-pretrain than R-1's stated example ("ImageNet-pretrained ResNet18 … perfectly
-acceptable"). The rule targets LLMs/VLMs, and the 0.711 notebook using it sits publicly on
-the competition's own Kaggle page, but a 63M-param video backbone is a judgement call that
-interacts with ① and with the Stage-2 review.
-**Already tried:** resolution is capped at 128×128 by memory — 192² would be a 6.9 GB
-cache against 5 GB of free RAM and would thrash the trainer.
+**Done when:** a `h8all`-with-AdaBN submission is scored against 162.
+
+### ② Fold in the two free corrections
+
+`--start-weight 0.5` (EXP-097) is +14 clips on 2,700 OOF ≈ +1 public clip, and the
+weight-grid optimum is another ≈+1. Both are free and both are below the noise floor
+**alone** — bundle them with ① rather than spending submissions on them.
+`submissions/sub_h8all_sw05.csv` is already built (rowdiff 19 vs champion).
+
+### ③ Early-fusion thermal — the one genuinely unexploited information source
+
+Thermal is the paper's best modality (92.57), scores 0.544 solo here, is maximally
+decorrelated (54% agreement) — and contributes **exactly zero** through late fusion
+because its confidence when right ≈ when wrong (B-027). **B-027 is a statement about
+probability-space fusion and says nothing about early fusion.** A 7-channel input
+(IR 3 + depth 1 + thermal 3) lets the trunk learn the combination that no global weight
+can. Cache exists (`cache/thermal_v1`); needs timeline alignment and missing-modality
+handling (116 train clips and 10 test clips have no thermal).
+**Done when:** a fold-2 micro exists to compare against IG-65M's 0.67638.
+
+### ④ Measure the shippable package
+
+Unchanged and still not deferrable — see the packaging warning above. No GPU needed.
 
 ---
 
@@ -98,32 +99,38 @@ cache against 5 GB of free RAM and would thrash the trainer.
 
 | direction | why it is closed | evidence |
 |---|---|---|
-| **Exploit the test-label leak** | Confirmed leak exists (discussion 714827: public repo had labelled split metadata matchable by timestamp + frame id). Using it is cheating, organisers run anti-cheat, and Stage 3 is on-site with 8 new subjects. **Permanently closed.** | `research/RULES_VERIFIED.md` L-1 |
-| **Obtain any subject not already in training** | All 30 participants accounted for: 18 train (1–9, 16–24), 4 public test (10, 11, 25, 26), 8 private. Any unseen subject **is** a test subject. The HuggingFace mirror is byte-identical with no extra subjects. | `research/RULES_VERIFIED.md` |
-| Re-tune fusion weights | Surface is flat on 2,700-clip pooled OOF: optimum 0.71000 vs champion 0.70963 = **one clip**. Ordering now matches public (C 156 > D 149 > A 144). | LOG EXP-086 |
-| Decoder λ > 0.5 | OOF: λ=0.5 → +0.046; λ=1.0 → +0.006 (231 rescues, 215 harms). `vidimu_C_trans10.csv` is **retracted, do not submit**. | LOG EXP-086 |
-| Add the old 2D visual members (`pre_r50`, `pre_r18`, `visual_mil_v1`) to the fusion | They now **hurt**: r50 costs 3.8 micro, mil_v1 costs 2.9. Superseded, not complementary. | LOG EXP-086 |
-| Thermal folds 0/1/3 | Thermal member is strong (0.544) and maximally decorrelated (54% agreement) yet adds **exactly zero** at every weight. Uniquely correct on 34 clips but confidence when right (0.511) ≈ when wrong (0.413), so no gate extracts it. | LOG EXP-088, B-027 |
-| Skeleton-only base | Worse in the new fusion: 0.68478 vs `world25` 0.69565. | LOG EXP-086 |
-| Sinkhorn / prior-forcing on test | −12 public, already in the graveyard. Re-derived once by mistake. | `research/BELIEFS.md` |
-| Fitted stackers, learned gates, cohort weights | Four consecutive fitted-combination levers all landed ≤0 on public despite large OOF gains. | LOG, `research/BELIEFS.md` |
+| **Exploit the test-label leak** | Confirmed (discussion 714827). Cheating; organisers run anti-cheat; Stage 3 is on-site with 8 new subjects. **Permanently closed.** | `RULES_VERIFIED.md` L-1 |
+| **Obtain any subject not already in training** | All 30 accounted for: 18 train (1–9, 16–24), 4 public test (10, 11, 25, 26), 8 private. Any unseen subject **is** a test subject. | `RULES_VERIFIED.md` |
+| Re-tune fusion weights | Re-measured on the IG-65M-era members: grid optimum +13 on 2,700 = **+1 public clip**, selection-biased. Flat for the new members too. | EXP-098 |
+| Add a 12th video member / re-shuffle the bag | Every ≥5-member bag scores 157–162 ≈ one SD. Saturated. | EXP-095 |
+| Add *weak* members to the bag | `m15` (15 members) = 160, **−2**. The slot is an equal-weight log-mean; weak members dilute. | EXP-096 |
+| Swap a stronger member in for a weaker one | `g4only` (IG-65M replacing K400) = 157 = `bag4_prior25`. Additions pay, replacements do not. Confirmed 3×. | EXP-091 |
+| Screen bag members on solo score | `ig65m_upper` is solo-null (identical 289/479) and the best bag member measured (+2.76). | EXP-093 |
+| Session-scale distinctness | **False.** 1,937 duplicate-label clips in 125 of 147 train sessions (trials repeat each activity). | EXP-097 |
+| Merge recording groups into longer chains | Cross-group transition top-1 0.340 **< 0.392 unigram baseline**. The chain does not cross boundaries. | EXP-097 |
+| Decoder λ > 0.5 | OOF λ=1.0 → +0.006 (231 rescues, 215 harms). `vidimu_C_trans10.csv` **retracted**. | EXP-086 |
+| Thermal as a *late-fusion* member | Strong (0.544) and maximally decorrelated, adds **exactly zero** at every weight. Confidence when right ≈ when wrong. (Early fusion is item ③ and is NOT closed.) | EXP-088, B-027 |
+| Fitted stackers, learned gates, cohort weights, temperature calibration | Six consecutive fitted-combination levers landed ≤0 on public despite large OOF gains. | LOG, `BELIEFS.md` |
+| Sinkhorn / prior-forcing on test | −12 public. Re-derived once by mistake. | `BELIEFS.md` |
+| Resolution 160px · 32 frames · all-18 data volume | 4-fold mean −0.19 · +1.38 ns · retracted (−3, not significant) | EXP-093 |
 
 ---
 
 ## Running right now
 
-| job | produces | check with |
-|---|---|---|
-| `code/run_all18.sh` | `vid_all18_s20260730`, `vid_all18_s20260816` — all-2933-clip members | `tail -2 logs/vid_all18_s*.log` |
-| `code/run_arch_diverse.sh` (chained, waits on the above) | `vid_mc3_18_all18`, `vid_r3d_18_all18` | `tail -2 logs/vid_*_all18.log; cat logs/arch_chain.log` |
+| job | produces | ETA | check with |
+|---|---|---|---|
+| `vid_ig65m_f32_f2` (watchdog, OUTER-ONCE) | IG-65M on the 32-frame cache | ~01:20, epoch ~10/30 at 19:50, **1000 s/epoch** | `tail -3 logs/vid_ig65m_f32_f2.log` |
+| `adabn_group.py --group user` | per-session AdaBN screen | minutes | `tail -6 logs/adabn_group_ig65m_f2.log` |
 
-Both run under `code/run_with_watchdog.sh` (kills and resumes on a stalled log or 15 min
-of 0% GPU) and all trainers take `--resume` from per-epoch state.
+**Unscored submissions already built:** `sub_m16.csv` (16 members + thermal),
+`sub_m11e.csv` (13 members), `sub_h8all_sw025.csv`, `sub_h8all_sw05.csv`.
 
 **Inference after any member finishes:**
 ```bash
-python3 code/infer_video_crop.py --tag <TAG>                 # 4ch IR+depth
+python3 code/infer_video_crop.py --tag <TAG>                      # 4ch IR+depth
 python3 code/infer_video_crop.py --tag <TAG> --cache thermal_v1   # 3ch thermal
+python3 code/infer_video_crop.py --tag <TAG> --cache crop_upper   # upper-body crop
 ```
 
 ---
@@ -132,28 +139,36 @@ python3 code/infer_video_crop.py --tag <TAG> --cache thermal_v1   # 3ch thermal
 
 | what | value | kind |
 |---|---|---|
-| Public best | 0.77611 = 156/201 | **external oracle** (Kaggle) |
-| Public noise floor | ±9–10 clips | measured |
-| Pooled video OOF (4 folds, 2933 clips) | micro 0.64371, object 0.54431 | **first-run**, honest |
-| Champion fusion OOF (2700 overlap) | 0.70963 | first-run |
-| Decoder gain, OOF | +0.046 (212 rescues / 88 harms) | first-run, **both directions** |
-| Decoder gain, public | **+26 clips** (125 → 151) | external oracle |
-| Best decoder config, OOF | 0.76852 (λ .5, topk 8, uniform, penalty 1.0) | **fitted** — argmax of ~20 configs on 2700 clips |
-| Thermal member | 0.54448 solo | first-run |
-| Fusion weights | base .35 / vid .2925 / imu .3575 | **fitted**, but confirmed by public ordering |
+| Public best (`h8all`) | 0.80597 = 162/201 | **external oracle** (Kaggle) |
+| Public noise floor | ±6 clips | measured |
+| Pooled video OOF, K400 4-fold | 0.64371 | first-run |
+| Pooled video OOF, IG-65M 4-fold | **0.68735** (p=1.04e-08 vs K400) | first-run |
+| Video bag8 solo, pooled OOF | 0.6981 | first-run |
+| Champion fusion OOF, pre-decoder | 0.72926 (1969/2700) | first-run |
+| Champion fusion OOF, decoded | 0.77593 (2095/2700) | first-run |
+| …with `--start-weight 0.5` | 0.78111 (2109/2700) | first-run |
+| Any-branch-correct oracle | 0.8078 → gap **+0.0785** | first-run |
+| Weight-grid optimum | 1982 vs 1969 = +13/2700 | **fitted** — argmax of ~150 configs |
+| AdaBN on `vid_ig65m_f2` | 0.67638 → **0.69172** | first-run, held-out subjects |
+| Fusion weights | base .35 / vid .2925 / imu .3575 | **fitted**, confirmed by public ordering |
 
 ---
 
 ## History
 
-**2026-08-16.** 4 video folds complete (0.62776 / 0.61916 / 0.63957 / 0.69832). Bag → 156.
-Thermal built and refuted as a fusion member. Decoder tuned on a pooled 2700-clip OOF;
-B-022's pre-registered distinctness prediction confirmed. Weight axis closed.
+**2026-08-20.** IG-65M 4 folds complete; `h8all` 162. Composition, weight, and decoder
+axes all measured flat. Session-structure audit killed session-distinctness and
+cross-group chaining, found `--start-weight` unused. **AdaBN found: +1.53 micro, free.**
+Ledgers reconciled after a four-day gap.
 
-**2026-08-15.** Person-crop + Kinetics R(2+1)D landed: fold-2 micro 0.63957 vs 0.40031 for
-the best prior member, **+23.9**. Fusion 131 → 151. IMU stats member (ExtraTrees on 6
-channels) added, +3.4 micro. `build_model` 4-channel bug cost ~1 GPU-hour.
+**2026-08-19.** IG-65M R(2+1)D-34 adopted (+4.4 pooled, p=1e-08); midplane bug caught
+before execution. MotionBERT member added (world z-up coordinate fix). 156 → 161.
 
-**2026-08-10.** `research/RULES_VERIFIED.md` R-1: **pretrained CNNs were legal all along.**
-A prior session had recorded the opposite as fact and cancelled the pretrained probe;
-months of SSL work existed as a substitute for a legal initialisation.
+**2026-08-16.** 4 K400 video folds; bag → 156. Thermal built and refuted as a late-fusion
+member. Decoder tuned on pooled 2,700-clip OOF. Weight axis closed (first time).
+
+**2026-08-15.** Person-crop + Kinetics R(2+1)D landed: fold-2 micro 0.63957 vs 0.40031,
+**+23.9**. Fusion 131 → 151. `build_model` 4-channel bug cost ~1 GPU-hour.
+
+**2026-08-10.** `RULES_VERIFIED.md` R-1: **pretrained CNNs were legal all along.** A prior
+session recorded the opposite as fact and cancelled the pretrained probe.
