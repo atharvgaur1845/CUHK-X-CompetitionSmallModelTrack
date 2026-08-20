@@ -118,13 +118,26 @@ Unchanged and still not deferrable — see the packaging warning above. No GPU n
 
 ## Running right now
 
-| job | produces | ETA | check with |
-|---|---|---|---|
-| `vid_ig65m_f32_f2` (watchdog, OUTER-ONCE) | IG-65M on the 32-frame cache | ~01:20, epoch ~10/30 at 19:50, **1000 s/epoch** | `tail -3 logs/vid_ig65m_f32_f2.log` |
-| `adabn_group.py --group user` | per-session AdaBN screen | minutes | `tail -6 logs/adabn_group_ig65m_f2.log` |
+**Nothing is running.** The GPU is free — see item ③ for the next job.
 
-**Unscored submissions already built:** `sub_m16.csv` (16 members + thermal),
-`sub_m11e.csv` (13 members), `sub_h8all_sw025.csv`, `sub_h8all_sw05.csv`.
+`vid_ig65m_f32_f2` finished 2026-08-21 01:19: micro **0.68098**, object 286/479,
+motion 0.91329. Solo it is a **null** against the 16-frame IG-65M (0.67638, object 289)
+— +0.46 micro is 3 clips on a 652-clip fold — and it *trades* object for motion. As a
+bag member it is the strongest pairing we have measured (ig+ig32 = 0.69479, vs ig+igU
+0.69018 and ig+k400 0.67791), but at the margin of the existing 6-member bag it is only
++0.15. Another instance of B-029: never screen a bag member on its solo score.
+
+**Unscored submissions, ranked (see LOG EXP-099):**
+
+| file | change vs the 162 champion | rowdiff |
+|---|---|---|
+| `sub_n3.csv` | AdaBN + start-weight 0.5 + 12th member | **35** |
+| `sub_n2.csv` | AdaBN + start-weight 0.5 | 29 |
+| `sub_n1.csv` | **AdaBN alone** — isolates the mechanism | 14 |
+| `sub_h8all_sw05.csv` | start-weight 0.5 alone | 19 |
+| `sub_m16.csv` / `sub_m11e.csv` | dilution variants — **skip**, `m15` already scored 160 | 8 / 4 |
+
+`n3` vs `n2` differ by 8 rows and isolate the 12th member.
 
 **Inference after any member finishes:**
 ```bash
