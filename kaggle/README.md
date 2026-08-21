@@ -9,10 +9,34 @@
 
 ## Run
 
+Kaggle notebooks are `.ipynb`, so there is no argv. **Paste the whole file into one
+cell and run it** — the bottom of the file detects the kernel and calls every stage
+(cache → train → infer) with the defaults. That is one ~3–4 h cell, well inside the
+12 h session limit.
+
+To split it across cells instead, delete the `raise SystemExit(run())` line at the
+bottom, then drive it by keyword from later cells:
+
 ```python
-!python cuhkx_224_kaggle.py --stage cache                        # ~25-35 min, once
-!python cuhkx_224_kaggle.py --stage train --tag k224_mvit_f2     # ~2-3 h
-!python cuhkx_224_kaggle.py --stage infer --tag k224_mvit_f2     # ~3 min
+run(stage="cache")                          # ~25-35 min, do once
+run(stage="train", tag="k224_mvit_f2")      # ~2-3 h
+run(stage="infer", tag="k224_mvit_f2")      # ~3 min
+```
+
+Any flag can be overridden with its argparse name:
+
+```python
+run(arch="swin3d_t", epochs=30)
+run(batch_size=4, accum=6)      # if CUDA OOMs
+run(adabn=False)
+```
+
+If you upload the file rather than pasting it, the CLI form still works:
+
+```python
+!python cuhkx_224_kaggle.py --stage cache
+!python cuhkx_224_kaggle.py --stage train --tag k224_mvit_f2
+!python cuhkx_224_kaggle.py --stage infer --tag k224_mvit_f2
 ```
 
 The cache lands in `/kaggle/temp` (not persisted). Training checkpoints and outputs

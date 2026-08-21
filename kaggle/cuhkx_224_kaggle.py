@@ -625,7 +625,7 @@ def stage_infer(args, paths):
 
 
 # ================================================================================
-def main() -> int:
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--stage", default="all", choices=("cache", "train", "infer", "all"))
@@ -648,7 +648,7 @@ def main() -> int:
     ap.add_argument("--adabn", action="store_true", default=True)
     ap.add_argument("--no-adabn", dest="adabn", action="store_false")
     ap.add_argument("--cache-workers", type=int, default=max(2, (os.cpu_count() or 4)))
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
 
     paths = find_paths()
     if args.stage in ("cache", "all"):
@@ -666,5 +666,48 @@ def main() -> int:
     return 0
 
 
+def _in_notebook() -> bool:
+    """True inside a Jupyter/Kaggle kernel, where sys.argv belongs to the kernel."""
+    try:
+        from IPython import get_ipython
+        ip = get_ipython()
+        return ip is not None and ip.__class__.__name__ == "ZMQInteractiveShell"
+    except Exception:
+        return False
+
+
+def run(**overrides):
+    """Entry point for a Kaggle notebook cell.
+
+    Kaggle notebooks are .ipynb, so there is no argv to parse -- paste this whole
+    file into one cell and it calls every stage on import. Override any flag by
+    keyword, using the argparse dest name:
+
+        run()                                   # cache -> train -> infer, defaults
+        run(arch="swin3d_t", epochs=30)
+        run(stage="train", tag="k224_mvit_f2")  # one stage at a time
+        run(batch_size=4, accum=6)              # if CUDA OOMs
+        run(adabn=False)
+
+    Booleans map to the store_true flags: True passes --flag, False passes
+    --no-flag (only --no-adabn exists, so adabn=False is the only valid False).
+    """
+    argv = []
+    for key, value in overrides.items():
+        flag = "--" + key.replace("_", "-")
+        if value is True:
+            argv.append(flag)
+        elif value is False:
+            argv.append("--no-" + key.replace("_", "-"))
+        else:
+            argv += [flag, str(value)]
+    return main(argv)
+
+
 if __name__ == "__main__":
+    if _in_notebook():
+        # Pasted into a Kaggle cell. sys.argv here is the kernel's (-f kernel.json),
+        # which argparse would reject, so parse an empty argv and run every stage.
+        # Edit the call below, or delete it and call run(...) from the next cell.
+        raise SystemExit(run())
     raise SystemExit(main())
