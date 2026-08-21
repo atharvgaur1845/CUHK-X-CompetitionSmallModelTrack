@@ -13,6 +13,56 @@ results.
 
 ---
 
+## EXP-102 — B-030 CONFIRMED. 224px + a 224-native backbone is the strongest member of the campaign.
+**Date:** 2026-08-21 · `kaggle/cuhkx_224_kaggle.py` · **Tier:** explore · **Purpose:** SCORE
+
+`k224_mvit_f2` — MViTv2-S, Kinetics-400, 224px JPEG person crops, fold 2:
+
+| member | micro | object | motion | int8 |
+|---|---|---|---|---|
+| `vid_r2p1d_f2` (K400) | 0.63957 | 263/479 | 0.89017 | 31 MB |
+| `vid_ig65m_f2` (IG-65M) | 0.67638 | 289/479 | 0.87861 | 63 MB |
+| **`k224_mvit_f2`** | **0.71472** | **311/479** | **0.89595** | **34 MB** |
+
+**+3.83 micro and +22 object clips over the best member we owned**, at half its size.
+The jump is the same size as the K400 -> IG-65M jump (+3.68 on this fold), and it
+**lands where the mechanism predicted**: OBJECT, the hand-object detail a 3.1x
+downsample destroys. Motion rose too, so nothing was traded away.
+
+**Bag composition, fold 2:**
+
+| bag | micro | object clips |
+|---|---|---|
+| 7-member CNN bag | 0.70859 | 306 |
+| **mvit alone** | **0.71472** | **311** |
+| 7-member CNN bag + mvit | 0.71779 | 312 |
+| **mvit + ig + ig32 + igU** | **0.72393** | **316** |
+
+**One member now beats the entire seven-member bag.** Agreement with `ig` is 0.7163,
+so it is decorrelated *and* stronger. Note `ig+mvit` alone scores 0.70552, *below* mvit
+by itself — equal-weighting a much weaker member drags it down, which is why the
+deployed candidate gives mvit half the video slot rather than 1/14 of it.
+
+**The enabling trick was storage, not compute.** A 224px cache is 10.7 GB as raw uint8
+— the reason 224 was written off as impossible on a 15 GB laptop. As JPEG q90 it is
+**1.13 GB train + 0.15 GB test**, measured **8.1x** smaller, decoding in 10.9 ms/clip
+(~6 s per epoch across 4 workers against ~230 s of GPU). Training ran on the local
+8 GB card at batch 4, 5.18 GB peak, 246 s/epoch. **The hardware was never the
+constraint; the storage format was.**
+
+**Also retired:** the plan to rent Kaggle GPU. The competition page hosts only
+`sample_submission.csv` and `test.csv` — the ~50 GB of frames is not there, so that
+plan could not have worked as written.
+**Beliefs updated:** B-030 -> 90% CONFIRMED. EXP-093's res160 null formally retracted
+as a step-size + backbone-mismatch artifact.
+**Candidates:** `sub_n7` (mvit = half the video slot, rowdiff 21) and `sub_n6`
+(mvit as one of 14 equal members, rowdiff 11), both against the 164 champion.
+
+**Note on the run log:** epoch 10 reported 16878 s against 246 s for every other
+epoch. The machine stalled, not the recipe; the loss curve is continuous across it.
+
+---
+
 ## EXP-101 — The binding constraint is RESOLUTION, and it is a hardware constraint. 0.89 is real: four teams are there.
 **Date:** 2026-08-21 · **Tier:** explore · **Purpose:** INFORMATION
 

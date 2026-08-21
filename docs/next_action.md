@@ -46,9 +46,23 @@ applied to the 11-member `h8all` bag. **Top-10 (163) is cleared.** The standing 
 
 ---
 
-### ⓪ RESOLUTION on a bigger machine — the only lever sized like the gap   ← **START HERE**
+### ⓪ RESOLUTION — **CONFIRMED (+3.83 micro, +22 object clips).** Now scale it.   ← **START HERE**
 
-**The gap to 0.89 is +15 clips. Nothing below this line is that big.**
+**`k224_mvit_f2` = micro 0.71472 / object 311 of 479**, against `vid_ig65m_f2`'s
+0.67638 / 289. The strongest single member of the campaign, at **34 MB int8 vs 63 MB**.
+It alone (0.71472) beats the entire seven-member CNN bag (0.70859). See EXP-102.
+
+**It ran on the laptop.** The 10.7 GB that made 224px look impossible was raw-uint8
+storage; as JPEG q90 the cache is 1.13 GB and decodes in 10.9 ms/clip. 246 s/epoch at
+batch 4, 5.18 GB peak. **Kaggle was never needed — and never had the data anyway.**
+
+**Next, in order:**
+1. Submit `sub_n7` (mvit at half the video slot, rowdiff 21 vs the 164 champion).
+2. Train folds 0/1/3 with `--tag k224_mvit_f{0,1,3}` — the K400 and IG-65M families
+   both gained ~+1.5 from 1 fold to 4. ~1.4 h each, cache already built.
+3. Then `--all-train` for the shippable single model: 34 MB int8 fits Stage-2 alone.
+
+**The gap to 0.89 is +15 clips from 164.**
 
 **0.89 is established as achievable:** four *independent* teams sit at 180–184 on the
 live leaderboard (EXP-101). That band is the signature of a reproducible method, not the
