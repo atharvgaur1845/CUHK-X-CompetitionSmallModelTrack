@@ -63,3 +63,4 @@ research/*
 *.log
 *.tmp
 *.temp
+kaggle/__pycache__/
