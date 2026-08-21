@@ -1,90 +1,75 @@
-# Running the 224px experiment on Kaggle
+# The 224px experiment — runs locally
 
-## Setup
+## The correction that made this simple
 
-1. New Notebook on **cuhk-x-competition-small-model-track** (the data is already attached).
-2. Settings → **Accelerator: GPU T4 x2** (or P100) · **Internet: ON**
-   (Internet is needed once, for the torchvision Kinetics weights.)
-3. Upload `cuhkx_224_kaggle.py` via *File → Upload* (or paste it into a cell).
+The competition page hosts only `sample_submission.csv` and `test.csv`. The ~50 GB of
+IR/Depth frames is **not** on Kaggle, so there is nothing to train against there
+without uploading a cache yourself.
+
+That stopped mattering once the cache was stored as JPEG instead of raw uint8:
+
+| 224px cache | size |
+|---|---|
+| raw uint8 (what made 224 look impossible) | 10.7 GB |
+| **JPEG q90** | **1.3 GB** (measured 8.1×) |
+
+Decode costs 10.9 ms/clip — about **6 s per epoch** across 4 workers against ~230 s of
+GPU time. **Raw storage was the constraint, not 224px.** So this runs on the laptop.
+
+Measured on the RTX 4060 (8 GB): `mvit_v2_s` at batch 4 peaks at **5.18 GB**, runs
+**446 ms/step**, 4.2 min/epoch, **~1.4 h for 20 epochs**.
 
 ## Run
 
-Kaggle notebooks are `.ipynb`, so there is no argv. **Paste the whole file into one
-cell and run it** — the bottom of the file detects the kernel and calls every stage
-(cache → train → infer) with the defaults. That is one ~3–4 h cell, well inside the
-12 h session limit.
-
-To split it across cells instead, delete the `raise SystemExit(run())` line at the
-bottom, then drive it by keyword from later cells:
-
-```python
-run(stage="cache")                          # ~25-35 min, do once
-run(stage="train", tag="k224_mvit_f2")      # ~2-3 h
-run(stage="infer", tag="k224_mvit_f2")      # ~3 min
+```bash
+python3 kaggle/cuhkx_224_kaggle.py --stage cache                       # ~35 min CPU, once
+python3 kaggle/cuhkx_224_kaggle.py --stage train --tag k224_mvit_f2    # ~1.4 h
+python3 kaggle/cuhkx_224_kaggle.py --stage infer --tag k224_mvit_f2    # ~3 min
 ```
 
-Any flag can be overridden with its argparse name:
+Resumable — rerun the identical `--stage train` command and it continues from the last
+completed epoch. Smoke-test the plumbing first with `--limit 20` (delete the cache dir
+afterwards; a limited cache is not trainable).
 
-```python
-run(arch="swin3d_t", epochs=30)
-run(batch_size=4, accum=6)      # if CUDA OOMs
-run(adabn=False)
-```
-
-If you upload the file rather than pasting it, the CLI form still works:
-
-```python
-!python cuhkx_224_kaggle.py --stage cache
-!python cuhkx_224_kaggle.py --stage train --tag k224_mvit_f2
-!python cuhkx_224_kaggle.py --stage infer --tag k224_mvit_f2
-```
-
-The cache lands in `/kaggle/temp` (not persisted). Training checkpoints and outputs
-land in `/kaggle/working` (persisted). If a session times out mid-training, rerun the
-identical `--stage train` command — it resumes from the last completed epoch.
-
-## What to bring home
-
-Download from `/kaggle/working` and drop into `research/artifacts/`:
-
-| file | use |
-|---|---|
-| `oof_k224_mvit_f2.npz` | the screen — compare micro against **0.67638** |
-| `testprobs_k224_mvit_f2.npz` | the member — add to the bag |
-
-Then locally:
+Then fuse locally, adding it as a 13th video member (an **addition**, never a swap):
 
 ```bash
-# add it as a 13th video member (ADDITION, never a replacement)
-python3 code/build_adabn_candidates.py     # edit VID to append the new tag
-python3 code/ordered_transition_decoder.py test \
-    --probs research/artifacts/testprobs_n6.npz \
-    --transition-weight 0.5 --start-weight 0.0 \
-    --transition-score conditional --backoff unigram \
-    --output submissions/sub_n6.csv
 python3 code/rowdiff.py submissions/sub_n1.csv submissions/sub_n6.csv
 ```
+
+## Optional: Kaggle, for folds in parallel
+
+Only worth it to run folds 0/1/3 while the local card does fold 2. Build the cache
+locally, upload the ~1.3 GB `crop_224/` directory as a private Dataset, attach it, then
+paste the file into a cell — it detects the kernel and runs every stage — or:
+
+```python
+run(stage="train", data_root="/kaggle/input/<your-cache>", batch_size=6, accum=3)
+```
+
+Kaggle's 16 GB card takes batch 6–8; the 8 GB laptop card does not.
 
 ## Reading the result
 
 `vid_ig65m_f2` — the best single member we own — is **micro 0.67638, object 289/479**.
 
-- **≥ 0.70** — resolution is the lever. Train folds 0/1/3 too and this becomes the
-  new core of the ensemble.
-- **0.68–0.70** — comparable to IG-65M but decorrelated; still a strong bag member,
-  since the pairing gain has been what pays all campaign.
-- **< 0.67** — resolution is not the lever, and B-030 is falsified. Say so and stop;
-  do not tune it into looking better.
+- **≥ 0.70** — resolution is the lever. Train folds 0/1/3 and this becomes the new core.
+- **0.68–0.70** — comparable but decorrelated; still a strong bag member, since the
+  pairing gain is what has paid all campaign.
+- **< 0.67** — resolution is not the lever. **B-030 is falsified.** Say so and stop; do
+  not tune it into looking better.
 
-Object accuracy is the number to watch, not micro: the hypothesis is specifically
-that a 3.1x downsample was destroying hand-object detail. If micro rises but object
-does not, the mechanism claim is wrong even if the score went up.
+**Watch object accuracy, not micro.** The hypothesis is specifically that a 3.1×
+downsample was destroying hand-object detail. If micro rises but object does not, the
+mechanism claim is wrong even if the score went up.
 
 ## Knobs
 
 | flag | default | note |
 |---|---|---|
 | `--arch` | `mvit_v2_s` | `swin3d_t`, `swin3d_s`, `s3d` also wired |
-| `--batch-size` | 6 | measured peak: mvit bs4 = 5.2 GB, bs6 = 7.6 GB |
-| `--epochs` | 20 | 30 matches the local recipe if quota allows |
-| `--all-train` | off | for the final shippable model only; its fold-2 number is train-on-test |
+| `--image-size` | 224 | 128 reproduces the existing cache, for an A/B at equal storage |
+| `--batch-size` | 4 | 5.18 GB; raise to 6–8 on a 16 GB card |
+| `--epochs` | 20 | 30 matches the local recipe |
+| `--jpeg-quality` | 90 | 8.1× smaller than raw; lower only if disk is tight |
+| `--all-train` | off | final shippable model only; its fold-2 number is train-on-test |
