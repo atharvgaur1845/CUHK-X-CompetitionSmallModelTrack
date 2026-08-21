@@ -64,3 +64,8 @@ research/*
 *.tmp
 *.temp
 kaggle/__pycache__/
+
+# Frame caches built by kaggle/cuhkx_224_kaggle.py — 1.1 GB of JPEG blobs.
+# GitHub rejects any file over 100 MB, and crop_224/train.bin is ~1.08 GB.
+/crop_*/
+*.bin

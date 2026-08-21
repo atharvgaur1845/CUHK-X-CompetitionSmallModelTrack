@@ -196,9 +196,13 @@ def find_paths(data_root: str | None = None, cache_name: str = f"crop_{IMAGE_SIZ
                 depth = root
                 break
 
+    # Off Kaggle, the cache belongs under cache/ — that path is already gitignored,
+    # and a 1.1 GB train.bin in the repo root gets committed by a stray `git add -A`
+    # and then rejected by GitHub's 100 MB file limit.
     scratch = Path("/kaggle/temp") if Path("/kaggle/temp").is_dir() else Path("/kaggle/working")
     if not scratch.is_dir():
-        scratch = Path.cwd()
+        scratch = Path.cwd() / "cache"
+        scratch.mkdir(parents=True, exist_ok=True)
     out = Path("/kaggle/working") if Path("/kaggle/working").is_dir() else Path.cwd()
     paths = {"train_ir": train_ir, "train_depth": depth, "test_root": test_root,
              "sample_sub": sample_sub, "cache": scratch / cache_name, "out": out}
