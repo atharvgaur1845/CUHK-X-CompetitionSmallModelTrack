@@ -91,51 +91,113 @@ OBJECT_CLASSES = np.array(sorted(set(range(28)) | {37, 38, 39}))
 # ================================================================================
 # Environment discovery
 # ================================================================================
-def find_paths() -> dict:
-    """Locate the competition data wherever Kaggle mounted it."""
-    roots = [Path("/kaggle/input"), Path.cwd(), Path.cwd().parent]
+def _walk_prune(base: Path, max_depth: int = 9):
+    """os.walk that prunes clip-level directories.
+
+    A blind rglob over /kaggle/input walks every one of the ~500k frame PNGs and
+    can appear to hang. The dataset is only ~7 levels deep to a clip, so bound the
+    depth and stop descending as soon as a directory looks like a clip.
+    """
+    base_str = str(base)
+    for root, dirs, files in os.walk(base_str, followlinks=False):
+        # Yield what is REALLY there; prune only what we descend into. Yielding the
+        # pruned list hid every SM_test_* from the test-root check.
+        listing = list(dirs)
+        depth = root[len(base_str):].count(os.sep)
+        if depth >= max_depth:
+            dirs[:] = []
+        else:
+            dirs[:] = [d for d in dirs
+                       if not re.match(r"^SM_test_\d+$", d)
+                       and not re.match(r"^\d+-\d+-\d+$", d)
+                       and d != "__MACOSX"]
+        yield Path(root), listing, files
+
+
+def _describe(base: Path, max_depth: int = 3, limit: int = 40) -> str:
+    """What we actually saw, for a failure message that is worth reading."""
+    lines, n = [], 0
+    base_str = str(base)
+    for root, dirs, files in os.walk(base_str):
+        depth = root[len(base_str):].count(os.sep)
+        if depth > max_depth:
+            dirs[:] = []
+            continue
+        lines.append(f"{'  ' * depth}{os.path.basename(root) or base_str}/  "
+                     f"[{len(dirs)} dirs, {len(files)} files]")
+        n += 1
+        if n >= limit:
+            lines.append("  ...")
+            break
+    return "\n".join(lines)
+
+
+def find_paths(data_root: str | None = None) -> dict:
+    """Locate the competition data wherever Kaggle mounted it.
+
+    Set --data-root (or run(data_root=...)) to skip the search entirely.
+    """
+    bases = []
+    if data_root:
+        bases.append(Path(data_root))
+    else:
+        inp = Path("/kaggle/input")
+        if inp.is_dir():
+            # each attached dataset/competition is one directory under /kaggle/input
+            bases.extend(sorted(p for p in inp.iterdir() if p.is_dir()))
+            bases.append(inp)
+        bases += [Path.cwd(), Path.cwd().parent]
+
     train_ir = test_root = sample_sub = None
-    for base in roots:
-        if not base.exists():
+    for base in bases:
+        if not base.is_dir():
             continue
-        for p in base.rglob("IR"):
-            if not p.is_dir():
-                continue
-            kids = [k for k in p.iterdir() if k.is_dir()]
-            # the train IR root holds 40 "<id>_<Name>" class directories
-            if len(kids) >= 30 and any(re.match(r"^\d+_", k.name) for k in kids):
-                train_ir = p
+        for root, dirs, files in _walk_prune(base):
+            if train_ir is None and root.name == "IR":
+                classes = [d for d in dirs if re.match(r"^\d+_", d)]
+                if len(classes) >= 30:
+                    train_ir = root
+            if test_root is None and any(re.match(r"^SM_test_\d+$", d) for d in dirs):
+                test_root = root
+            if sample_sub is None and "sample_submission.csv" in files:
+                sample_sub = root / "sample_submission.csv"
+            if train_ir and test_root and sample_sub:
                 break
-        if train_ir:
+        if train_ir and test_root:
             break
-    for base in roots:
-        if not base.exists():
-            continue
-        hits = [p.parent for p in base.rglob("SM_test_0001") if p.is_dir()]
-        if hits:
-            test_root = hits[0]
-            break
-    for base in roots:
-        if not base.exists():
-            continue
-        hits = list(base.rglob("sample_submission.csv"))
-        if hits:
-            sample_sub = hits[0]
-            break
+
     if train_ir is None or test_root is None:
-        sys.exit("could not locate the competition data under /kaggle/input — "
-                 "attach the cuhk-x-competition-small-model-track dataset")
-    # scratch: prefer the big non-persisted volume
-    scratch = Path("/kaggle/temp") if Path("/kaggle/temp").exists() else Path("/kaggle/working")
-    out = Path("/kaggle/working") if Path("/kaggle/working").exists() else Path.cwd()
-    paths = {"train_ir": train_ir, "train_depth": train_ir.parent / "Depth_Color",
-             "test_root": test_root, "sample_sub": sample_sub,
-             "cache": scratch / f"crop_{IMAGE_SIZE}", "out": out}
+        seen = "\n".join(_describe(b) for b in bases[:4] if b.is_dir())
+        sys.exit(
+            "could not locate the competition data.\n"
+            f"  train IR root: {train_ir}\n  test root: {test_root}\n\n"
+            "What is actually mounted:\n" + seen +
+            "\n\nIf the layout above looks right, pass the path explicitly, e.g.\n"
+            "  run(data_root='/kaggle/input/<name>')")
+
+    # Depth_Color normally sits beside IR; fall back to a search if it does not.
+    depth = train_ir.parent / "Depth_Color"
+    if not depth.is_dir():
+        for root, dirs, _ in _walk_prune(train_ir.parent.parent, max_depth=4):
+            if root.name in ("Depth_Color", "Depth"):
+                depth = root
+                break
+
+    scratch = Path("/kaggle/temp") if Path("/kaggle/temp").is_dir() else Path("/kaggle/working")
+    if not scratch.is_dir():
+        scratch = Path.cwd()
+    out = Path("/kaggle/working") if Path("/kaggle/working").is_dir() else Path.cwd()
+    paths = {"train_ir": train_ir, "train_depth": depth, "test_root": test_root,
+             "sample_sub": sample_sub, "cache": scratch / f"crop_{IMAGE_SIZE}", "out": out}
     print("resolved paths:")
     for k, v in paths.items():
         print(f"  {k:12s} {v}")
     if not paths["train_depth"].is_dir():
-        sys.exit(f"Depth_Color not found beside IR at {paths['train_depth']}")
+        sys.exit(f"Depth_Color not found near IR (looked at {paths['train_depth']})")
+    n_test = len(list(test_root.glob("SM_test_*")))
+    print(f"  test clips visible: {n_test}")
+    if sample_sub is None:
+        print("  NOTE: no sample_submission.csv found; inference will use sorted sid order")
     return paths
 
 
@@ -647,13 +709,21 @@ def main(argv=None) -> int:
                          "TRAIN-ON-TEST and must never be compared with an honest OOF")
     ap.add_argument("--adabn", action="store_true", default=True)
     ap.add_argument("--no-adabn", dest="adabn", action="store_false")
+    ap.add_argument("--limit", type=int, default=0,
+                    help="cache only the first N clips of each split — a smoke test, "
+                         "not a runnable cache. Delete the cache dir before a real run.")
+    ap.add_argument("--data-root", default=None,
+                    help="skip path discovery; e.g. /kaggle/input/<dataset-name>")
     ap.add_argument("--cache-workers", type=int, default=max(2, (os.cpu_count() or 4)))
     args = ap.parse_args(argv)
 
-    paths = find_paths()
+    paths = find_paths(args.data_root)
     if args.stage in ("cache", "all"):
         train_jobs, test_jobs = build_jobs(paths)
         print(f"jobs: train={len(train_jobs)} test={len(test_jobs)}")
+        if args.limit:
+            train_jobs, test_jobs = train_jobs[:args.limit], test_jobs[:args.limit]
+            print(f"  --limit {args.limit}: SMOKE TEST ONLY, this cache is not trainable")
         paths["cache"].mkdir(parents=True, exist_ok=True)
         dev = "cuda" if os.environ.get("CUDA_VISIBLE_DEVICES", "0") != "" else "cpu"
         windows = compute_windows(train_jobs + test_jobs, paths["cache"], dev)
