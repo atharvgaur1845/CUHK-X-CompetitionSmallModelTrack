@@ -13,6 +13,60 @@ results.
 
 ---
 
+## EXP-101 — The binding constraint is RESOLUTION, and it is a hardware constraint. 0.89 is real: four teams are there.
+**Date:** 2026-08-21 · **Tier:** explore · **Purpose:** INFORMATION
+
+**Live leaderboard (222 teams, pulled via the Kaggle API):**
+
+| rank | score | clips | note |
+|---|---|---|---|
+| 1 | 0.98009 | 197 | +13 clips clear of rank 2 — outlier |
+| 2–5 | 0.91542 / 0.91044 / 0.90049 / 0.89552 | 184 / 183 / 181 / 180 | **tight four-team cluster** |
+| 6–7 | 0.86567 / 0.85572 | 174 / 172 | |
+| 8 | 0.82587 | 166 | |
+| **9–10** | **0.81592** | **164** | **us** |
+
+**Four independent teams clustered at 180–184 is the signature of a reproducible
+method, not a leak** — a leak yields near-perfect scores (rank 1) or scatter, not a
+band. **0.89 = 179 is therefore established as achievable.** Our own failure is not
+the ceiling; the standing directive applies.
+
+**What we are giving away, measured** (`crop_window` on 40 sampled clips):
+
+| | |
+|---|---|
+| source frames | 640×480 |
+| person-crop side | median **396 px**, p25 225, p75 464 |
+| crops ≥ 224 px | **100%** |
+| crops already ≤ 128 px | **0%** |
+| downsample to reach the 128 cache | **3.1× median** (≈9.6× fewer pixels) |
+
+`crop_window` caps the square at `min(W,H)=480` and floors it at `0.35·max(W,H)=224`,
+so **every** crop is between 224 and 480 px and every one is downsampled. 75% of our
+error mass is OBJECT classes — hand-object interactions — which is precisely the fine
+detail destroyed by a 3.1× downsample.
+
+**This RETRACTS the standing reading of the res160 null.** 160 px is a **1.25× step**
+against a 3.1× loss, and R(2+1)D's native pretrain resolution is **112×112**, so 160
+moved the input *further* off the backbone's distribution than the extra pixels were
+worth. Resolution was tested at the wrong step size with the wrong backbone. It is
+**not** a closed axis.
+
+**Why we cannot fix it on this machine:** a 224 cache is **10.7 GB** against 8 GB of
+available RAM (15 GB total, 6 GB used); 192 px is 7.9 GB and already recorded as
+thrashing. Disk is fine (37 GB free). GPU is an 8 GB RTX 4060 running batch 2 + accum 8.
+**The constraint is hardware, not method.**
+
+**Implication:** Kaggle supplies 30 GPU-hours/week free (T4×2 / P100 16 GB) and already
+hosts this dataset. A 224-px cache with a **224-native** backbone (VideoMAE-V2,
+Video Swin, MViTv2, X3D-L) is the untested experiment with by far the largest expected
+gain — and a single strong model also **fixes the Stage-2 packaging risk**, which our
+12-member ~700 MB bag cannot.
+**Beliefs updated:** B-030 NEW (resolution is the binding constraint; the res160 null was
+a step-size and backbone-mismatch artifact, not evidence against the axis).
+
+---
+
 ## EXP-100 — AdaBN CONFIRMED on public (+2, new champion 164). Start-weight REFUTED (-8): test groups are fragments.
 **Date:** 2026-08-21 · **Tier:** exploit · **Purpose:** SCORE + INFORMATION
 

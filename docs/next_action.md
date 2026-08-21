@@ -46,7 +46,37 @@ applied to the 11-member `h8all` bag. **Top-10 (163) is cleared.** The standing 
 
 ---
 
-### ① AdaBN — DEPLOYED and CONFIRMED (+2). Now sharpen it to per-subject.   ← **the live lever**
+### ⓪ RESOLUTION on a bigger machine — the only lever sized like the gap   ← **START HERE**
+
+**The gap to 0.89 is +15 clips. Nothing below this line is that big.**
+
+**0.89 is established as achievable:** four *independent* teams sit at 180–184 on the
+live leaderboard (EXP-101). That band is the signature of a reproducible method, not the
+leak — a leak gives rank 1's 197 or scatter, not a tight cluster.
+
+**What we throw away, measured:** every person crop is 224–480 px (median **396**), and
+the cache renders it at **128** — a **3.1× downsample, ~90% of the pixels gone**. 75% of
+the error mass is OBJECT classes, i.e. hand-object detail, exactly what that destroys.
+
+**The `res160` null does not refute this.** 160 px is a 1.25× step against a 3.1× loss,
+and R(2+1)D's native pretrain resolution is **112×112**, so 160 pushed the input further
+off-distribution than the pixels were worth. Wrong step size, wrong backbone.
+
+**Why not on this laptop:** a 224 cache is **10.7 GB** against 8 GB free RAM; 192 px is
+7.9 GB and already recorded as thrashing. 8 GB GPU at batch 2. **The constraint is
+hardware, not method.**
+
+**Do this:** build the 224 cache and fine-tune a **224-native** backbone (VideoMAE-V2-B,
+Video Swin-T, MViTv2-S, X3D-L) on **Kaggle's own free GPU** — 30 h/week, T4×2 or P100
+16 GB, and the dataset is already hosted there. Screen on fold 2 against IG-65M's
+0.67638.
+
+**It also fixes item ④.** One strong model inside 100 MB is a legal Stage-2 package;
+our 12-member ~700 MB bag is not. This is the only direction that answers both.
+
+**Done when:** a 224-px fold-2 micro exists to compare against 0.67638.
+
+### ① AdaBN — DEPLOYED and CONFIRMED (+2). Now sharpen it to per-subject.
 
 **What:** re-estimate BatchNorm running statistics from the **unlabeled** target clips
 before predicting. One extra forward pass; no labels, no training, no packaging bytes.
@@ -123,7 +153,8 @@ Unchanged and still not deferrable — see the packaging warning above. No GPU n
 | Thermal as a *late-fusion* member | Strong (0.544) and maximally decorrelated, adds **exactly zero** at every weight. Confidence when right ≈ when wrong. (Early fusion is item ③ and is NOT closed.) | EXP-088, B-027 |
 | Fitted stackers, learned gates, cohort weights, temperature calibration | Six consecutive fitted-combination levers landed ≤0 on public despite large OOF gains. | LOG, `BELIEFS.md` |
 | Sinkhorn / prior-forcing on test | −12 public. Re-derived once by mistake. | `BELIEFS.md` |
-| Resolution 160px · 32 frames · all-18 data volume | 4-fold mean −0.19 · +1.38 ns · retracted (−3, not significant) | EXP-093 |
+| ~~Resolution 160px~~ | **RETRACTED (EXP-101).** 1.25× step against a measured 3.1× downsample, on a backbone pretrained at 112. Resolution is item ⓪, not a closed axis. | EXP-101 |
+| 32 frames · all-18 data volume | +1.38 ns · retracted (−3, not significant) | EXP-093 |
 
 ---
 
