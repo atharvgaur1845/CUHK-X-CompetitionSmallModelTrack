@@ -17,16 +17,17 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
-**Public best is `submissions/sub_h8all.csv` = 0.80597 = 162/201, set 2026-08-20.**
-Top-10 is 163 (one clip). The user's standing target is **0.85 = 171/201 → +9 clips.**
+**Public best is `submissions/sub_n1.csv` = 0.81592 = 164/201, set 2026-08-21** — AdaBN
+applied to the 11-member `h8all` bag. **Top-10 (163) is cleared.** The standing target is
+**0.85 = 171/201 → +7 clips.**
 
 | | |
 |---|---|
-| Current best (verified on Kaggle) | **0.80597 = 162/201** — `submissions/sub_h8all.csv` |
-| Target | 0.85 = 171/201 → **+9 clips**; top-10 = 163 → +1 |
+| Current best (verified on Kaggle) | **0.81592 = 164/201** — `submissions/sub_n1.csv` |
+| Target | 0.85 = 171/201 → **+7 clips** (top-10 cleared) |
 | Deadline | Kaggle 2026-09-15; code upload 09-22 |
 | Noise floor | **±6 clips.** A change moving <20 of 405 rows cannot be read |
-| Champion recipe | video slot = log-mean of 11 members (K400 f0-3, IG-65M f0-3, f32/res160/upper f2); fusion `0.35·log(B/prior) + 0.2925·log(V̄) + 0.3575·log(I)`, then `0.9·that + 0.10·log(MB)`, then `+0.25·log(prior)`, then the transition decoder λ=0.5 conditional unigram |
+| Champion recipe | **AdaBN test inference** (`--adabn`), video slot = log-mean of 11 members (K400 f0-3, IG-65M f0-3, f32/res160/upper f2); fusion `0.35·log(B/prior) + 0.2925·log(V̄) + 0.3575·log(I)`, then `0.9·that + 0.10·log(MB)`, then `+0.25·log(prior)`, then the transition decoder λ=0.5 conditional unigram |
 
 > ### ⚠ THREE AXES ARE NOW MEASURED FLAT. DO NOT RE-OPEN THEM.
 > Fusion weights (+1 clip at the *selection-biased* grid optimum), decoder λ, and
@@ -45,12 +46,15 @@ Top-10 is 163 (one clip). The user's standing target is **0.85 = 171/201 → +9 
 
 ---
 
-### ① AdaBN — deploy it, then sharpen it   ← **the live lever**
+### ① AdaBN — DEPLOYED and CONFIRMED (+2). Now sharpen it to per-subject.   ← **the live lever**
 
 **What:** re-estimate BatchNorm running statistics from the **unlabeled** target clips
 before predicting. One extra forward pass; no labels, no training, no packaging bytes.
+Already in `code/infer_video_crop.py --adabn`; it is what makes the current 164 champion.
 
-**Why first:** measured on held-out fold 2 with `vid_ig65m_f2` (EXP-099):
+**Status: CONFIRMED on public.** `sub_n1` (single change) scored **0.81592 = 164/201**,
++2 over the 162 champion (EXP-100). Measured on held-out fold 2 with `vid_ig65m_f2`
+(EXP-099):
 
 | | micro | object | motion |
 |---|---|---|---|
@@ -62,21 +66,26 @@ before predicting. One extra forward pass; no labels, no training, no packaging 
 fitted levers in the graveyard. The gain lands on OBJECT, which is 75% of the error mass.
 It should also help the **on-site 8-new-subject stage (30% of the grade)** by construction.
 
-**Next steps, in order:**
-1. Per-session AdaBN (scratchpad `adabn_group.py --group user`) — if the shift is
-   subject-specific, adapting per recording session beats pooling. On test the
-   recoverable key is the radar **day** (7 of them, 404/405 clips carry a timestamp).
-2. Apply to all 8 fold members' test inference, rebuild `h8all`, rowdiff, submit.
-3. Screen it on a K400 member too — if it only helps IG-65M that is worth knowing.
+**The remaining headroom: per-subject adaptation measured 0.70092 vs pooled's 0.69172**
+— 1.6x the gain — so subject-clustered AdaBN is worth roughly **+3 public clips** if the
+subjects can be recovered. The blocker is a chicken-and-egg between purity and sample
+size (measured, EXP-099): timestamp blocks at a 3-minute gap are **100% subject-pure**
+(validated on train: purity 1.0000 over 231 blocks) but hold a median of 10 clips, which
+scores 0.67945 — *worse than pooled*. Groups must be pure **and** large.
 
-**Done when:** a `h8all`-with-AdaBN submission is scored against 162.
+**Next step:** cluster the timestamp blocks into subjects, then adapt per cluster.
+The natural signature is each block's own mean BN feature statistics — a subject
+fingerprint that falls out of the AdaBN pass for free. Validate the clustering against
+true user labels on train, where the answer is known, before trusting it on test.
+Test side: 404/405 clips carry a timestamp, 7 days, ~12 subjects expected.
 
-### ② Fold in the two free corrections
+**Done when:** a subject-clustered AdaBN submission is scored against 164.
 
-`--start-weight 0.5` (EXP-097) is +14 clips on 2,700 OOF ≈ +1 public clip, and the
-weight-grid optimum is another ≈+1. Both are free and both are below the noise floor
-**alone** — bundle them with ① rather than spending submissions on them.
-`submissions/sub_h8all_sw05.csv` is already built (rowdiff 19 vs champion).
+### ② Submit `sub_n5.csv` — AdaBN + the 12th member, start-weight OFF
+
+Built and unscored. The two confirmed-positive changes with the refuted one removed:
+AdaBN (+2) and `vid_ig65m_f32_f2` (+1, isolated by n3-vs-n2). Expected **165**.
+rowdiff 7 vs the 164 champion.
 
 ### ③ Early-fusion thermal — the one genuinely unexploited information source
 
@@ -108,6 +117,8 @@ Unchanged and still not deferrable — see the packaging warning above. No GPU n
 | Screen bag members on solo score | `ig65m_upper` is solo-null (identical 289/479) and the best bag member measured (+2.76). | EXP-093 |
 | Session-scale distinctness | **False.** 1,937 duplicate-label clips in 125 of 147 train sessions (trials repeat each activity). | EXP-097 |
 | Merge recording groups into longer chains | Cross-group transition top-1 0.340 **< 0.392 unigram baseline**. The chain does not cross boundaries. | EXP-097 |
+| **`--start-weight` > 0** | **REFUTED on public: −8 clips** (154 vs 162), despite +14 on 2,700 OOF. Test groups are *fragments* — singletons 19.6% vs train's 5.4%, mean size 2.83 vs 3.72 — so a first-of-pass prior lands on mid-pass clips. Leave it at 0.0. | EXP-100, B-029 |
+| Any lever keyed on group position/length without checking the test group-size histogram first | Same defect as above. OOF measures it on train-shaped groups and can be wrong in **sign**. | B-029 |
 | Decoder λ > 0.5 | OOF λ=1.0 → +0.006 (231 rescues, 215 harms). `vidimu_C_trans10.csv` **retracted**. | EXP-086 |
 | Thermal as a *late-fusion* member | Strong (0.544) and maximally decorrelated, adds **exactly zero** at every weight. Confidence when right ≈ when wrong. (Early fusion is item ③ and is NOT closed.) | EXP-088, B-027 |
 | Fitted stackers, learned gates, cohort weights, temperature calibration | Six consecutive fitted-combination levers landed ≤0 on public despite large OOF gains. | LOG, `BELIEFS.md` |

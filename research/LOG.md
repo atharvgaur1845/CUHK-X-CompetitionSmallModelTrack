@@ -13,6 +13,56 @@ results.
 
 ---
 
+## EXP-100 — AdaBN CONFIRMED on public (+2, new champion 164). Start-weight REFUTED (-8): test groups are fragments.
+**Date:** 2026-08-21 · **Tier:** exploit · **Purpose:** SCORE + INFORMATION
+
+| submission | change vs the 162 champion | public | clips |
+|---|---|---|---|
+| `sub_h8all` (old champion) | — | 0.80597 | 162 |
+| **`sub_n1`** | **AdaBN alone** | **0.81592** | **164** |
+| `sub_n2` | AdaBN + start-weight 0.5 | 0.78109 | 157 |
+| `sub_n3` | AdaBN + start-weight + 12th member | 0.78606 | 158 |
+| `sub_h8all_sw05` | start-weight 0.5 alone | 0.76616 | 154 |
+
+**Three effects cleanly separated** because the ladder was built as single changes:
+- **AdaBN = +2** (162 -> 164). OOF predicted +1.53 micro on the member; public
+  delivered +2 clips. **B-028 confirmed.**
+- **start-weight 0.5 = -8** (162 -> 154, and -7 on top of AdaBN: 164 -> 157).
+- **12th member (`vid_ig65m_f32_f2`) = +1** (n2 157 -> n3 158), matching its +0.15
+  fold-2 micro.
+
+**Why start-weight failed, measured — this is NOT ordinary overfitting.** The OOF said
++14 clips on 2,700 and public said -8 on 201: opposite sign, large magnitude. The cause
+is a **structural mismatch in the thing the lever depends on**:
+
+| | train | test |
+|---|---|---|
+| mean group size | 3.72 | **2.83** |
+| singleton groups | 42/783 = **5.4%** | 28/143 = **19.6%** |
+| max group size | 10 | 8 |
+| clips that are group-first | 26.9% | **35.4%** |
+
+**Test recording groups are fragments of passes.** The first clip of a test group is
+frequently *not* the first clip of the real recording pass — merely the earliest
+surviving one. EXP-097's prior ("every pass opens with class 36 `Walk`; classes 21, 22,
+5, 33 never open one") is a true statement about *complete* passes and a false one about
+*truncated* ones, so it is applied wrongly to 35.4% of test clips. The mechanism analysis
+was right about train and irrelevant to test.
+
+**The lesson generalises beyond this lever:** OOF validates a *parameter* against a
+*distribution*, but it cannot validate a **structural assumption** that train satisfies
+and test does not. Any future lever keyed on group position, group length, or group
+completeness inherits this defect and must be checked against the test group-size
+histogram before it is measured, not after.
+**Beliefs updated:** B-028 -> 90% (confirmed on public). B-029 NEW.
+**Retracted:** EXP-097's "+~1 public clip" estimate for `--start-weight`. The direction
+was wrong, not just the size.
+
+**Next candidate:** `sub_n5.csv` = AdaBN + 12 members, **start-weight 0.0** — the two
+confirmed-positive changes with the refuted one removed. Expected 165. rowdiff 7 vs `n1`.
+
+---
+
 ## EXP-099 — AdaBN: parameter-free test-time BN re-estimation is worth +1.53 micro, all of it in OBJECT.
 **Date:** 2026-08-20 · scratchpad `adabn_probe.py` · **Tier:** explore
 **Purpose:** SCORE + robustness. Targets cross-subject shift, which is worth 2.5x the public LB.

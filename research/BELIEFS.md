@@ -1,7 +1,29 @@
 # Belief Ledger
 
+## B-029 — OOF cannot validate a STRUCTURAL assumption, only a parameter
+- **Confidence:** 85% (new, 2026-08-21)
+- **Importance:** High
+- **Claim:** when a lever depends on a *structural property of how rows are grouped*
+  rather than on a fitted number, OOF measures it on train-shaped groups and can be
+  confidently wrong about test — in **sign**, not merely in magnitude.
+- **Evidence (EXP-100):** `--start-weight 0.5` measured **+14 clips on 2,700 OOF**
+  (unimodal, 3/4 folds positive) and scored **-8 clips on public**. The prior it applies
+  is real and physically grounded on train (every complete pass opens with `Walk`;
+  KL 0.428 nats; four classes hard-zero across 783 groups). But test groups are
+  **fragments**: mean size 2.83 vs 3.72, singletons 19.6% vs 5.4%, and 35.4% of test
+  clips are "group-first" against 26.9% in OOF. A first-of-pass prior applied to a
+  mid-pass clip is wrong by construction.
+- **Distinguishes from B-024 (fitted levers fail):** start-weight is *not* a fitted
+  stacker. It failed for a different and more instructive reason — the assumption held
+  in the measurement distribution and not in the target one.
+- **Operational rule:** before measuring any lever keyed on group position, group
+  length, or group completeness, compare the train and test **group-size histograms**
+  first. If they differ, the OOF number is uninformative regardless of its size.
+- **Falsification:** a group-structure lever that is OOF-positive, is checked against a
+  *matching* test group-size histogram, and then also scores positive on public.
+
 ## B-028 — Feature-space adaptation transfers where probability-space fitting does not
-- **Confidence:** 75% (new, 2026-08-20) — OOF-measured, **awaiting public verification**
+- **Confidence:** 90% (2026-08-21) — **CONFIRMED on public: +2 clips, 162 -> 164** (EXP-100)
 - **Importance:** High
 - **Claim:** the cross-subject shift lives in the *features*, and correcting it there is
   cheap and safe, whereas every attempt to correct it in *probability space* has failed.
@@ -16,9 +38,10 @@
   calibration ×2) all posted large OOF gains and landed ≤0 on public. Those fit
   *parameters on held-out probabilities*. AdaBN fits **nothing** — the optimum is the
   endpoint, so there is no parameter to overfit and no train/test recipe drift.
-- **Falsification test:** `sub_n1.csv` (single change: AdaBN, rowdiff 14 vs the 162
-  champion) scores at or below 162 on public. If it does, this belief drops to ~35% and
-  the fitted-lever graveyard grows by one.
+- **Falsification test (PASSED):** `sub_n1.csv` (single change: AdaBN, rowdiff 14) scored
+  **0.81592 = 164/201**, +2 over the 162 champion. The OOF estimate (+1.53 micro on the
+  member) tracked the public outcome. Per-subject adaptation measured 1.6x the pooled
+  gain, so subject-clustered AdaBN is now worth building.
 - **Caveat, measured:** purity does not beat sample size. Adapting per timestamp-block
   (100% subject-pure but median 10 clips) gives only 0.67945 — **worse than pooled**.
   Groups must be both pure and large, which is why per-subject recovery (clustering
