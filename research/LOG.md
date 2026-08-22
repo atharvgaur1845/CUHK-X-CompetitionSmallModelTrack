@@ -13,6 +13,56 @@ results.
 
 ---
 
+## EXP-104 — MViT alone = 166 public (new champion). Swin3D-T refuted. Wrist crop built.
+**Date:** 2026-08-22 · **Tier:** exploit/explore · **Purpose:** SCORE
+
+**`sub_n8` (MViT x4 alone in the video slot) and `sub_n9` (CNN bag + MViT, half each)
+both scored 0.82587 = 166/201**, +2 over the 164 champion. **Identical scores from a
+34 MB video branch and a 657 MB one** — the K400 and IG-65M families are fully
+redundant now, which is what makes a legal Stage-2 package possible.
+
+**Calibration result worth banking:** pooled 4-fold OOF predicted +2.8 public clips
+and public delivered +2. After a campaign of OOF inversions, the **2,700-clip pooled**
+estimate tracks roughly 1:1. Fold-2 OOF never did (it produced n7's −3). Screen on
+pooled, never on a single fold.
+
+### Swin3D-T — REFUTED as a second 224-native family
+
+| member | micro | object | motion |
+|---|---|---|---|
+| `k224_mvit_f2` | **0.71472** | 311/479 | 0.89595 |
+| `vid_ig65m_f2` | 0.67638 | 289/479 | 0.87861 |
+| `k224_swin_f2` | **0.61656** | 277/479 | **0.72254** |
+
+Below even K400 (0.63957), with motion collapsing 0.90 → 0.72. Swin3D's K400 weights
+are trained on **32 frames** and its 3D attention windows assume that depth; feeding 16
+mismatches the temporal window. Not retried — the failure is structural, not a
+hyperparameter.
+
+### Wrist crop — built, training
+
+57.7% of residual error is fine-grained hand-object confusion (EXP-103). `yolo11n-pose`
+gives wrists in image space, which the skeleton cannot: the skeleton is 3D world
+coordinates, pelvis-centred and floor-aligned, so it cannot drive an image crop without
+calibration we do not have.
+
+Measured over all 3,338 clips: **wrist window found for 3,321 (99.5%)**, only 2.6%
+falling back to the person box. Median wrist side **147 px** against the person crop's
+416, so the hands render at **224 px instead of 79** — 2.8x linear, 8x the pixels, on
+exactly the region that carries the error.
+
+### Also set aside, on existing evidence rather than new work
+
+- **Deep IMU model.** `imu_stats_member.py` already records that neural members were the
+  wrong model class for a 10.8 Hz stream with a **median 23 samples per device per
+  clip**, and that dropping angle/magnetometer/quaternion *improved* accuracy
+  (0.3856 → 0.4030) because they encode room heading, not activity.
+- **Thermal early fusion (was item ③).** Thermal is a *different camera* with no
+  calibration to IR/depth, so a 7-channel tensor would not be pixel-aligned. Early
+  fusion is not the cheap experiment the handover implied.
+
+---
+
 ## EXP-103 — MViT 4-fold pooled: +2.42 over IG-65M (p=0.0016), and ALONE it beats every bag we own.
 **Date:** 2026-08-22 · `code/run_mvit_folds.sh` · **Tier:** exploit · **Purpose:** SCORE + packaging
 
