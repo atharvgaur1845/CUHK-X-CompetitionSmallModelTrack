@@ -22,6 +22,9 @@ ap.add_argument("--view", action="append", required=True,
                 help="name=tag1,tag2,...[:weight]  (weights renormalised to 1)")
 ap.add_argument("--tag", required=True, help="output tag, writes testprobs_<tag>.npz")
 ap.add_argument("--skel", default="astgcn_world25_int8", help="skeleton-branch tag (for packaging prunes)")
+ap.add_argument("--imu", default="imu_stats", help="IMU tree-member tag (for packaging prunes)")
+ap.add_argument("--no-motionbert", action="store_true",
+                help="drop the 0.10 MotionBERT term — 241 MB fp32 for 9 of 405 rows")
 a = ap.parse_args()
 
 tr = collections.Counter(int(r["class_id"]) for r in csv.DictReader(open("cache/meta_train.csv")))
@@ -51,10 +54,12 @@ lv = sum((w / tot) * lg for _, w, lg, _ in views)
 for name, w, _, tags in views:
     print(f"  view {name:8s} weight {w/tot:.3f}  members {len(tags)}: {','.join(tags)}")
 
-B, sb = load(a.skel); I, _ = load("imu_stats"); MB, _ = load("skel_mb_f2")
+B, sb = load(a.skel); I, _ = load(a.imu)
 assert sb == ref_sids
 lg = 0.35 * L(B / prior) + 0.2925 * lv + 0.3575 * L(I)
-lg = 0.9 * lg + 0.10 * L(MB)
+if not a.no_motionbert:
+    MB, _ = load("skel_mb_f2")
+    lg = 0.9 * lg + 0.10 * L(MB)
 lg = lg + 0.25 * L(prior)[None, :]
 lg -= lg.max(1, keepdims=True); p = np.exp(lg); p /= p.sum(1, keepdims=True)
 out = f"{ART}/testprobs_{a.tag}.npz"

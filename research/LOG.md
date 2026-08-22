@@ -13,6 +13,65 @@ results.
 
 ---
 
+## EXP-106 — all-train MViT landed; the 66.1 MB package pipeline is built and unscored. A pgrep self-match cost 7 GPU-hours.
+**Date:** 2026-08-23 · `code/build_video_slot.py` · **Tier:** exploit · **Purpose:** SCORE
+
+### The overnight loss, and the bug that caused it
+
+`run_wrist_queue.sh` waited on the in-flight job with
+
+```bash
+while pgrep -f "cuhkx_224_kaggle.py --stage train --all-train --tag k224_mvit_all"; do sleep 60; done
+```
+
+**`pgrep -f` matches the full command line of every process, including the queue's own
+parent shell**, whose command line contains that string verbatim because the script was
+written by a heredoc in the same invocation. The loop therefore waited on itself and
+could never exit. `k224_mvit_all` finished at 23:39; the GPU then sat idle for
+**seven hours** with the queue alive, its log empty, and no error anywhere.
+
+Worse, the stuck queue was still live the next morning and would have launched a
+**duplicate** fold-0 run the moment its parent died. Killed, and the wait loop removed
+rather than fixed — the new queue simply runs its jobs in sequence.
+
+**This is EXP-064's lesson in a new costume: a crash announces itself, a deadlock does
+not.** Add to it: *never let a waiter's predicate match the waiter.*
+
+### `k224_mvit_all` — no honest local estimate exists, by construction
+
+It reports fold-2 micro **0.97546**, which is memorisation: `--all-train` trains on all
+18 users, so fold 2 is training data. **Do not record this as a result.** The same holds
+for any `--all-train` member — its only honest measurement is public.
+
+Nor can OOF settle the k-fold-bag-vs-single-model question in general: pooled OOF scores
+each clip with the one model that held it out, so it estimates a *single* model, never
+the bag. The 4-fold bag's advantage was only ever measured on public (n8 = 166).
+
+### Candidates built
+
+| tag | video slot | skel | imu | MotionBERT | rowdiff vs 166 |
+|---|---|---|---|---|---|
+| `sub_q1` | `k224_mvit_all` alone | full | full | yes | **22** |
+| `q2` | 4 folds + all-train | full | full | yes | 4 |
+| **`sub_q4`** | **`k224_mvit_all` alone** | **p4 22.80 MB** | **200/12 9.00 MB** | **dropped** | **36** |
+| `sub_p1` | person 4-fold + wrist f2, 50:50 | full | full | yes | 15 |
+
+**`sub_q4` is the 66.1 MB Stage-2 package pipeline itself**, end to end. Submitting it
+is the point: Rules §2.8.b makes a >10% Kaggle-vs-package gap a disqualification, and
+if the package *is* the submission the gap is zero by construction.
+
+`q2` at rowdiff 4 shows the all-train member is nearly redundant *inside* the 4-fold bag
+(1/5 weight, highly correlated) — it earns its place by being shippable alone, not by
+adding information.
+
+**Tooling note.** `build_video_slot.py` now carries `--skel`, `--imu` and
+`--no-motionbert`, and reproduces both the 166 champion and the package pipeline to
+**0.0**. A first attempt at that patch silently failed to match and was caught only
+because the reproduction check printed 0.168 instead of 0 — the check is the reason the
+error lasted one minute instead of shipping.
+
+---
+
 ## EXP-105 — The Stage-2 packaging blocker is SOLVED (4x cut, ~2 rows). Wrist crop pays only in fusion.
 **Date:** 2026-08-22 · `code/prune_world25.py`, `code/build_video_slot.py`,
 `code/imu_stats_size_sweep.py` · **Tier:** exploit · **Purpose:** SCORE + INFORMATION

@@ -64,8 +64,11 @@ lands, re-measure on the 2,700-clip pooled OOF — not on fold 2.** Giving the w
 the same 4-fold backing the person view has is exactly what removes the single-fold
 asymmetry that produced n7's −3.
 
-**Unsubmitted and ready:** `sub_p1.csv` (wrist at half the video slot, rowdiff 15 — a
-weak read by design), `sub_n10.csv` (all 17 members equal, rowdiff 12).
+**Unsubmitted and ready, ranked:** `sub_q4.csv` (the 66.1 MB package pipeline itself,
+rowdiff 36 — **submit this first, it answers the gate**), `sub_q1.csv` (all-train video
+slot alone, rowdiff 22 — isolates the one change `q4` cannot measure locally),
+`sub_p1.csv` (wrist at half the slot, rowdiff 15 — superseded once the 4-fold wrist
+lands), `sub_n10.csv` (all 17 equal, rowdiff 12).
 
 ### ① Build and verify the ≤100 MB Stage-2 package
 
@@ -75,7 +78,7 @@ Every number below is measured (EXP-105); none is an estimate.
 |---|---|---|
 | `world25` pruned to 5 archs × 4 folds | 22.80 | 2 of 405 rows |
 | `imu_stats` ExtraTrees 200 trees / depth 12 | 9.00 | −6 clips / 2,700 |
-| MViT person `--all-train` | 34.3 | *pending the run* |
+| MViT person `--all-train` | 34.3 | **built** — `checkpoints/k224_mvit_all.pt`; no honest local estimate exists (it trained on every fold), so `sub_q4` is how we learn its value |
 | MViT wrist `--all-train` | 34.3 | *pending item ⓪* |
 | **total** | **100.4** | swap `imu_stats` to 150/10 (4.61 MB, −9/2,700) → **96.0** |
 
@@ -135,16 +138,16 @@ contributes zero in probability space because its confidence when right ≈ when
 
 ## Running right now
 
-`code/run_wrist_queue.sh` holds the GPU (log: `logs/wrist_queue.log`). In order:
+`code/run_wrist_queue.sh` holds the GPU (log: `logs/wrist_queue.log`), started
+2026-08-23. In order: `k224_mvitwrist_f{0,1,3}` then `k224_mvitwrist_all`. ~5.6 h at
+~250 s/epoch × 20 epochs; each stage files its own artifacts as it completes.
 
-1. `k224_mvit_all` — MViTv2-S, all 18 users, person crop. The shippable 34.3 MB
-   single model for the Stage-2 package, and a +29%-data member. (`logs/mvit_all.log`)
-2. `k224_mvitwrist_f{0,1,3}` — gives the wrist view the same 4-fold backing the person
-   view has, so it can be screened on the 2,700-clip pooled OOF instead of fold 2.
-3. `k224_mvitwrist_all` — the wrist half of the package.
+`k224_mvit_all` is **done** (`checkpoints/k224_mvit_all.pt`, 34.3 MB int8).
 
-~8 h total at ~250–330 s/epoch × 20 epochs. Each stage moves its own artifacts into
-`research/artifacts/` and `checkpoints/` as it completes.
+> **⚠ Never give a wait loop a predicate that can match the waiter.** The previous
+> version of this queue used `pgrep -f "...--tag k224_mvit_all"`, which matched its own
+> parent shell's command line and waited on itself for **7 idle GPU-hours** (EXP-106).
+> The loop is gone; jobs now run in sequence.
 
 **Harvest each with:**
 ```bash
