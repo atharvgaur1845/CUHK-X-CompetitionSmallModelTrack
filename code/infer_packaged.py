@@ -141,6 +141,7 @@ def fuse_members(
     batch_size,
     device,
     loading_mode,
+    per_member=None,
 ):
     """Fuse members in manifest order and report logical resident byte bounds."""
     probabilities = np.zeros((sample_count, 40), np.float64)
@@ -153,6 +154,8 @@ def fuse_members(
                 logits = model(x[start:start + batch_size].to(device))
                 member_probs.append(torch.softmax(logits, 1).cpu().numpy())
             fused_member = np.concatenate(member_probs)
+            if per_member is not None:
+                per_member.append((str(member["id"]), fused_member.astype(np.float32)))
             probabilities += float(member["weight"]) * fused_member
             profiles.append((str(member["id"]), memory))
             print(
@@ -264,6 +267,13 @@ def main():
             "probabilities and sample IDs"
         ),
     )
+    parser.add_argument(
+        "--per-member-output",
+        help=(
+            "optional NPZ of every member's own probabilities, keyed by member id, "
+            "so pruning subsets can be evaluated offline without re-running inference"
+        ),
+    )
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -283,6 +293,7 @@ def main():
         if eager_manifest != manifest:
             raise RuntimeError("artifact manifest changed while loading")
         member_iterator = eager_members_with_memory(eager_members)
+    per_member = [] if args.per_member_output else None
     probabilities, runtime_profile = fuse_members(
         member_iterator,
         inputs,
@@ -290,7 +301,17 @@ def main():
         args.batch_size,
         device,
         args.member_loading,
+        per_member,
     )
+    if per_member is not None:
+        np.savez_compressed(
+            args.per_member_output,
+            sids=np.array([str(s) for s in sample_ids]),
+            weights=np.array([float(m["weight"]) for m in member_specs], np.float64),
+            ids=np.array([str(m["id"]) for m in member_specs]),
+            **{mid: p for mid, p in per_member},
+        )
+        print(f"wrote per-member probabilities: {args.per_member_output}")
     storage_profile = package_storage_profile(args.artifact, manifest)
     print(
         f"member_loading={args.member_loading} "

@@ -1,5 +1,32 @@
 # Belief Ledger
 
+## B-031 — Ensemble SIZE and ensemble INFORMATION are nearly decoupled here
+- **Confidence:** 90% (new, 2026-08-22)
+- **Importance:** Critical — it converts Stage-2 from a blocker into a solved problem.
+- **Claim:** the deployed pipeline's disk footprint is dominated by components that
+  carry almost none of its decisions. Size can be cut by ~4x with an effect at or
+  below the noise floor.
+- **Evidence (EXP-105), all measured, none assumed:**
+  - `world25` 84.54 MB -> **22.80 MB** (12 archs x 4 folds -> 5 x 4): **2 of 405 rows**
+    change. 32 of the 48 members were seed replicas; five `skel_jvb_big` seeds held
+    22.9% of the weight in 50.65 MB (**221 MB per unit weight**, against `imu_world`'s
+    **10**).
+  - `imu_stats` ExtraTrees 1000 unconstrained trees = **87.64 MB** serialized -- the
+    larger blocker, and previously unnoticed because the member is refit at inference
+    and never written to disk. 200 trees at depth 12 = **9.00 MB** and costs
+    **6 clips of 2,700 pooled OOF** (~0.4 public clips).
+  - MotionBERT `skel_mb_f2` (241 MB fp32, 0.10 fusion weight): dropping it moves
+    **9 of 405 rows**.
+  - By contrast `imu_stats` cannot be dropped at all: **43 of 405 rows** move.
+- **Mechanism:** the fusion is a weighted product of *calibrated posteriors*. Seed
+  replicas of one architecture are near-perfectly correlated, so averaging five of them
+  instead of one shifts the log-posterior by far less than the inter-architecture
+  spread. Capacity spent on replicas buys variance reduction the decoder then discards.
+- **Operational rule:** budget a package by **MB per unit fusion weight**, and prune
+  the worst ratio first. Prune by *measured rowdiff*, never by parameter count.
+- **Falsification:** a prune that removes only seed replicas (no architecture, no fold)
+  and moves >10 of 405 rows, or costs >15 clips of 2,700 pooled OOF.
+
 ## B-029 — OOF cannot validate a STRUCTURAL assumption, only a parameter
 - **Confidence:** 85% (new, 2026-08-21)
 - **Importance:** High

@@ -13,6 +13,76 @@ results.
 
 ---
 
+## EXP-105 — The Stage-2 packaging blocker is SOLVED (4x cut, ~2 rows). Wrist crop pays only in fusion.
+**Date:** 2026-08-22 · `code/prune_world25.py`, `code/build_video_slot.py`,
+`code/imu_stats_size_sweep.py` · **Tier:** exploit · **Purpose:** SCORE + INFORMATION
+
+### 1. The champion recipe is a script again, not a lost heredoc
+
+`code/build_video_slot.py` reproduces `testprobs_n8.npz` (the 166 champion) to
+**max abs diff 0.0**. The video slot is now a weighted log-mean over *views*, each view
+an equal log-mean over its folds -- which separates the two things `n7` confounded:
+how much weight a view earns, and how many folds back it.
+
+### 2. Wrist crop -- the mechanism holds, but only in fusion (B-030 refined)
+
+| fold-2 video slot | micro | object | motion |
+|---|---|---|---|
+| `k224_mvit_f2` (person) | 0.71472 | 311/479 | 0.89595 |
+| `k224_mvitwrist_f2` | 0.71166 | 304/479 | 0.92486 |
+| **person + wrist, equal weight** | **0.75153** | **330/479** | 0.92486 |
+
+The pre-registered prediction was that the wrist view would raise *object* accuracy on
+its own. **It did not (-7 clips).** What it does instead is fail on different clips:
+argmax agreement **74.7%**, oracle-any 522/652. Fused at equal weight the pair gains
+**+19 object clips and +3.68 micro** over the best member of the campaign. The optimum
+sits at exactly w=0.5, the prior-free choice, so this is not a fitted peak.
+
+`sub_p1` (wrist view at half the video slot) is rowdiff **15** vs the 166 champion --
+under the ~20-row readability bar, because the wrist view is half of a video slot that
+is itself 0.2925 of the fusion. Folds 0/1/3 are queued to give the wrist view the same
+4-fold backing the person view has, which also removes the single-fold asymmetry that
+produced n7's -3.
+
+### 3. Swin3D-T stays refuted; MotionBERT is nearly free to drop
+
+### 4. **PACKAGING: measured, not estimated**
+
+Per-member probabilities were dumped once from the int8 package
+(`--per-member-output`, reproduces the deployed branch to **2.2e-08**), after which
+every prune is offline arithmetic.
+
+| component | deployed | pruned | cost |
+|---|---|---|---|
+| `world25` | 84.54 MB | **22.80 MB** (5 archs x 4 folds) | **2 of 405 rows** |
+| `imu_stats` | **87.64 MB** (1000 trees, no cap) | **9.00 MB** (200 trees, depth 12) | **-6 clips / 2,700 pooled OOF** |
+| `skel_mb_f2` (MotionBERT) | 241 MB fp32 | dropped | 9 of 405 rows |
+| video slot | 137 MB (MViT x4) | 34.3 MB (all-train x1) | *pending* |
+
+**`imu_stats` was the larger blocker and nobody had seen it**, because the member is
+refit at inference and never written to disk -- its size existed only in RAM. It is
+also the one component that **cannot** be dropped: removing it moves **43 of 405 rows**.
+
+**MB per unit fusion weight** is the metric that makes the prune obvious:
+
+| tag | weight | MB | MB/weight |
+|---|---|---|---|
+| `imu_world` | 0.2500 | 2.50 | **10** |
+| `astgcn_v1` | 0.1237 | 3.39 | 27 |
+| `skel_jvb_big` x5 seeds | 0.2290 | 50.65 | **221** |
+
+**Candidate legal package (all measured except the video row):**
+`world25` p4 22.80 + `imu_stats` 200/12 9.00 + MViT person all-train 34.3 +
+MViT wrist all-train 34.3 = **100.4 MB**; swapping `imu_stats` to 150/10 (4.61 MB,
+-9 clips/2,700) gives **96.0 MB**. Without the wrist view it is **66.1 MB**.
+This is the first legal Stage-2 package of the campaign, and Stage 2 is a **gate**.
+
+**Calibration note:** rowdiff measures the size of a perturbation, not its sign. Every
+sign above comes from the 2,700-clip pooled OOF, which EXP-104 established tracks
+public ~1:1; fold-2 OOF is not used for any adoption decision here.
+
+---
+
 ## EXP-104 — MViT alone = 166 public (new champion). Swin3D-T refuted. Wrist crop built.
 **Date:** 2026-08-22 · **Tier:** exploit/explore · **Purpose:** SCORE
 

@@ -10,15 +10,15 @@
 > `docs/next_action.md` in the *same commit*. A stale handover is worse than no handover —
 > it sends the next session confidently in the wrong direction.
 >
-> **Currently: public best 0.77611 = 156/201**, target top-7 ≈ 0.80 = 161/201.
-> The campaign went 131 → 151 → 156 on 2026-08-15/16 after adopting Kinetics-pretrained
-> video backbones on YOLO person crops. **The fusion-weight axis and the decoder axis are
-> both exhausted** (see the "Do NOT" table in the handover); further gain must come from
-> stronger members.
+> **Currently: public best 0.82587 = 166/201**, qualification gate top-15 = 160 clips
+> (margin **+6**), standing target 0.89 = 179/201. The campaign went 131 → 151 → 156 →
+> 164 → 166 after adopting Kinetics-pretrained video backbones on YOLO person crops,
+> then AdaBN, then **224 px + MViTv2-S**, which alone equals the entire 17-member bag.
+> **The fusion-weight, decoder, and bag-composition axes are all exhausted** (see the
+> "Do NOT" table in the handover); further gain must come from stronger members.
 >
-> **⚠ The Stage-2 package is already several times over its 100 MB budget, and Rules
-> §2.8.b makes a >10% Kaggle-vs-package gap a disqualification.** This is item ① in the
-> handover and it is not deferrable.
+> **The Stage-2 packaging blocker is SOLVED as of EXP-105** — a legal ≤100 MB package is
+> measured at 96.0 MB. What remains is to build and verify it, not to find it.
 
 ## What this is
 

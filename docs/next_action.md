@@ -17,134 +17,95 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
-**Public best is `submissions/sub_n1.csv` = 0.81592 = 164/201, set 2026-08-21** — AdaBN
-applied to the 11-member `h8all` bag. **Top-10 (163) is cleared.** The standing target is
-**0.85 = 171/201 → +7 clips.**
+**Public best is `submissions/sub_n8.csv` = 0.82587 = 166/201, set 2026-08-22** — the
+MViTv2-S 4-fold bag alone in the video slot. `sub_n9` (CNN bag + MViT) scored the same
+from a 657 MB video branch, so **the K400 and IG-65M families are now fully redundant**.
 
 | | |
 |---|---|
-| Current best (verified on Kaggle) | **0.81592 = 164/201** — `submissions/sub_n1.csv` |
-| Target | 0.85 = 171/201 → **+7 clips** (top-10 cleared) |
+| Current best (verified on Kaggle) | **0.82587 = 166/201** — `submissions/sub_n8.csv` |
+| Target | 0.89 = 179/201 → **+13 clips** |
+| Qualification gate | **top-15 on private.** Bar = 160 clips; we hold 166, margin **+6** |
 | Deadline | Kaggle 2026-09-15; code upload 09-22 |
 | Noise floor | **±6 clips.** A change moving <20 of 405 rows cannot be read |
-| Champion recipe | **AdaBN test inference** (`--adabn`), video slot = log-mean of 11 members (K400 f0-3, IG-65M f0-3, f32/res160/upper f2); fusion `0.35·log(B/prior) + 0.2925·log(V̄) + 0.3575·log(I)`, then `0.9·that + 0.10·log(MB)`, then `+0.25·log(prior)`, then the transition decoder λ=0.5 conditional unigram |
+| Screening estimator | **2,700-clip pooled OOF only.** It tracked public 1:1 (+2.8 predicted, +2 delivered). Fold-2 OOF produced n7's −3 and is not used for adoption |
+| Champion recipe | `code/build_video_slot.py --tag n8 --view mvit=k224_mvit_f0,k224_mvit_f1,k224_mvit_f2,k224_mvit_f3` then the transition decoder λ=0.5 conditional unigram. **Reproduces the champion to 0.0** |
 
-> ### ⚠ THREE AXES ARE NOW MEASURED FLAT. DO NOT RE-OPEN THEM.
-> Fusion weights (+1 clip at the *selection-biased* grid optimum), decoder λ, and
-> **video-bag composition** (157–162 across every ≥5-member bag = about one SD). The
-> oracle gap inside the existing members has collapsed from 15.4 pts to **7.85 pts**
-> (EXP-098). Gain must come from a *stronger or genuinely new member*, or from
+> ### ⚠ THE PACKAGING BLOCKER IS SOLVED — see EXP-105. Do not re-plan it.
+> `world25` 84.54 → **22.80 MB** costs **2 of 405 rows**. `imu_stats` 87.64 → **9.00 MB**
+> costs **6 clips of 2,700**. MotionBERT drops for **9 rows**. A legal package is
+> **96.0 MB** with both video views, **66.1 MB** with one. What remains is to *build and
+> verify* it, not to find it.
+
+> ### ⚠ THREE AXES ARE MEASURED FLAT. DO NOT RE-OPEN THEM.
+> Fusion weights, decoder λ, and video-bag composition (157–162 across every ≥5-member
+> bag ≈ one SD). Gain must come from a **stronger or genuinely new member**, or from
 > inference-time adaptation — not from recombining what we have.
-
-> ### ⚠ THE PACKAGING BUDGET IS BLOWN, AND IT IS A DISQUALIFICATION RISK
-> One file ≤100 MB, and Rules §2.8.b treats a **>10% gap** between the Stage-2
-> verification run and the Kaggle private score as cheating. 11 video members at
-> ~63.5 MB int8 each ≈ **700 MB**, plus `world25` 85.2 MB. **Measured 2026-08-20:
-> dropping skeleton+IMU costs 137 clips of 2,700 post-decoder (5.1 pts ≈ 10 public
-> clips)** — they are expensive *and* load-bearing, so the cheap cut does not exist.
-> R-3 distillation from an any-size teacher is the only identified route.
 
 ---
 
-### ⓪ RESOLUTION — **CONFIRMED (+3.83 micro, +22 object clips).** Now scale it.   ← **START HERE**
+### ⓪ Finish the wrist view — 3 folds queued, then decide   ← **START HERE**
 
-**`k224_mvit_f2` = micro 0.71472 / object 311 of 479**, against `vid_ig65m_f2`'s
-0.67638 / 289. The strongest single member of the campaign, at **34 MB int8 vs 63 MB**.
-It alone (0.71472) beats the entire seven-member CNN bag (0.70859). See EXP-102.
+The wrist crop (`yolo11n-pose`, wrists at 224 px instead of 79) **failed its
+pre-registered test and passed a better one.** Alone it is a wash (object 304 vs the
+person view's 311). Fused with the person view at equal weight on fold 2:
 
-**It ran on the laptop.** The 10.7 GB that made 224px look impossible was raw-uint8
-storage; as JPEG q90 the cache is 1.13 GB and decodes in 10.9 ms/clip. 246 s/epoch at
-batch 4, 5.18 GB peak. **Kaggle was never needed — and never had the data anyway.**
+| fold-2 video slot | micro | object |
+|---|---|---|
+| person alone | 0.71472 | 311/479 |
+| wrist alone | 0.71166 | 304/479 |
+| **person + wrist** | **0.75153** | **330/479** |
 
-**Next, in order:**
-1. Submit `sub_n7` (mvit at half the video slot, rowdiff 21 vs the 164 champion).
-2. Train folds 0/1/3 with `--tag k224_mvit_f{0,1,3}` — the K400 and IG-65M families
-   both gained ~+1.5 from 1 fold to 4. ~1.4 h each, cache already built.
-3. Then `--all-train` for the shippable single model: 34 MB int8 fits Stage-2 alone.
+**+19 object clips.** Agreement is 74.7% — the two views are wrong on different clips.
+The peak is at exactly w=0.5, the prior-free choice, so it is not a fitted optimum.
 
-**The gap to 0.89 is +15 clips from 164.**
+`code/run_wrist_queue.sh` is training folds 0/1/3 and then `--all-train`. **When it
+lands, re-measure on the 2,700-clip pooled OOF — not on fold 2.** Giving the wrist view
+the same 4-fold backing the person view has is exactly what removes the single-fold
+asymmetry that produced n7's −3.
 
-**0.89 is established as achievable:** four *independent* teams sit at 180–184 on the
-live leaderboard (EXP-101). That band is the signature of a reproducible method, not the
-leak — a leak gives rank 1's 197 or scatter, not a tight cluster.
+**Unsubmitted and ready:** `sub_p1.csv` (wrist at half the video slot, rowdiff 15 — a
+weak read by design), `sub_n10.csv` (all 17 members equal, rowdiff 12).
 
-**What we throw away, measured:** every person crop is 224–480 px (median **396**), and
-the cache renders it at **128** — a **3.1× downsample, ~90% of the pixels gone**. 75% of
-the error mass is OBJECT classes, i.e. hand-object detail, exactly what that destroys.
+### ① Build and verify the ≤100 MB Stage-2 package
 
-**The `res160` null does not refute this.** 160 px is a 1.25× step against a 3.1× loss,
-and R(2+1)D's native pretrain resolution is **112×112**, so 160 pushed the input further
-off-distribution than the pixels were worth. Wrong step size, wrong backbone.
+Every number below is measured (EXP-105); none is an estimate.
 
-**Why not on this laptop:** a 224 cache is **10.7 GB** against 8 GB free RAM; 192 px is
-7.9 GB and already recorded as thrashing. 8 GB GPU at batch 2. **The constraint is
-hardware, not method.**
+| component | MB int8 | measured cost |
+|---|---|---|
+| `world25` pruned to 5 archs × 4 folds | 22.80 | 2 of 405 rows |
+| `imu_stats` ExtraTrees 200 trees / depth 12 | 9.00 | −6 clips / 2,700 |
+| MViT person `--all-train` | 34.3 | *pending the run* |
+| MViT wrist `--all-train` | 34.3 | *pending item ⓪* |
+| **total** | **100.4** | swap `imu_stats` to 150/10 (4.61 MB, −9/2,700) → **96.0** |
 
-**Do this:** build the 224 cache and fine-tune a **224-native** backbone (VideoMAE-V2-B,
-Video Swin-T, MViTv2-S, X3D-L) on **Kaggle's own free GPU** — 30 h/week, T4×2 or P100
-16 GB, and the dataset is already hosted there. Screen on fold 2 against IG-65M's
-0.67638.
+`imu_stats` **cannot be dropped** — removing it moves 43 of 405 rows. It was invisible
+as a packaging cost because it is refit at inference and never written to disk.
 
-**It also fixes item ④.** One strong model inside 100 MB is a legal Stage-2 package;
-our 12-member ~700 MB bag is not. This is the only direction that answers both.
+**Then submit the packaged pipeline itself to Kaggle.** Rules §2.8.b makes a >10%
+Kaggle-vs-package gap a disqualification; the clean answer is that the package *is* the
+submission, so the gap is zero by construction.
 
-**Done when:** a 224-px fold-2 micro exists to compare against 0.67638.
+### ② Per-subject AdaBN — the sharpest remaining inference-time lever
 
-### ① AdaBN — DEPLOYED and CONFIRMED (+2). Now sharpen it to per-subject.
+AdaBN pooled gave +2 public. Per-subject measured **0.70092 vs pooled 0.69172** on
+fold 2 — **1.6× the gain**, worth roughly +3 public clips if subjects can be recovered.
+Blocker (EXP-099): 3-minute timestamp blocks are 100% subject-pure over 231 train blocks
+but hold a median of 10 clips and score 0.67945, *worse than pooled*. Groups must be
+pure **and** large — so cluster the blocks into subjects using each block's own mean BN
+feature statistics, and validate the clustering against true user labels on train first.
 
-**What:** re-estimate BatchNorm running statistics from the **unlabeled** target clips
-before predicting. One extra forward pass; no labels, no training, no packaging bytes.
-Already in `code/infer_video_crop.py --adabn`; it is what makes the current 164 champion.
+**Note this applies only to the CNN members.** MViTv2-S and Swin3D use LayerNorm and
+have no BatchNorm to re-estimate, so as the video slot moves to MViT, AdaBN's reach
+shrinks. Quantify what AdaBN is still worth in the current champion before investing.
 
-**Status: CONFIRMED on public.** `sub_n1` (single change) scored **0.81592 = 164/201**,
-+2 over the 162 champion (EXP-100). Measured on held-out fold 2 with `vid_ig65m_f2`
-(EXP-099):
+### ③ ~~Early-fusion thermal~~ — WITHDRAWN, was never cheap
 
-| | micro | object | motion |
-|---|---|---|---|
-| as deployed | 0.67638 | 289/479 | 0.87861 |
-| **AdaBN** | **0.69172** | **300/479** | 0.87283 |
-
-**+1.53 micro, +11 object clips**, monotone in the blend weight with the optimum at the
-**endpoint** — so it is not a fitted knob, which is why it is not expected to join the six
-fitted levers in the graveyard. The gain lands on OBJECT, which is 75% of the error mass.
-It should also help the **on-site 8-new-subject stage (30% of the grade)** by construction.
-
-**The remaining headroom: per-subject adaptation measured 0.70092 vs pooled's 0.69172**
-— 1.6x the gain — so subject-clustered AdaBN is worth roughly **+3 public clips** if the
-subjects can be recovered. The blocker is a chicken-and-egg between purity and sample
-size (measured, EXP-099): timestamp blocks at a 3-minute gap are **100% subject-pure**
-(validated on train: purity 1.0000 over 231 blocks) but hold a median of 10 clips, which
-scores 0.67945 — *worse than pooled*. Groups must be pure **and** large.
-
-**Next step:** cluster the timestamp blocks into subjects, then adapt per cluster.
-The natural signature is each block's own mean BN feature statistics — a subject
-fingerprint that falls out of the AdaBN pass for free. Validate the clustering against
-true user labels on train, where the answer is known, before trusting it on test.
-Test side: 404/405 clips carry a timestamp, 7 days, ~12 subjects expected.
-
-**Done when:** a subject-clustered AdaBN submission is scored against 164.
-
-### ② Submit `sub_n5.csv` — AdaBN + the 12th member, start-weight OFF
-
-Built and unscored. The two confirmed-positive changes with the refuted one removed:
-AdaBN (+2) and `vid_ig65m_f32_f2` (+1, isolated by n3-vs-n2). Expected **165**.
-rowdiff 7 vs the 164 champion.
-
-### ③ Early-fusion thermal — the one genuinely unexploited information source
-
-Thermal is the paper's best modality (92.57), scores 0.544 solo here, is maximally
-decorrelated (54% agreement) — and contributes **exactly zero** through late fusion
-because its confidence when right ≈ when wrong (B-027). **B-027 is a statement about
-probability-space fusion and says nothing about early fusion.** A 7-channel input
-(IR 3 + depth 1 + thermal 3) lets the trunk learn the combination that no global weight
-can. Cache exists (`cache/thermal_v1`); needs timeline alignment and missing-modality
-handling (116 train clips and 10 test clips have no thermal).
-**Done when:** a fold-2 micro exists to compare against IG-65M's 0.67638.
-
-### ④ Measure the shippable package
-
-Unchanged and still not deferrable — see the packaging warning above. No GPU needed.
+Thermal is a **separate camera with no calibration to the IR/depth pair**, so a
+7-channel tensor would not be pixel-aligned and the trunk would be asked to learn a
+correspondence that the data does not contain. Registering the two cameras first is a
+real project, not the cheap experiment this item claimed. B-027 still stands: thermal
+contributes zero in probability space because its confidence when right ≈ when wrong.
 
 ---
 
@@ -174,41 +135,46 @@ Unchanged and still not deferrable — see the packaging warning above. No GPU n
 
 ## Running right now
 
-**Nothing is running.** The GPU is free — see item ③ for the next job.
+`code/run_wrist_queue.sh` holds the GPU (log: `logs/wrist_queue.log`). In order:
 
-`vid_ig65m_f32_f2` finished 2026-08-21 01:19: micro **0.68098**, object 286/479,
-motion 0.91329. Solo it is a **null** against the 16-frame IG-65M (0.67638, object 289)
-— +0.46 micro is 3 clips on a 652-clip fold — and it *trades* object for motion. As a
-bag member it is the strongest pairing we have measured (ig+ig32 = 0.69479, vs ig+igU
-0.69018 and ig+k400 0.67791), but at the margin of the existing 6-member bag it is only
-+0.15. Another instance of B-029: never screen a bag member on its solo score.
+1. `k224_mvit_all` — MViTv2-S, all 18 users, person crop. The shippable 34.3 MB
+   single model for the Stage-2 package, and a +29%-data member. (`logs/mvit_all.log`)
+2. `k224_mvitwrist_f{0,1,3}` — gives the wrist view the same 4-fold backing the person
+   view has, so it can be screened on the 2,700-clip pooled OOF instead of fold 2.
+3. `k224_mvitwrist_all` — the wrist half of the package.
 
-**Unscored submissions, ranked (see LOG EXP-099):**
+~8 h total at ~250–330 s/epoch × 20 epochs. Each stage moves its own artifacts into
+`research/artifacts/` and `checkpoints/` as it completes.
 
-| file | change vs the 162 champion | rowdiff |
-|---|---|---|
-| `sub_n3.csv` | AdaBN + start-weight 0.5 + 12th member | **35** |
-| `sub_n2.csv` | AdaBN + start-weight 0.5 | 29 |
-| `sub_n1.csv` | **AdaBN alone** — isolates the mechanism | 14 |
-| `sub_h8all_sw05.csv` | start-weight 0.5 alone | 19 |
-| `sub_m16.csv` / `sub_m11e.csv` | dilution variants — **skip**, `m15` already scored 160 | 8 / 4 |
-
-`n3` vs `n2` differ by 8 rows and isolate the 12th member.
-
-**Inference after any member finishes:**
+**Harvest each with:**
 ```bash
-python3 code/infer_video_crop.py --tag <TAG>                      # 4ch IR+depth
-python3 code/infer_video_crop.py --tag <TAG> --cache thermal_v1   # 3ch thermal
-python3 code/infer_video_crop.py --tag <TAG> --cache crop_upper   # upper-body crop
+python3 code/build_video_slot.py --tag <NEW> \
+  --view person=k224_mvit_f0,k224_mvit_f1,k224_mvit_f2,k224_mvit_f3:0.5 \
+  --view wrist=k224_mvitwrist_f0,k224_mvitwrist_f1,k224_mvitwrist_f2,k224_mvitwrist_f3:0.5
+python3 code/ordered_transition_decoder.py test --probs research/artifacts/testprobs_<NEW>.npz \
+  --transition-weight 0.5 --transition-score conditional --backoff unigram \
+  --output submissions/sub_<NEW>.csv
+python3 code/rowdiff.py submissions/sub_n8.csv submissions/sub_<NEW>.csv
 ```
 
----
+**Packaging tools built in EXP-105:**
+```bash
+python3 code/infer_packaged.py <pkg.pth> out.csv --per-member-output research/artifacts/world25_per_member.npz
+python3 code/prune_world25.py --tag w25_p4 --merge "skel_jvb_big=skel_jvb_big_s1,...,s4" \
+        --merge "stgcn_v1=stgcn_s1" --drop skel_multitcn,stgcn_w96
+python3 code/imu_stats_size_sweep.py     # accuracy vs serialized MB
+```
+
 
 ## Numbers, with provenance
 
 | what | value | kind |
 |---|---|---|
-| Public best (`h8all`) | 0.80597 = 162/201 | **external oracle** (Kaggle) |
+| Public best (`sub_n8`, MViT x4 alone) | **0.82587 = 166/201** | **external oracle** (Kaggle) |
+| Top-15 qualification bar (224 scored teams) | 160 clips — margin **+6** | **external oracle** |
+| Legal Stage-2 package | **96.0 MB** both views / 66.1 MB one | measured (EXP-105) |
+| `world25` prune 84.54 -> 22.80 MB | 2 of 405 rows | measured |
+| `imu_stats` prune 87.64 -> 9.00 MB | -6 clips / 2,700 pooled | measured |
 | Public noise floor | ±6 clips | measured |
 | Pooled video OOF, K400 4-fold | 0.64371 | first-run |
 | Pooled video OOF, IG-65M 4-fold | **0.68735** (p=1.04e-08 vs K400) | first-run |
