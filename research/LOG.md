@@ -13,6 +13,59 @@ results.
 
 ---
 
+## EXP-103 — MViT 4-fold pooled: +2.42 over IG-65M (p=0.0016), and ALONE it beats every bag we own.
+**Date:** 2026-08-22 · `code/run_mvit_folds.sh` · **Tier:** exploit · **Purpose:** SCORE + packaging
+
+Folds 0/1/3 trained to give MViT the same coverage the CNN bag has. Pooled over all
+**2,933** clips — not the 552 that misled EXP-102's deployment choice:
+
+| family | micro | object clips | motion |
+|---|---|---|---|
+| K400 | 0.64371 | 1124/2065 | 0.88018 |
+| IG-65M | 0.68735 | 1233/2065 | 0.90207 |
+| **MViT-224** | **0.71156** | **1299/2065** | **0.90783** |
+
+Per-fold micro 0.70516 / 0.69287 / 0.71472 / 0.73966 — positive against IG-65M on
+every fold. Paired: MViT-only-right **282**, IG-only-right **211**, net **+71 clips**,
+**McNemar chi2 = 9.94 (p ~ 0.0016)**. Agreement 0.7317, so decorrelated as well as
+stronger.
+
+**The finding that matters: the older families are now redundant.** Pooled OOF
+through the fold-safe decoder, video slot =
+
+| video slot | decoded |
+|---|---|
+| K400 + IG-65M (deployed) | 2095/2700 |
+| IG-65M + MViT | 2121/2700 |
+| K400 + IG-65M + MViT | 2124/2700 |
+| **MViT alone (4 folds)** | **2133/2700 = 0.79000** |
+
+**MViT alone is the best video slot measured, +38 clips over the deployed pair.** This
+is the first time in the campaign that *removing* members helped — every previous
+replacement was flat (`g4only` 157 = `bag4_prior25` 157). The difference is that
+IG-65M merely matched K400's strength, while MViT is +2.42 pooled over IG-65M.
+
+**Packaging is solvable for the first time.** MViT is 34.3 MB int8:
+
+| package | size | |
+|---|---|---|
+| deployed video bag (13 CNN + 4 MViT) | 657 MB | hopeless |
+| MViT x4 | 137 MB | over |
+| **MViT x2** | **68.6 MB** | **fits** |
+| **MViT x1 (all-train)** | **34.3 MB** | **fits with room** |
+
+`world25` at 85.2 MB is the remaining blocker, but **32 of its 48 members are seed
+replicas** — pruning to distinct architectures should land near 10-20 MB, leaving
+MViT x2 + pruned skeleton around 84 MB. That is the first credible route to a legal
+Stage-2 package, and Stage 2 is a **gate**: `OBJECTIVE.md` records top-15 advancing to
+a Selection Stage where the organizers reproduce the solution, so failing it forfeits
+every remaining mark regardless of rank.
+
+**Candidates:** `sub_n8` (MViT alone, rowdiff 26), `sub_n9` (CNN/MViT half each, 15),
+`sub_n10` (all 17 equal, 12), all against the 164 champion.
+
+---
+
 ## EXP-102 — B-030 CONFIRMED. 224px + a 224-native backbone is the strongest member of the campaign.
 **Date:** 2026-08-21 · `kaggle/cuhkx_224_kaggle.py` · **Tier:** explore · **Purpose:** SCORE
 
