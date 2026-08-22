@@ -94,9 +94,15 @@ MIN_SIDE_FRACTION = 0.35
 N_CLASSES = 40
 FRAME_RE = re.compile(r"_(\d+)(?:_Color)?\.png$")
 
-# Fold 2 of the local video members, so the number this produces is directly
-# comparable to vid_ig65m_f2's micro=0.67638 / object=289/479.
-FOLD2_USERS = ("user22", "user24", "user5", "user6")
+# The four subject folds of the local video members, so a number produced here is
+# directly comparable to the matching vid_* member (fold 2: micro 0.67638 / 289 obj).
+FOLDS = {
+    0: ("user1", "user19", "user21", "user8", "user9"),
+    1: ("user18", "user20", "user23", "user3", "user7"),
+    2: ("user22", "user24", "user5", "user6"),
+    3: ("user16", "user17", "user2", "user4"),
+}
+FOLD2_USERS = FOLDS[2]      # retained: older tags were trained against this name
 
 OBJECT_CLASSES = np.array(sorted(set(range(28)) | {37, 38, 39}))
 
@@ -585,8 +591,9 @@ def stage_train(args, paths):
     usr = idx["users"]
     row_of = {s: i for i, s in enumerate(sids)}
 
-    val_sids = [s for s in sids if usr[s] in FOLD2_USERS]
-    tr_sids = [s for s in sids if usr[s] not in FOLD2_USERS] if not args.all_train else list(sids)
+    holdout = FOLDS[args.fold]
+    val_sids = [s for s in sids if usr[s] in holdout]
+    tr_sids = [s for s in sids if usr[s] not in holdout] if not args.all_train else list(sids)
     tr_rows = np.array([row_of[s] for s in tr_sids])
     va_rows = np.array([row_of[s] for s in val_sids])
     tr_lab = np.array([lab[s] for s in tr_sids])
@@ -682,7 +689,8 @@ def stage_train(args, paths):
     mot = float((pred[~om] == labels[~om]).mean())
     print(f"\n{args.tag} OUTER-ONCE: micro={micro:.5f} object={obj:.5f} "
           f"({int((pred[om]==labels[om]).sum())}/{int(om.sum())}) gross_motion={mot:.5f}")
-    print(f"  local reference to beat — vid_ig65m_f2: micro=0.67638 object=0.60334 (289/479)")
+    if args.fold == 2 and not args.all_train:
+        print("  local reference to beat — vid_ig65m_f2: micro=0.67638 object=0.60334 (289/479)")
     np.savez_compressed(paths["out"] / f"oof_{args.tag}.npz", probs=probs.astype(np.float32),
                         sids=np.array(val_sids, dtype="<U20"), labels=labels.astype(np.int64))
     torch.save({"state_dict": ema.state_dict(), "args": vars(args),
@@ -750,6 +758,8 @@ def main(argv=None) -> int:
     ap.add_argument("--tag", default="k224_mvit_f2")
     ap.add_argument("--arch", default="mvit_v2_s",
                     choices=("mvit_v2_s", "swin3d_t", "swin3d_s", "s3d"))
+    ap.add_argument("--fold", type=int, default=2, choices=(0, 1, 2, 3),
+                    help="which subject fold to hold out; matches the local vid_* folds")
     ap.add_argument("--epochs", type=int, default=20)
     ap.add_argument("--batch-size", type=int, default=4,
                     help="measured peak VRAM at 224px/16f: mvit_v2_s bs4=5.18GB (446 ms/step "
