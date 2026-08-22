@@ -270,7 +270,49 @@ def build_jobs(paths: dict) -> tuple[list, list]:
 # ================================================================================
 # Stage 1 — crop windows (YOLO, GPU) then render (CPU pool)
 # ================================================================================
-def compute_windows(jobs: list, cache: Path, device: str) -> dict:
+# COCO-17 wrist indices used by yolo11n-pose.
+LEFT_WRIST, RIGHT_WRIST = 9, 10
+WRIST_CONF = 0.30
+WRIST_MARGIN = 1.8
+WRIST_MIN_SIDE = 96
+
+
+def _wrist_window(model, images, width, height, fallback):
+    """Square window around both wrists (EXP-104).
+
+    57.7% of the residual error sits in 12 classes and every one is a fine-grained
+    hand-object confusion inside an identical posture -- Read_documents vs
+    Turn_pages (27 clips), Play_games vs Use_a_mobile_phone, Take_medicine vs
+    Drink_water. Measured: the wrist span is a median 98 px box, so in the 396 ->
+    224 person crop the hands render at ~55 px. Cropping to the wrists puts the
+    model's full 224x224 on them instead. Falls back to the person box whenever
+    pose finds no confident wrist, which was 2 of 12 sampled clips.
+    """
+    pts = []
+    for res in model.predict(images, verbose=False, device="cpu"):
+        kp = getattr(res, "keypoints", None)
+        if kp is None or kp.xy is None or len(kp.xy) == 0:
+            continue
+        xy = kp.xy[0].cpu().numpy()
+        conf = kp.conf[0].cpu().numpy() if kp.conf is not None else np.ones(len(xy))
+        for j in (LEFT_WRIST, RIGHT_WRIST):
+            if j < len(xy) and conf[j] > WRIST_CONF and xy[j].any():
+                pts.append(xy[j])
+    if not pts:
+        return fallback, False
+    a = np.stack(pts)
+    x0, y0, x1, y1 = a[:, 0].min(), a[:, 1].min(), a[:, 0].max(), a[:, 1].max()
+    cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
+    side = max(max(x1 - x0, y1 - y0) * WRIST_MARGIN, WRIST_MIN_SIDE)
+    side = min(side, float(min(width, height)))
+    half = side / 2.0
+    cx = float(np.clip(cx, half, width - half))
+    cy = float(np.clip(cy, half, height - half))
+    return [int(round(cx - half)), int(round(cy - half)),
+            int(round(cx + half)), int(round(cy + half))], True
+
+
+def compute_windows(jobs: list, cache: Path, device: str, crop: str = "person") -> dict:
     """One square crop window per clip, checkpointed so a timeout is not fatal."""
     wpath = cache / "windows.json"
     windows = json.loads(wpath.read_text()) if wpath.exists() else {}
@@ -281,8 +323,10 @@ def compute_windows(jobs: list, cache: Path, device: str) -> dict:
     from ultralytics import YOLO
     from PIL import Image
     model = YOLO("yolo11n.pt")
-    print(f"  windows: {len(todo)} to compute on {device}")
+    pose = YOLO("yolo11n-pose.pt") if crop == "wrist" else None
+    print(f"  windows: {len(todo)} to compute on {device} (crop={crop})")
     t0 = time.time()
+    wrist_hits = 0
     for n, (sid, ir_dir, _depth, _c, _u) in enumerate(todo):
         frames = sorted_frames(Path(ir_dir))
         width, height = 640, 480
@@ -322,13 +366,20 @@ def compute_windows(jobs: list, cache: Path, device: str) -> dict:
                     cy = float(np.clip(cy, half, height - half))
                     win = [int(round(cx - half)), int(round(cy - half)),
                            int(round(cx + half)), int(round(cy + half))]
+        if pose is not None and images:
+            win, hit = _wrist_window(pose, images, width, height, win)
+            wrist_hits += int(hit)
         windows[sid] = win
         if (n + 1) % 250 == 0 or n + 1 == len(todo):
             wpath.write_text(json.dumps(windows))
             rate = (n + 1) / (time.time() - t0)
+            extra = f" wrist-hit {wrist_hits}/{n+1}" if pose is not None else ""
             print(f"    {n+1}/{len(todo)}  {rate:.1f} clip/s  "
-                  f"eta {(len(todo)-n-1)/max(rate,1e-9)/60:.1f} min", flush=True)
+                  f"eta {(len(todo)-n-1)/max(rate,1e-9)/60:.1f} min{extra}", flush=True)
     wpath.write_text(json.dumps(windows))
+    if pose is not None:
+        print(f"  wrist window found for {wrist_hits}/{len(todo)} clips; "
+              f"the rest fall back to the person box")
     return windows
 
 
@@ -780,6 +831,10 @@ def main(argv=None) -> int:
                     help="crop render size. 128 reproduces the local cache; 224 is the "
                          "experiment. Person crops are 224-480px so 224 is near-lossless.")
     ap.add_argument("--jpeg-quality", type=int, default=90)
+    ap.add_argument("--crop", default="person", choices=("person", "wrist"),
+                    help="'wrist' crops to both wrists via yolo11n-pose (EXP-104), "
+                         "targeting the hand-object confusions that hold 57.7% of the "
+                         "residual error. Writes a separate cache dir.")
     ap.add_argument("--limit", type=int, default=0,
                     help="cache only the first N clips of each split — a smoke test, "
                          "not a runnable cache. Delete the cache dir before a real run.")
@@ -788,7 +843,9 @@ def main(argv=None) -> int:
     ap.add_argument("--cache-workers", type=int, default=max(2, (os.cpu_count() or 4)))
     args = ap.parse_args(argv)
 
-    paths = find_paths(args.data_root, f"crop_{args.image_size}")
+    cache_name = (f"crop_{args.image_size}" if args.crop == "person"
+                  else f"crop_{args.crop}{args.image_size}")
+    paths = find_paths(args.data_root, cache_name)
     if args.stage in ("cache", "all"):
         train_jobs, test_jobs = build_jobs(paths)
         print(f"jobs: train={len(train_jobs)} test={len(test_jobs)}")
@@ -797,7 +854,7 @@ def main(argv=None) -> int:
             print(f"  --limit {args.limit}: SMOKE TEST ONLY, this cache is not trainable")
         paths["cache"].mkdir(parents=True, exist_ok=True)
         dev = "cuda" if os.environ.get("CUDA_VISIBLE_DEVICES", "0") != "" else "cpu"
-        windows = compute_windows(train_jobs + test_jobs, paths["cache"], dev)
+        windows = compute_windows(train_jobs + test_jobs, paths["cache"], dev, args.crop)
         build_cache(paths, "train", train_jobs, windows, args.cache_workers,
                     args.image_size, args.jpeg_quality)
         build_cache(paths, "test", test_jobs, windows, args.cache_workers,
