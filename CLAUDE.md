@@ -10,16 +10,14 @@
 > `docs/next_action.md` in the *same commit*. A stale handover is worse than no handover —
 > it sends the next session confidently in the wrong direction.
 >
-> **Currently: best LEGAL score 0.79601 = 160/201** (`sub_q4`, a 66.1 MB package) —
-> **exactly the top-15 qualification bar, with zero margin.** The 0.82587 = 166/201
-> `sub_n8` result is **not a legal solution**: R-6 caps the whole inference package at
-> 100 MB and that pipeline needs ~309 MB. Treat 166 as the ceiling to reach, never as
-> our position. Standing target 0.89 = 179/201.
+> **Currently: 0.82587 = 166/201 from an 83.82 MB LEGAL package** (`sub_r2`) — the same
+> score as the ~309 MB pipeline it replaces, with 16 MB of headroom. Top-15 bar is 160,
+> so margin is **+6**. Standing target 0.89 = 179/201 → **+13 clips**.
 >
-> **The fusion-weight, decoder, and bag-composition axes are exhausted** (see the
-> "Do NOT" table in the handover); gain must come from stronger members — or from
-> fitting more members under the byte budget, which R-6 explicitly encourages
-> ("fp16 / int8 **or lower**").
+> **The video branch is information-saturated.** Four person folds and one person + one
+> wrist both reach 166; adding members to the video slot is now a graveyard axis, as are
+> fusion weights, decoder λ, and bag composition. The one axis with genuinely unused
+> information is temporal: **50.9% of raw frames are discarded** at 16 frames/clip.
 >
 > **A ">10% Kaggle-vs-package gap" allowance is cited in older notes and is UNSOURCED.**
 > It appears in neither `RULES_VERIFIED.md` nor `OBJECTIVE.md`. Treat 100 MB as hard.

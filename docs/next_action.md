@@ -17,31 +17,24 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
-> # ⚠ THE 166 CHAMPION IS NOT A LEGAL SOLUTION.
+> # ✅ THE PACKAGING PROBLEM IS CLOSED. The legal package matches the best pipeline.
 >
-> R-6 (organiser, topic 729056): *"package all weights that need to be loaded at
-> inference — including every model in an ensemble — into a single checkpoint file, and
-> that file must be under 100 MB on disk."* `sub_n8` needs MViT x4 (137 MB int8) +
-> `world25` (84.5) + `imu_stats` (87.6) ≈ **309 MB**.
+> **`submissions/sub_r2.csv` = 0.82587 = 166/201 from an 83.82 MB package** — the same
+> score as the ~309 MB `sub_n8`, with 16.18 MB of headroom. R-6 (organiser, topic
+> 729056) caps every weight loaded at inference, ensemble members included, at 100 MB in
+> one file; we are comfortably inside it and lose nothing.
 >
-> **Our legal best is `sub_q4` = 0.79601 = 160/201, which is exactly the top-15 bar with
-> zero margin.** Every score below is labelled legal or illegal; do not quote 166 as our
-> position again.
->
-> The "Rules §2.8.b >10% gap" allowance that earlier versions of this file cited is
-> **unsourced** — it is in neither `RULES_VERIFIED.md` nor `OBJECTIVE.md`. Treat 100 MB
-> as hard until someone produces the rule text.
+> Still true and still load-bearing: the ">10% Kaggle-vs-package gap" allowance quoted in
+> older notes is **unsourced** — it is in neither `RULES_VERIFIED.md` nor `OBJECTIVE.md`.
+> Treat 100 MB as hard. We no longer need the slack anyway.
 
-**Best legal: `submissions/sub_q4.csv` = 0.79601 = 160/201 (66.1 MB).**
-**Best illegal: `submissions/sub_n8.csv` = 0.82587 = 166/201 (~309 MB)** — useful only
-as the ceiling a legal package is trying to reach.
+**Best (and legal): `submissions/sub_r2.csv` = 0.82587 = 166/201, 83.82 MB.**
 
 | | |
 |---|---|
-| Best **legal** (verified on Kaggle) | **0.79601 = 160/201** — `submissions/sub_q4.csv`, 66.1 MB |
-| Best illegal (ceiling only) | 0.82587 = 166/201 — `sub_n8.csv`, ~309 MB |
-| Target | 0.89 = 179/201 → **+19 clips from the legal 160** |
-| Qualification gate | **top-15 on private.** Bar = 160 clips; our legal score is **160 — margin ZERO** |
+| Best legal (verified on Kaggle) | **0.82587 = 166/201** — `submissions/sub_r2.csv`, **83.82 MB** |
+| Target | 0.89 = 179/201 → **+13 clips from the legal 166** |
+| Qualification gate | **top-15 on private.** Bar = 160 clips; legal score **166 — margin +6** |
 | Deadline | Kaggle 2026-09-15; code upload 09-22 |
 | Noise floor | **±6 clips.** A change moving <20 of 405 rows cannot be read |
 | Screening estimator | **2,700-clip pooled OOF only.** It tracked public 1:1 (+2.8 predicted, +2 delivered). Fold-2 OOF produced n7's −3 and is not used for adoption |

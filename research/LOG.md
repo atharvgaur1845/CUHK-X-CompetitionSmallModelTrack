@@ -13,6 +13,50 @@ results.
 
 ---
 
+## EXP-109 — THE LEGAL PACKAGE MATCHES THE ILLEGAL CHAMPION. 83.82 MB = 166 = 309 MB.
+**Date:** 2026-08-23 · **Tier:** exploit · **Purpose:** SCORE
+
+| submission | package | legal? | score | clips |
+|---|---|---|---|---|
+| `sub_n8` — MViT x4, full branches | ~309 MB | no | 0.82587 | 166 |
+| `sub_r1` — + wrist 4-fold | ~446 MB | no | 0.82587 | 166 |
+| **`sub_r2` — MViT person+wrist int6, pruned skel, shrunk imu** | **83.82 MB** | **YES** | **0.82587** | **166** |
+
+**The 100 MB constraint now costs exactly nothing.** Legal best went 160 -> 166 in one
+step, and the package is 16.18 MB under budget. Item ① of the handover is closed: a
+legal Stage-2 package exists, is measured on public, and matches the best pipeline we
+have ever built at any size.
+
+### The video slot saturates — this is the important finding
+
+- Adding the wrist view to a **1-model** video slot: `q4` 160 -> `r2` 166 = **+6 clips**.
+- Adding the wrist view to a **4-fold** video slot: `n8` 166 -> `r1` 166 = **+0 clips**.
+
+Four person folds and one person + one wrist reach the *same* place. The wrist view is
+not adding information the person view lacks; both are substituting for the variance
+reduction the other provides. Together with EXP-098's oracle collapse (15.4 -> 7.85 pts)
+this says the **video branch is information-saturated at ~166**, and further members —
+more folds, more views, more crops — will not move it.
+
+**Calibration:** pooled OOF predicted **+3.3** for `r1` and public delivered **0**. Inside
+the ±6 noise floor, so not a refutation of the estimator, but it is the first miss after
+three hits and it lands exactly where saturation predicts one. Recorded, not explained
+away.
+
+### What this closes and what it opens
+
+Closed: video-bag composition (again, now including views), fusion weights (EXP-108 §3),
+packaging (this entry). **Adding members to the video slot is now a graveyard axis.**
+
+Open, and the only axis with genuinely unused information: **50.9% of raw frames are
+discarded**. Median clip holds 24 frames, 32.4% hold >32, and the cache samples 16.
+`cache/crop_224_t32` now stores 32 uniform samples per clip (built in 90 s by reusing the
+YOLO windows), so two interleaved 16-frame views can be averaged **on the existing
+checkpoints** — no retraining, and critically **no package bytes**, which is what
+EXP-108's byte economics say to optimise for.
+
+---
+
 ## EXP-108 — int6 is free, the wrist view holds at 4 folds, and a legal 83.82 MB package exists.
 **Date:** 2026-08-23 · `code/quant_probe.py`, `code/quantize_checkpoint.py` · **Tier:** exploit · **Purpose:** SCORE
 

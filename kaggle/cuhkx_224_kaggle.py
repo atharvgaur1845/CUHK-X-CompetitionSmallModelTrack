@@ -430,6 +430,7 @@ class ClipStore:
         self.index = np.load(cache / f"{split}_frames.npy")      # (N, 2*N_FRAMES, 2)
         self.meta = json.loads((cache / f"{split}_index.json").read_text())
         self.size = int(self.meta["image_size"])
+        self.n_frames = int(self.meta.get("n_frames", N_FRAMES))
         self.sids = self.meta["sids"]
 
     def __len__(self):
@@ -439,14 +440,15 @@ class ClipStore:
         import io
         from PIL import Image
         s = self.size
-        out = np.zeros((N_FRAMES, CHANNELS, s, s), dtype=np.uint8)
+        nf = self.n_frames
+        out = np.zeros((nf, CHANNELS, s, s), dtype=np.uint8)
         rec = self.index[i]
-        for slot in range(N_FRAMES):
+        for slot in range(nf):
             off, ln = rec[slot]                       # channels 0-2: Depth_Color
             if ln:
                 im = Image.open(io.BytesIO(self.blob[off:off + ln].tobytes()))
                 out[slot, :3] = np.asarray(im, dtype=np.uint8).transpose(2, 0, 1)
-            off, ln = rec[N_FRAMES + slot]            # channel 3: IR
+            off, ln = rec[nf + slot]                  # channel 3: IR
             if ln:
                 im = Image.open(io.BytesIO(self.blob[off:off + ln].tobytes()))
                 out[slot, 3] = np.asarray(im, dtype=np.uint8)
@@ -545,7 +547,14 @@ def build_model(arch: str, n_classes: int = N_CLASSES, in_channels: int = CHANNE
     return model
 
 
-def make_dataset(store, rows, labels, train):
+def make_dataset(store, rows, labels, train, phase=0):
+    """phase selects which interleaved N_FRAMES subset of a deeper cache to read.
+
+    A 32-frame cache holds 32 uniform samples over the clip; taking every other frame
+    from phase p yields 16 uniform samples, i.e. exactly the distribution the 16-frame
+    models were trained on, offset by half a step. So a deeper cache buys temporal TTA
+    on existing checkpoints with no retraining and no package bytes.
+    """
     import torch
     import torch.nn.functional as F
     from torch.utils.data import Dataset
@@ -555,7 +564,12 @@ def make_dataset(store, rows, labels, train):
             return len(rows)
 
         def __getitem__(self, i):
-            x = torch.from_numpy(store[int(rows[i])]).float() / 255.0
+            raw = store[int(rows[i])]
+            stride = max(1, store.n_frames // N_FRAMES)
+            if stride > 1:
+                p = int(np.random.randint(0, stride)) if train else phase
+                raw = raw[p::stride][:N_FRAMES]
+            x = torch.from_numpy(raw).float() / 255.0
             x = x.permute(1, 0, 2, 3)                      # (T,C,H,W) -> (C,T,H,W)
             if train:
                 c, t, h, w = x.shape
@@ -781,12 +795,25 @@ def stage_infer(args, paths):
     print(f"{args.tag}: fold-2 micro={pkg['micro']:.5f} object={pkg['object']:.5f}")
 
     store = ClipStore(cache, "test")
+    phases = max(1, store.n_frames // N_FRAMES)
     dl = DataLoader(make_dataset(store, order, None, False), batch_size=args.batch_size,
                     shuffle=False, num_workers=args.workers, pin_memory=False)
     tag = args.tag
     if args.adabn and apply_adabn(model, dl, device):
         tag = f"{args.tag}_adabn"
-    probs, _ = predict(model, dl, device)
+    if phases > 1:
+        tag = f"{tag}_t{store.n_frames}"
+        acc = None
+        for ph in range(phases):
+            d = DataLoader(make_dataset(store, order, None, False, phase=ph),
+                           batch_size=args.batch_size, shuffle=False,
+                           num_workers=args.workers, pin_memory=False)
+            pr, _ = predict(model, d, device)
+            acc = pr if acc is None else acc + pr
+            print(f"  temporal phase {ph + 1}/{phases} done", flush=True)
+        probs = acc / phases
+    else:
+        probs, _ = predict(model, dl, device)
     assert probs.shape == (len(sids), N_CLASSES), probs.shape
     out = paths["out"] / f"testprobs_{tag}.npz"
     np.savez_compressed(out, probs=probs.astype(np.float32),
@@ -803,6 +830,7 @@ def stage_infer(args, paths):
 
 # ================================================================================
 def main(argv=None) -> int:
+    global N_FRAMES
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--stage", default="all", choices=("cache", "train", "infer", "all"))
@@ -840,11 +868,21 @@ def main(argv=None) -> int:
                          "not a runnable cache. Delete the cache dir before a real run.")
     ap.add_argument("--data-root", default=None,
                     help="skip path discovery; e.g. /kaggle/input/<dataset-name>")
+    ap.add_argument("--frames", type=int, default=N_FRAMES,
+                    help="frames stored per clip. 16 is what the models were trained on; "
+                         "32 stores twice as many so inference can average two "
+                         "interleaved 16-frame views. 50.9%% of raw frames are discarded "
+                         "at 16 (median clip holds 24, 32.4%% hold >32).")
     ap.add_argument("--cache-workers", type=int, default=max(2, (os.cpu_count() or 4)))
     args = ap.parse_args(argv)
 
+    stored_frames = args.frames
     cache_name = (f"crop_{args.image_size}" if args.crop == "person"
                   else f"crop_{args.crop}{args.image_size}")
+    if stored_frames != 16:
+        cache_name += f"_t{stored_frames}"
+    if args.stage in ("cache", "all"):
+        N_FRAMES = stored_frames        # only the writer needs the deeper count
     paths = find_paths(args.data_root, cache_name)
     if args.stage in ("cache", "all"):
         train_jobs, test_jobs = build_jobs(paths)
