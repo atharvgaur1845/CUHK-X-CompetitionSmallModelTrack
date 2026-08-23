@@ -13,6 +13,66 @@ results.
 
 ---
 
+## EXP-107 — THE CHAMPION IS NOT A LEGAL SOLUTION. Legal best is 160, exactly the top-15 bar.
+**Date:** 2026-08-23 · **Tier:** exploit · **Purpose:** SCORE
+
+### Public results
+
+| submission | score | clips | vs `n8` (166) |
+|---|---|---|---|
+| `sub_p1` — wrist f2 at half the video slot | 0.82089 | **165** | −1 |
+| `sub_q1` — all-train MViT alone as the video slot | 0.80099 | **161** | −5 |
+| `sub_q4` — the 66.1 MB package pipeline | 0.79601 | **160** | −6 |
+
+### 1. The packaging prunes are confirmed nearly free — and pooled OOF called it exactly
+
+`q4 − q1 = −1 clip`. That one clip is the **entire** cost of pruning `world25`
+84.54 → 22.80 MB, shrinking `imu_stats` 87.64 → 9.00 MB, *and* dropping MotionBERT.
+Pooled OOF predicted ≈ −1 (2 rows + 6 clips/2,700 + 9 rows). **Third consecutive
+confirmation** that the 2,700-clip pooled estimate tracks public. B-031 holds at 90%.
+
+### 2. The whole loss is in the video slot: 4 folds → 1 all-train model costs 5 clips
+
+`k224_mvit_all` is trained on 29% more data and all 18 users, and still loses to the
+4-fold bag by 5 clips. Ensembling the video slot is worth more than the extra data.
+This is the number OOF structurally cannot produce (pooled OOF scores each clip with
+the single model that held it out, so it estimates a member, never a bag).
+
+### 3. **R-6 re-read: the 100 MB limit applies to the submitted solution, not just Stage 2**
+
+> "package all weights that need to be loaded at inference — **including every model in
+> an ensemble** — into a single checkpoint file, and that file must be under 100 MB on
+> disk… Quantization (fp16 / int8 or lower) is allowed and encouraged"
+> — organiser, topic 729056
+
+The 166 champion needs MViT x4 (137 MB int8) + `world25` (84.5) + `imu_stats` (87.6)
+≈ **309 MB**. **It is not a legal solution and never was.** Our legal best is
+`sub_q4` = **160 clips — exactly the measured top-15 bar, with zero margin**, not the
++6 the handover claimed.
+
+**Correction to the ledgers:** the "Rules §2.8.b >10% Kaggle-vs-package gap" line in
+`CLAUDE.md` and the handover is **unsourced** — it appears in neither
+`RULES_VERIFIED.md` nor `OBJECTIVE.md`, both of which state a flat ≤100 MB limit with
+disqualification at the reproduction stage. Until someone produces the rule text, 100 MB
+is treated as hard with **no** accuracy-gap allowance. Assuming otherwise is the more
+expensive error.
+
+### 4. What this makes urgent
+
+The budget after the branches that cannot be cut (`world25` p4 22.80 + `imu_stats`
+150/10 4.61 = 27.4 MB) leaves **72.6 MB for video = two MViT models at int8**, and the
+measured penalty for one is −5. So the live question is **how far below int8 MViT
+survives**, since R-6 explicitly permits "or lower": at int4 the entire 4-model champion
+slot is 68.6 MB and fits. `code/quant_probe.py` is measuring it — weight-only,
+symmetric, per-output-channel, on the same 652 fold-2 clips the members were scored on.
+
+### 5. Wrist at one fold is neutral (−1, rowdiff 15)
+
+Consistent with n7: a single-fold member given half the video slot is over-weighted
+relative to its evidence. The 4-fold wrist is in flight and is the real test.
+
+---
+
 ## EXP-106 — all-train MViT landed; the 66.1 MB package pipeline is built and unscored. A pgrep self-match cost 7 GPU-hours.
 **Date:** 2026-08-23 · `code/build_video_slot.py` · **Tier:** exploit · **Purpose:** SCORE
 

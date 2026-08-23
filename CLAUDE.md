@@ -10,15 +10,19 @@
 > `docs/next_action.md` in the *same commit*. A stale handover is worse than no handover —
 > it sends the next session confidently in the wrong direction.
 >
-> **Currently: public best 0.82587 = 166/201**, qualification gate top-15 = 160 clips
-> (margin **+6**), standing target 0.89 = 179/201. The campaign went 131 → 151 → 156 →
-> 164 → 166 after adopting Kinetics-pretrained video backbones on YOLO person crops,
-> then AdaBN, then **224 px + MViTv2-S**, which alone equals the entire 17-member bag.
-> **The fusion-weight, decoder, and bag-composition axes are all exhausted** (see the
-> "Do NOT" table in the handover); further gain must come from stronger members.
+> **Currently: best LEGAL score 0.79601 = 160/201** (`sub_q4`, a 66.1 MB package) —
+> **exactly the top-15 qualification bar, with zero margin.** The 0.82587 = 166/201
+> `sub_n8` result is **not a legal solution**: R-6 caps the whole inference package at
+> 100 MB and that pipeline needs ~309 MB. Treat 166 as the ceiling to reach, never as
+> our position. Standing target 0.89 = 179/201.
 >
-> **The Stage-2 packaging blocker is SOLVED as of EXP-105** — a legal ≤100 MB package is
-> measured at 96.0 MB. What remains is to build and verify it, not to find it.
+> **The fusion-weight, decoder, and bag-composition axes are exhausted** (see the
+> "Do NOT" table in the handover); gain must come from stronger members — or from
+> fitting more members under the byte budget, which R-6 explicitly encourages
+> ("fp16 / int8 **or lower**").
+>
+> **A ">10% Kaggle-vs-package gap" allowance is cited in older notes and is UNSOURCED.**
+> It appears in neither `RULES_VERIFIED.md` nor `OBJECTIVE.md`. Treat 100 MB as hard.
 
 ## What this is
 
