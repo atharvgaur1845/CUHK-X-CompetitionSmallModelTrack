@@ -53,31 +53,25 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ---
 
-### ⓪ Finish the wrist view — 3 folds queued, then decide   ← **START HERE**
+### ⓪ Temporal jitter — replicate it, then reship everything   ← **START HERE**
 
-The wrist crop (`yolo11n-pose`, wrists at 224 px instead of 79) **failed its
-pre-registered test and passed a better one.** Alone it is a wash (object 304 vs the
-person view's 311). Fused with the person view at equal weight on fold 2:
+**`k224_mvitjit_f2` = 0.73926 vs `k224_mvit_f2`'s 0.71472: +2.45 micro, +9 object
+clips, +4.05 motion, at ZERO package bytes.** Training draws a random 16-frame phase
+from the 32-frame cache each epoch, so the model stops discarding 50.9% of frames.
+Largest member gain since the 224 px switch, and it changes nothing shippable.
 
-| fold-2 video slot | micro | object |
-|---|---|---|
-| person alone | 0.71472 | 311/479 |
-| wrist alone | 0.71166 | 304/479 |
-| **person + wrist** | **0.75153** | **330/479** |
+`code/run_jitter_queue.sh` is running (log `logs/jitter_queue.log`), in this order:
+fold 0 (replication check) → person all-train → wrist all-train → wrist f2 → folds 1, 3.
+~9 h. Harvest as each lands.
 
-**+19 object clips.** Agreement is 74.7% — the two views are wrong on different clips.
-The peak is at exactly w=0.5, the prior-free choice, so it is not a fitted optimum.
+**Adopt only on the pooled 4-fold number, never on fold 2 alone** — that is what
+produced n7's −3 (B-029). If fold 0 also gains ~+2, ship the two all-train jitter models
+in the package and resubmit.
 
-`code/run_wrist_queue.sh` is training folds 0/1/3 and then `--all-train`. **When it
-lands, re-measure on the 2,700-clip pooled OOF — not on fold 2.** Giving the wrist view
-the same 4-fold backing the person view has is exactly what removes the single-fold
-asymmetry that produced n7's −3.
-
-**Unsubmitted and ready, ranked:** `sub_q4.csv` (the 66.1 MB package pipeline itself,
-rowdiff 36 — **submit this first, it answers the gate**), `sub_q1.csv` (all-train video
-slot alone, rowdiff 22 — isolates the one change `q4` cannot measure locally),
-`sub_p1.csv` (wrist at half the slot, rowdiff 15 — superseded once the 4-fold wrist
-lands), `sub_n10.csv` (all 17 equal, rowdiff 12).
+**Temporal TTA is separate and already banked:** averaging two interleaved 16-frame
+views on existing checkpoints is +23/+24 clips per member pooled but only **+0.7
+public** after fusion dilution (`sub_s1` is rowdiff 6 vs `sub_r2` — unreadable). It is
+free, so keep it on in inference; it is not worth a submission by itself.
 
 ### ① Build and verify the ≤100 MB Stage-2 package
 

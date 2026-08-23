@@ -13,6 +13,61 @@ results.
 
 ---
 
+## EXP-110 — Temporal jitter TRAINING is worth 8x temporal TTA. +2.45 micro at zero package bytes.
+**Date:** 2026-08-23 · `--frames 32` · **Tier:** explore · **Purpose:** SCORE
+
+50.9% of raw frames are discarded at 16 frames/clip. `cache/crop_224_t32` stores 32
+uniform samples instead, built in 90 s by reusing the YOLO windows. Those frames can be
+spent two ways, and the difference between them is the result here.
+
+### Spending them at TEST time: real, consistent, and small
+
+Two interleaved 16-frame views averaged on the **existing** checkpoints — no retraining.
+
+| fold | person 1 view | person 2 views | wrist 1 view | wrist 2 views |
+|---|---|---|---|---|
+| f0 | 0.69902 | 0.70516 | 0.69410 | 0.69902 |
+| f1 | 0.69042 | 0.69656 | 0.71499 | 0.71990 |
+| f2 | 0.71319 | 0.71933 | 0.72239 | 0.72393 |
+| f3 | 0.74273 | 0.75651 | 0.75038 | 0.77335 |
+| **pooled** | 0.70951 | **0.71735** | 0.71872 | **0.72690** |
+
+Every fold gains, and the first three person folds gain **+0.61 each**. Pooled: **+23
+clips** (person) and **+24** (wrist) of 2,933 at member level. But through a 0.2925-weight
+video slot it dilutes to **+9 clips/2,700 = +0.7 public**, and `sub_s1` is **rowdiff 6**
+against `sub_r2` — under the ~20-row readability bar. **Keep it (it is free), do not
+spend a submission proving it.**
+
+### Spending them at TRAIN time: the largest member gain since 224 px
+
+`make_dataset` draws a **random phase each epoch** when training, so the model sees a
+different 16-frame sampling of the same clip every time. Same architecture, same
+schedule, same 20 epochs, same bytes.
+
+| fold-2 member | micro | object | motion |
+|---|---|---|---|
+| `k224_mvit_f2` | 0.71472 | 311/479 | 0.89595 |
+| **`k224_mvitjit_f2`** | **0.73926** | **320/479** | **0.93642** |
+
+**+2.45 micro, +9 object clips, +4.05 motion.** For comparison the whole 128 px -> 224 px
++ MViT switch was +3.83 on this fold, and it cost a new cache and a new backbone; this
+costs a sampling change. **Temporal augmentation is ~8x more valuable than temporal
+averaging** — the discarded frames are worth more as training signal than as test-time
+votes.
+
+### Why this is not adopted yet
+
+It is **one fold**, and fold-2-only adoption is exactly what produced n7's −3 (B-029).
+`code/run_jitter_queue.sh` is running, cheapest replication check first: fold 0, then the
+two shippable all-train models, then folds 1 and 3 to complete the honest pooled estimate.
+
+**This also reopens nothing that was closed.** EXP-109 found the video slot saturated
+*at fixed member strength* — more members, more views, more folds all flat. Jitter does
+not add a member; it makes the member better, which is the one thing the saturation
+result said was still required.
+
+---
+
 ## EXP-109 — THE LEGAL PACKAGE MATCHES THE ILLEGAL CHAMPION. 83.82 MB = 166 = 309 MB.
 **Date:** 2026-08-23 · **Tier:** exploit · **Purpose:** SCORE
 
