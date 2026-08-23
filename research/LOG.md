@@ -13,6 +13,83 @@ results.
 
 ---
 
+## EXP-108 — int6 is free, the wrist view holds at 4 folds, and a legal 83.82 MB package exists.
+**Date:** 2026-08-23 · `code/quant_probe.py`, `code/quantize_checkpoint.py` · **Tier:** exploit · **Purpose:** SCORE
+
+### 1. Quantization: int6 is accuracy-identical to int8; int4 is the cliff
+
+MViTv2-S, weight-only, symmetric, per-output-channel, on the same 652 fold-2 held-out
+clips the member was scored on. fp32 reproduces its logged 0.71472 exactly, so the
+harness is sound.
+
+| bits | MB/model | micro | object | argmax agreement w/ fp32 |
+|---|---|---|---|---|
+| 32 | 137.10 | 0.71472 | 0.64927 | 1.0000 |
+| 8 | 34.55 | 0.71319 | 0.64718 | 0.9954 |
+| **6** | **26.01** | **0.71319** | 0.64509 | 0.9724 |
+| 4 | 17.46 | 0.70399 | 0.62630 | 0.9141 |
+
+**int6 costs nothing and saves 25% of the bytes.** int4 costs 7 clips of 652 and is the
+first width where the model stops being the same model. Norm scales, biases and
+positional tables are left fp32 throughout — a fraction of a percent of the parameters,
+disproportionately rounding-sensitive.
+
+### 2. The wrist view holds at 4 folds — pooled, not fold-2
+
+| video slot (pooled 2,933) | micro | object | clips |
+|---|---|---|---|
+| person 4-fold | 0.71156 | 0.62906 | 2087 |
+| wrist 4-fold | 0.71565 | 0.63487 | 2099 |
+| **person + wrist, equal** | **0.74122** | **0.66586** | **2174** |
+
+**+87 clips** at member level; agreement 74.97%, wrist rescues 242 and breaks 230.
+Through the full fusion on 2,700 pooled clips the gain is **+44 clips → +3.3 public**.
+Note the wrist view alone now slightly *beats* the person view (2099 vs 2087), which the
+fold-2 measurement had backwards — another entry for B-029.
+
+### 3. The fusion-weight axis stays closed, re-checked against the new member
+
+It was worth re-testing since the video member gained ~7 points solo since the weights
+were fitted. Deployed (V 0.2925, B 0.35, I 0.3575) = 2012 clips/2700; the best of
+**5,227 grid points** = 2018, i.e. **+6 clips = +0.4 public**, and that is the
+selection-biased maximum. Closed again, now with current evidence.
+
+### 4. Branch economics — what a megabyte buys
+
+| branch | MB | marginal value | clips/MB |
+|---|---|---|---|
+| skeleton (`world25` p4) | 22.80 | **+6.0 public** | 0.26 |
+| IMU (`imu_stats` 150/10) | 4.61 | +0.6 public | 0.13 |
+| video, 1 → 4 MViT @ int4 | +51.5 | +5.0 public | 0.10 |
+
+The IMU branch carries the **largest** fusion weight (0.3575) for +0.6 public clips, and
+reweighting still does not help (§3) — it moves many rows and nets almost nothing.
+Adding video *models* is the least byte-efficient move available.
+
+### 5. **A legal package exists: 83.82 MB**
+
+| component | MB |
+|---|---|
+| MViT person all-train, int6 | 26.01 |
+| MViT wrist all-train, int6 | 26.01 |
+| `world25` pruned, 5 archs x 4 folds | 22.80 |
+| `imu_stats` ExtraTrees 200 trees / depth 12 | 9.00 |
+| **total** | **83.82** (16.18 MB headroom) |
+
+`sub_r2` is that package end to end — rowdiff **23** against `sub_q4`, the 160-clip
+legal baseline. `sub_r1` is the illegal ceiling (person 4-fold + wrist 4-fold, full
+branches), rowdiff **13** against the 166 champion, isolating the wrist view as a single
+change.
+
+### 6. Untouched: **50.9% of all frames are discarded**
+
+Median clip holds 24 raw frames, 32.4% hold more than 32, and the cache samples 16.
+This is the largest unexploited information source left in the video path and it costs
+**no package bytes** — temporal TTA over multiple 16-frame windows needs only a deeper
+cache, not a bigger model. Next after the current submissions land.
+
+---
+
 ## EXP-107 — THE CHAMPION IS NOT A LEGAL SOLUTION. Legal best is 160, exactly the top-15 bar.
 **Date:** 2026-08-23 · **Tier:** exploit · **Purpose:** SCORE
 
