@@ -13,14 +13,14 @@ results.
 
 ---
 
-## EXP-110 — Temporal jitter TRAINING is worth 8x temporal TTA. +2.45 micro at zero package bytes.
-**Date:** 2026-08-23 · `--frames 32` · **Tier:** explore · **Purpose:** SCORE
+## EXP-110 — Temporal TTA is small and real. Temporal jitter training is REFUTED on replication.
+**Date:** 2026-08-23/24 · `--frames 32` · **Tier:** explore · **Purpose:** SCORE
 
 50.9% of raw frames are discarded at 16 frames/clip. `cache/crop_224_t32` stores 32
 uniform samples instead, built in 90 s by reusing the YOLO windows. Those frames can be
-spent two ways, and the difference between them is the result here.
+spent at test time or at train time. **Only the first survived.**
 
-### Spending them at TEST time: real, consistent, and small
+### Spending them at TEST time: small, real, consistent
 
 Two interleaved 16-frame views averaged on the **existing** checkpoints — no retraining.
 
@@ -32,39 +32,43 @@ Two interleaved 16-frame views averaged on the **existing** checkpoints — no r
 | f3 | 0.74273 | 0.75651 | 0.75038 | 0.77335 |
 | **pooled** | 0.70951 | **0.71735** | 0.71872 | **0.72690** |
 
-Every fold gains, and the first three person folds gain **+0.61 each**. Pooled: **+23
-clips** (person) and **+24** (wrist) of 2,933 at member level. But through a 0.2925-weight
-video slot it dilutes to **+9 clips/2,700 = +0.7 public**, and `sub_s1` is **rowdiff 6**
-against `sub_r2` — under the ~20-row readability bar. **Keep it (it is free), do not
-spend a submission proving it.**
+**All 8 fold-view pairs gain**, which is what makes this credible at a small effect size:
+pooled **+23** (person) and **+24** (wrist) clips of 2,933. Through a 0.2925-weight video
+slot it dilutes to **+9 clips/2,700 = +0.7 public**, and `sub_s1` is **rowdiff 6** against
+`sub_r2` — under the ~20-row readability bar. **Keep it on (free), never spend a
+submission proving it.**
 
-### Spending them at TRAIN time: the largest member gain since 224 px
+### Spending them at TRAIN time: **REFUTED**
 
-`make_dataset` draws a **random phase each epoch** when training, so the model sees a
-different 16-frame sampling of the same clip every time. Same architecture, same
-schedule, same 20 epochs, same bytes.
+`make_dataset` draws a random phase each epoch, so the model sees a different 16-frame
+sampling of the same clip every time. Fold 2 looked like the largest member gain since
+224 px. Fold 0, run as a deliberate replication check, killed it.
 
-| fold-2 member | micro | object | motion |
-|---|---|---|---|
-| `k224_mvit_f2` | 0.71472 | 311/479 | 0.89595 |
-| **`k224_mvitjit_f2`** | **0.73926** | **320/479** | **0.93642** |
+| fold | baseline | jitter | Δ micro | Δ object |
+|---|---|---|---|---|
+| f2 | 0.71472 | **0.73926** | **+2.45** | +9 clips |
+| f0 | 0.70516 | **0.69902** | **−0.61** | −4 clips |
+| mean | | | **+0.92** | |
 
-**+2.45 micro, +9 object clips, +4.05 motion.** For comparison the whole 128 px -> 224 px
-+ MViT switch was +3.83 on this fold, and it cost a new cache and a new backbone; this
-costs a sampling change. **Temporal augmentation is ~8x more valuable than temporal
-averaging** — the discarded frames are worth more as training signal than as test-time
-votes.
+**Recorded seed σ on this partition is 2.80** (`research/Plan.md`, Phase 3 gate), so the
+standard error of a 2-fold mean is 2.80/√2 = **1.98**. +0.92 ± 1.98 is indistinguishable
+from zero. The fold-2 number was never evidence of anything — a single fold cannot clear
+this partition's seed spread, and **+2.45 < σ**.
 
-### Why this is not adopted yet
+**This is the campaign's most-repeated failure mode, committed again.** EXP-100
+(start-weight, +14 OOF → −8 public) and n7 (+10 fold-2 → −3 public) are the same shape.
+The replication check was run *first* here and cost 1.4 h, which is the only part of this
+that went right. **Rule, now explicit: a member-level change is not a result until its
+effect exceeds 2.80 micro on a single fold, or is positive on ≥3 folds.**
 
-It is **one fold**, and fold-2-only adoption is exactly what produced n7's −3 (B-029).
-`code/run_jitter_queue.sh` is running, cheapest replication check first: fold 0, then the
-two shippable all-train models, then folds 1 and 3 to complete the honest pooled estimate.
+Folds 1 and 3 are still queued and will finish the pooled estimate; nothing will be
+adopted on less. The queued `*jit_all` models are being trained on an unconfirmed change
+and should be treated as disposable until the pooled number exists.
 
-**This also reopens nothing that was closed.** EXP-109 found the video slot saturated
-*at fixed member strength* — more members, more views, more folds all flat. Jitter does
-not add a member; it makes the member better, which is the one thing the saturation
-result said was still required.
+### What this does not change
+
+`sub_r2` = 166/201 from an 83.82 MB legal package still stands, and temporal TTA rides
+along free inside it.
 
 ---
 

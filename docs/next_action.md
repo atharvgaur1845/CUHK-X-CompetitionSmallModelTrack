@@ -53,25 +53,27 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ---
 
-### ⓪ Temporal jitter — replicate it, then reship everything   ← **START HERE**
+### ⓪ Finish the jitter folds, then stop calling single folds results   ← **START HERE**
 
-**`k224_mvitjit_f2` = 0.73926 vs `k224_mvit_f2`'s 0.71472: +2.45 micro, +9 object
-clips, +4.05 motion, at ZERO package bytes.** Training draws a random 16-frame phase
-from the 32-frame cache each epoch, so the model stops discarding 50.9% of frames.
-Largest member gain since the 224 px switch, and it changes nothing shippable.
+**Temporal jitter training is REFUTED on replication.** Fold 2 gave +2.45 micro; fold 0,
+run as the replication check, gave **−0.61**. Mean +0.92 against a recorded **seed
+σ of 2.80** on this partition — indistinguishable from zero. See EXP-110.
 
-`code/run_jitter_queue.sh` is running (log `logs/jitter_queue.log`), in this order:
-fold 0 (replication check) → person all-train → wrist all-train → wrist f2 → folds 1, 3.
-~9 h. Harvest as each lands.
+> **RULE, now explicit and non-negotiable:** a member-level change is not a result until
+> its effect **exceeds 2.80 micro on a single fold**, or is **positive on ≥3 folds**.
+> +2.45 on one fold is *below the seed spread*. This failure mode has now cost the
+> campaign three times (EXP-100 start-weight, n7, this).
 
-**Adopt only on the pooled 4-fold number, never on fold 2 alone** — that is what
-produced n7's −3 (B-029). If fold 0 also gains ~+2, ship the two all-train jitter models
-in the package and resubmit.
+`code/run_jitter_queue.sh` is still running (log `logs/jitter_queue.log`): wrist
+all-train, wrist f2, then folds 1 and 3. Let it finish — folds 1 and 3 complete the
+honest pooled estimate, which is the only number that can adopt or bury this. The
+`*jit_all` models are being trained on an unconfirmed change; treat them as disposable.
 
-**Temporal TTA is separate and already banked:** averaging two interleaved 16-frame
-views on existing checkpoints is +23/+24 clips per member pooled but only **+0.7
-public** after fusion dilution (`sub_s1` is rowdiff 6 vs `sub_r2` — unreadable). It is
-free, so keep it on in inference; it is not worth a submission by itself.
+**Temporal TTA is separate and it survived.** Averaging two interleaved 16-frame views on
+existing checkpoints gains on **all 8** fold-view pairs — pooled +23 (person) and +24
+(wrist) clips of 2,933. After fusion dilution that is **+0.7 public** and `sub_s1` is
+rowdiff 6 vs `sub_r2`, i.e. unreadable. It is free, so keep it on in inference; never
+spend a submission on it.
 
 ### ① Build and verify the ≤100 MB Stage-2 package
 
