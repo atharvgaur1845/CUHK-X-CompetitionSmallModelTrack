@@ -547,6 +547,57 @@ def build_model(arch: str, n_classes: int = N_CLASSES, in_channels: int = CHANNE
     return model
 
 
+def param_groups(model, base_lr, llrd):
+    """Layer-wise LR decay + no weight decay on norms/biases/tokens.
+
+    Standard practice for fine-tuning a pretrained transformer on a small set: earlier
+    blocks carry general features and want a smaller step than the head. lr for depth d
+    is base_lr * llrd**(max_depth - d).
+
+    ONE DEVIATION, and it matters here: `conv_proj` is NOT decayed. Our stem was
+    surgically rebuilt to 4 channels (IR kernel seeded from the mean of the RGB kernels),
+    so it is effectively an untrained layer wearing a pretrained layer's position. Decaying
+    it would freeze the one part of the network that most needs to move.
+    """
+    import torch
+    if llrd >= 1.0:
+        # Exact pre-2026-08-25 behaviour: one group, uniform lr, weight decay on
+        # EVERYTHING including norms and biases. Kept bit-identical so every member
+        # trained before this flag existed stays reproducible, and so --llrd is a
+        # genuine single change rather than a silent recipe swap.
+        print("  param groups: 1 · llrd=off (baseline recipe)", flush=True)
+        return list(model.parameters())
+    n_blocks = len({int(n.split(".")[1]) for n, _ in model.named_parameters()
+                    if n.startswith("blocks.")})
+    top = n_blocks + 1
+
+    def depth_of(name):
+        if name.startswith("conv_proj"):
+            return top          # new stem: full lr, deliberately not decayed
+        if name.startswith("pos_encoding"):
+            return 0
+        if name.startswith("blocks."):
+            return int(name.split(".")[1]) + 1
+        return top              # norm, head
+
+    groups = {}
+    for name, prm in model.named_parameters():
+        if not prm.requires_grad:
+            continue
+        d = depth_of(name)
+        decay = prm.dim() >= 2 and not name.startswith("pos_encoding")
+        key = (d, decay)
+        if key not in groups:
+            groups[key] = {"params": [], "lr": base_lr * (llrd ** (top - d)),
+                           "weight_decay": 0.05 if decay else 0.0}
+        groups[key]["params"].append(prm)
+    g = list(groups.values())
+    lrs = sorted({round(x["lr"], 9) for x in g})
+    print(f"  param groups: {len(g)} · llrd={llrd} · lr range "
+          f"{lrs[0]:.2e} .. {lrs[-1]:.2e} · {n_blocks} blocks", flush=True)
+    return g
+
+
 def make_dataset(store, rows, labels, train, phase=0):
     """phase selects which interleaved N_FRAMES subset of a deeper cache to read.
 
@@ -682,7 +733,8 @@ def stage_train(args, paths):
           f"outer={len(va_rows)} params={n:,} fp16={n*2/1e6:.1f}MB int8={n/1e6:.1f}MB",
           flush=True)
 
-    opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=0.05)
+    opt = torch.optim.AdamW(param_groups(model, args.lr, args.llrd), lr=args.lr,
+                            weight_decay=0.05)
     steps = max(1, len(tl) // args.accum)
     sched = torch.optim.lr_scheduler.OneCycleLR(
         opt, max_lr=args.lr, total_steps=args.epochs * steps,
@@ -868,6 +920,11 @@ def main(argv=None) -> int:
                          "not a runnable cache. Delete the cache dir before a real run.")
     ap.add_argument("--data-root", default=None,
                     help="skip path discovery; e.g. /kaggle/input/<dataset-name>")
+    ap.add_argument("--llrd", type=float, default=1.0,
+                    help="layer-wise LR decay. 1.0 = off (the recipe every member so far "
+                         "was trained with). 0.75-0.85 is standard for fine-tuning a "
+                         "pretrained transformer on a small set; the 4-channel stem is "
+                         "exempt because it is effectively untrained.")
     ap.add_argument("--frames", type=int, default=N_FRAMES,
                     help="frames stored per clip. 16 is what the models were trained on; "
                          "32 stores twice as many so inference can average two "

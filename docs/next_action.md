@@ -118,26 +118,34 @@ the on-site test, which is 30% of the grade against the leaderboard's 20%.
 uninformative and an honest screen costs ~6 GPU-h. That caps us at a handful of properly
 tested hypotheses before 2026-09-15.
 
-### ⓪b Temporal jitter — REFUTED at 3 folds, close it out
+### ⓪b Temporal jitter — CLOSED, dead at 4 folds
 
-| fold | baseline | jitter | Δ |
-|---|---|---|---|
-| 0 | 70.516 | 69.902 | −0.61 |
-| 1 | 69.287 | 68.305 | −0.98 |
-| 2 | 71.472 | **73.926** | **+2.45** |
+| fold | 0 | 1 | 2 | 3 | mean |
+|---|---|---|---|---|---|
+| Δ micro | −0.61 | −0.98 | **+2.45** | −0.31 | **+0.14** |
 
-Mean **+0.29 ± 1.62**. Only fold 2 was positive and it was an outlier below the seed
-spread. Fold 3 is training purely to complete the record. **Delete the `*jit_*`
-checkpoints when it lands.**
+1 of 4 folds positive. Checkpoints deleted. The 32-frame caches stay — temporal *TTA* is
+a separate result and it survived.
 
 > **RULE:** a member-level change is not a result until it **exceeds 2.80 micro on a
-> single fold**, or is **positive on ≥3 folds**. This failure mode has cost the campaign
-> three times (EXP-100 start-weight, n7, jitter).
+> single fold**, or is **positive on ≥3 folds**. Cost so far: EXP-100 start-weight, n7,
+> jitter.
 
-**Temporal TTA survived and is banked:** two interleaved 16-frame views gain on **all 8**
-fold-view pairs, +23/+24 clips per member pooled, but only **+0.7 public** after fusion
-dilution (`sub_s1` rowdiff 6 vs `sub_r2`). Free — keep it on; never submit it alone.
+### ⓪c Person-crop identity — REFUTED, and the direction matters
 
+Predicted that the untracked union-of-per-frame-boxes crop damages test more than train,
+since test has 2× the multi-person rate and OOF cannot see it. Measured
+(`code/probe_crop_identity.py`, ~25 CPU-min, no GPU):
+
+| | train (2,905) | test (395) |
+|---|---|---|
+| >1 person in some probe frame | 17.5% | **30.4%** |
+| union inflates >2× | **14.9%** | 9.6% |
+| identity switch (IoU < 0.3) | **5.6%** | 3.5% |
+
+**Test has double the multi-person rate and cleaner crops on every measure** — likely
+because test clips are shorter (median 20 raw frames vs 24), leaving less time to drift.
+Candidate 5 is dead as a test-specific fix. Filed.
 
 ### ① Stage-2 package — **DONE and verified on public**
 
@@ -242,16 +250,25 @@ width — pruning itself is offline via `research/artifacts/world25_per_member.n
 
 ## Running right now
 
-`code/run_wrist_queue.sh` holds the GPU (log: `logs/wrist_queue.log`), started
-2026-08-23. In order: `k224_mvitwrist_f{0,1,3}` then `k224_mvitwrist_all`. ~5.6 h at
-~250 s/epoch × 20 epochs; each stage files its own artifacts as it completes.
+**EXP-112 — layer-wise LR decay, 4 folds** (`code/run_llrd_queue.sh`, logs
+`logs/llrd_f{2,0,1,3}.log`), started 2026-08-25 05:15, ~5.6 h, **under the watchdog**.
 
-`k224_mvit_all` is **done** (`checkpoints/k224_mvit_all.pt`, 34.3 MB int8).
+Candidate 3 of the strategy list and the cheapest real test: no downloads, no new bytes.
+The recipe every member so far used is light for a 34M pretrained transformer on 2,281
+clips — uniform lr 1e-4 across all 397 tensors, weight decay 0.05 applied even to norms
+and biases. `--llrd 0.8` decays earlier blocks and lifts wd off norms/biases/tokens.
 
-> **⚠ Never give a wait loop a predicate that can match the waiter.** The previous
-> version of this queue used `pgrep -f "...--tag k224_mvit_all"`, which matched its own
-> parent shell's command line and waited on itself for **7 idle GPU-hours** (EXP-106).
-> The loop is gone; jobs now run in sequence.
+**The 4-channel stem (`conv_proj`) is deliberately exempt from the decay:** it was rebuilt
+by surgery (IR kernel seeded from the mean of the RGB kernels), so it is effectively
+untrained wearing a pretrained layer's position. Decaying it would freeze the layer that
+most needs to move.
+
+`--llrd 1.0` is the default and returns `list(model.parameters())` — bit-identical to the
+pre-2026-08-25 path, so every existing member stays reproducible and `--llrd` is a genuine
+single change.
+
+Compare `k224_mvitlr_f*` against `k224_mvit_f*`: 70.516 / 69.287 / 71.472 / 73.966.
+**Adopt only on ≥3 positive folds or one fold >2.80.**
 
 **Harvest each with:**
 ```bash

@@ -13,6 +13,54 @@ results.
 
 ---
 
+## EXP-111 — Jitter dead at 4 folds. The person-crop asymmetry is REAL but points the WRONG WAY.
+**Date:** 2026-08-25 · **Tier:** explore · **Purpose:** INFORMATION
+
+### Temporal jitter: closed
+
+| fold | baseline | jitter | Δ |
+|---|---|---|---|
+| 0 | 70.516 | 69.902 | −0.61 |
+| 1 | 69.287 | 68.305 | −0.98 |
+| 2 | 71.472 | **73.926** | **+2.45** |
+| 3 | 73.966 | 73.660 | −0.31 |
+
+**Mean +0.14, sd 1.57, 1 of 4 folds positive.** Fold 2 was an outlier below the seed
+spread and I wrote it up as "the largest member gain since 224 px" before the replication
+check came back. Delete the `*jit_*` checkpoints; the 32-frame caches stay because
+temporal *TTA* is a separate, surviving result.
+
+### Person-crop identity: hypothesis refuted, and the direction is the interesting part
+
+`compute_windows()` takes the highest-confidence person box independently per probe frame
+and then the **union** of those boxes, with no identity association. Prediction: this
+should damage test more than train, because the repo records test at 2x train's
+multi-person rate, and OOF (measured on train subjects) cannot see it.
+
+Measured with `code/probe_crop_identity.py` (YOLO11n, 8 probe frames per clip, CPU):
+
+| | train (2,905) | test (395) |
+|---|---|---|
+| >1 person in some probe frame | 17.5% | **30.4%** |
+| union inflates >2x over median box | **14.9%** | 9.6% |
+| union inflates >4x | **2.5%** | 1.0% |
+| identity switch (min consecutive-pick IoU < 0.3) | **5.6%** | 3.5% |
+| median inflate | 1.28 | 1.19 |
+
+**Test has nearly double the multi-person rate and yet CLEANER crops** — fewer identity
+switches, less union inflation, on every measure. The likely mechanism is duration: test
+clips are shorter (median 20 raw frames vs train's 24, p90 41 vs 55), so there is less
+time for the per-frame pick to drift onto another person.
+
+So the asymmetry exists and runs **opposite** to the hypothesis. Person-crop tracking is
+**dead as a test-specific fix**; if anything the crop pipeline is a mild *training* noise
+source (5.6% of train clips carry a switch). Filed, not pursued.
+
+**Cost of this probe: ~25 CPU-minutes, no GPU.** It killed candidate 5 of the six-way
+strategy list before any of it reached a trainer.
+
+---
+
 ## EXP-110 — Temporal TTA is small and real. Temporal jitter training is REFUTED on replication.
 **Date:** 2026-08-23/24 · `--frames 32` · **Tier:** explore · **Purpose:** SCORE
 
