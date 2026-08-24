@@ -34,7 +34,7 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 |---|---|
 | Best legal (verified on Kaggle) | **0.82587 = 166/201** — `submissions/sub_r2.csv`, **83.82 MB** |
 | Target | 0.89 = 179/201 → **+13 clips from the legal 166** |
-| Qualification gate | **top-15 on private.** Bar = 160 clips; legal score **166 — margin +6** |
+| Qualification gate | **top-15 on private.** Bar = **162** clips (2026-08-25, 233 teams); legal score 166 — **margin +4** |
 | Deadline | Kaggle 2026-09-15; code upload 09-22 |
 | Noise floor | **±6 clips.** A change moving <20 of 405 rows cannot be read |
 | Screening estimator | **2,700-clip pooled OOF only.** It tracked public 1:1 (+2.8 predicted, +2 delivered). Fold-2 OOF produced n7's −3 and is not used for adoption |
@@ -53,46 +53,114 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ---
 
-### ⓪ Finish the jitter folds, then stop calling single folds results   ← **START HERE**
+### ⓪ THE STRATEGIC QUESTION: what the legitimate top tier is doing that we are not   ← **START HERE**
 
-**Temporal jitter training is REFUTED on replication.** Fold 2 gave +2.45 micro; fold 0,
-run as the replication check, gave **−0.61**. Mean +0.92 against a recorded **seed
-σ of 2.80** on this partition — indistinguishable from zero. See EXP-110.
+**Leaderboard, pulled from the Kaggle API 2026-08-25 (233 teams):**
 
-> **RULE, now explicit and non-negotiable:** a member-level change is not a result until
-> its effect **exceeds 2.80 micro on a single fold**, or is **positive on ≥3 folds**.
-> +2.45 on one fold is *below the seed spread*. This failure mode has now cost the
-> campaign three times (EXP-100 start-weight, n7, this).
+| rank | score | clips | read |
+|---|---|---|---|
+| 1–3 | 0.98009, 0.98009, 0.97512 | 197, 197, 196 | **almost certainly the L-1 leak.** 196/201 is not a modelling result, and there is a 6.5-point cliff below them |
+| 4–7 | 0.91542, 0.91044, 0.90049, 0.89552 | 184, 183, 181, 180 | the real top tier — a tight cluster is the signature of a method |
+| 8–10 | 0.86567, 0.85572, 0.83582 | 174, 172, 168 | |
+| **11–12 (us)** | **0.82587** | **166** | `sub_r2`, 83.82 MB legal |
+| 15 | 0.80597 | 162 | **the qualification bar moved 160 → 162; margin is +4, not +6** |
 
-`code/run_jitter_queue.sh` is still running (log `logs/jitter_queue.log`): wrist
-all-train, wrist f2, then folds 1 and 3. Let it finish — folds 1 and 3 complete the
-honest pooled estimate, which is the only number that can adopt or bury this. The
-`*jit_all` models are being trained on an unconfirmed change; treat them as disposable.
+Published public notebooks sit at **143**. We reached 166 by adding person crops, a
+Kinetics video backbone, 224 px, MViT, skeleton/IMU fusion and the transition decoder.
+**Reaching 184 needs +18 — more than everything above added together.** It will not come
+from recipe tweaks, and every recombination axis is now measured flat.
 
-**Temporal TTA is separate and it survived.** Averaging two interleaved 16-frame views on
-existing checkpoints gains on **all 8** fold-view pairs — pooled +23 (person) and +24
-(wrist) clips of 2,933. After fusion dilution that is **+0.7 public** and `sub_s1` is
-rowdiff 6 vs `sub_r2`, i.e. unreadable. It is free, so keep it on in inference; never
-spend a submission on it.
+**Ranked candidates for the missing mechanism.** The first two are the only ones sized
+right for +18; both are explicitly legal and both are untested.
 
-### ① Build and verify the ≤100 MB Stage-2 package
+**1. Distil from a large teacher — and note there is a Large Model Track on the same
+data with no size limit** (150 teams, same deadline). R-3 permits distillation from
+larger models. A team in both tracks builds its best unconstrained model and distils it
+into ≤100 MB. **We have never built a large teacher**, and we have direct proof there is
+none to distil from: our ~309 MB pipeline and our 83.82 MB package both score exactly 166.
+Our whole campaign was size-constrained from day one, which may have been the strategic
+error.
 
-Every number below is measured (EXP-105); none is an estimate.
+**2. In-domain pretraining on external depth/IR data.** R-2 permits external public
+datasets. Our backbone is Kinetics-400 — *RGB internet video* — bridged to IR +
+colormapped depth by 2,281 clips from 14 subjects. **NTU RGB+D 120** has 114,480 clips,
+**IR and depth streams**, 106 subjects, and heavy class overlap (drink, eat, read, write,
+type, phone). **The repo's NTU rejection was about skeleton GCN architectures**
+(CTR-GCN −0.74, dual-frame −1.63) — video pretraining on NTU's depth/IR streams is a
+different experiment and has never been run. Blocker: disk and dataset registration.
 
-| component | MB int8 | measured cost |
+**3. A real fine-tuning recipe.** Ours is light for a 34M video transformer on 2,281
+clips: 20 epochs, uniform lr 1e-4, crop-scale 0.75–1.0 + hflip, label smoothing 0.1, EMA.
+Missing **layer-wise LR decay** (the big one for fine-tuning pretrained transformers on
+small sets), mixup/cutmix, RandAugment, repeated augmentation, 30–100 epochs. We also
+evaluate with 1 crop + hflip where the standard video protocol is 3 crops × N clips
+(+1–2% in the literature). Cheapest real test: ~6 GPU-h at 4 folds, no downloads.
+
+**4. Feature-level thermal.** Thermal is the paper's **best** modality (92.57) and is
+uniquely correct on **34 of 552** champion errors — ~12 public clips of *measured*
+headroom — but no global weight can harvest it because it is uncalibrated. **B-027
+refutes probability-space fusion only**; B-028 says feature-space transfers where
+probability-space fitting does not. A two-stream model fusing before the classifier needs
+**no pixel alignment**, which was the stated reason for killing this earlier and was wrong.
+
+**5. Person-crop identity.** `compute_windows()` takes the highest-confidence person box
+**independently per probe frame** and then the **union** of those boxes — no tracking.
+Measured 2026-08-25 on test: **30.4% of clips contain >1 person**, 3.5% show an identity
+switch between probe frames (min consecutive-pick IoU < 0.3), 9.6% get a >2× inflated
+union crop. The repo records test at 2× train's multi-person rate, so this is a
+**train/test asymmetry OOF structurally cannot see** — and it disproportionately affects
+the on-site test, which is 30% of the grade against the leaderboard's 20%.
+
+**6. Per-cohort/subject self-training.** Q-91, queued and never run. R-4 explicitly legal.
+*Naive* self-training failed; per-subject was never tried.
+
+**Budget reality:** seed σ on this partition is **2.80**, so a single-fold experiment is
+uninformative and an honest screen costs ~6 GPU-h. That caps us at a handful of properly
+tested hypotheses before 2026-09-15.
+
+### ⓪b Temporal jitter — REFUTED at 3 folds, close it out
+
+| fold | baseline | jitter | Δ |
+|---|---|---|---|
+| 0 | 70.516 | 69.902 | −0.61 |
+| 1 | 69.287 | 68.305 | −0.98 |
+| 2 | 71.472 | **73.926** | **+2.45** |
+
+Mean **+0.29 ± 1.62**. Only fold 2 was positive and it was an outlier below the seed
+spread. Fold 3 is training purely to complete the record. **Delete the `*jit_*`
+checkpoints when it lands.**
+
+> **RULE:** a member-level change is not a result until it **exceeds 2.80 micro on a
+> single fold**, or is **positive on ≥3 folds**. This failure mode has cost the campaign
+> three times (EXP-100 start-weight, n7, jitter).
+
+**Temporal TTA survived and is banked:** two interleaved 16-frame views gain on **all 8**
+fold-view pairs, +23/+24 clips per member pooled, but only **+0.7 public** after fusion
+dilution (`sub_s1` rowdiff 6 vs `sub_r2`). Free — keep it on; never submit it alone.
+
+
+### ① Stage-2 package — **DONE and verified on public**
+
+`submissions/sub_r2.csv` = **0.82587 = 166/201 from 83.82 MB**, the same score as the
+~309 MB pipeline it replaces. 16.18 MB headroom.
+
+| component | MB | measured cost |
 |---|---|---|
-| `world25` pruned to 5 archs × 4 folds | 22.80 | 2 of 405 rows |
-| `imu_stats` ExtraTrees 200 trees / depth 12 | 9.00 | −6 clips / 2,700 |
-| MViT person `--all-train` | 34.3 | **built** — `checkpoints/k224_mvit_all.pt`; no honest local estimate exists (it trained on every fold), so `sub_q4` is how we learn its value |
-| MViT wrist `--all-train` | 34.3 | *pending item ⓪* |
-| **total** | **100.4** | swap `imu_stats` to 150/10 (4.61 MB, −9/2,700) → **96.0** |
+| MViT person all-train, int6 | 26.01 | int6 == int8 accuracy (0.71319 both) |
+| MViT wrist all-train, int6 | 26.01 | |
+| `world25` pruned, 5 archs × 4 folds | 22.80 | 2 of 405 rows |
+| `imu_stats` ExtraTrees 200 trees / depth 12 | 9.00 | −6 clips / 2,700 pooled |
+| **total** | **83.82** | |
 
-`imu_stats` **cannot be dropped** — removing it moves 43 of 405 rows. It was invisible
-as a packaging cost because it is refit at inference and never written to disk.
+Rebuild in one command; verified byte-identical after the 2026-08-25 disk cleanup:
+```bash
+python3 code/build_video_slot.py --tag r2 --skel w25_p4 --imu imu_stats_t200_d12 \
+  --no-motionbert --view person=k224_mvit_all_q6:0.5 --view wrist=k224_mvitwrist_all_q6:0.5
+```
+(`k224_*_q6` come from `code/quantize_checkpoint.py --bits 6`, then `--stage infer`.)
 
-**Then submit the packaged pipeline itself to Kaggle.** Rules §2.8.b makes a >10%
-Kaggle-vs-package gap a disqualification; the clean answer is that the package *is* the
-submission, so the gap is zero by construction.
+**`imu_stats` cannot be dropped** — removing it moves 43 of 405 rows. It was invisible as
+a packaging cost because it is refit at inference and never written to disk.
 
 ### ② Per-subject AdaBN — the sharpest remaining inference-time lever
 
@@ -107,13 +175,44 @@ feature statistics, and validate the clustering against true user labels on trai
 have no BatchNorm to re-estimate, so as the video slot moves to MViT, AdaBN's reach
 shrinks. Quantify what AdaBN is still worth in the current champion before investing.
 
-### ③ ~~Early-fusion thermal~~ — WITHDRAWN, was never cheap
+### ③ Thermal — the WITHDRAWAL WAS WRONG, see candidate 4 above
 
-Thermal is a **separate camera with no calibration to the IR/depth pair**, so a
-7-channel tensor would not be pixel-aligned and the trunk would be asked to learn a
-correspondence that the data does not contain. Registering the two cameras first is a
-real project, not the cheap experiment this item claimed. B-027 still stands: thermal
-contributes zero in probability space because its confidence when right ≈ when wrong.
+Earlier versions of this file killed thermal fusion because thermal is a separate camera
+with no calibration to IR/depth, so a 7-channel tensor would not be pixel-aligned. **That
+argument only rules out channel-stacking.** A two-stream model — one trunk on the IR/depth
+crop, one on the thermal crop, fused at the feature level before the classifier — needs no
+pixel alignment at all.
+
+B-027 (thermal contributes zero) is a measured statement about **probability-space**
+fusion, where a single global weight cannot separate thermal's 34 unique-correct clips
+from its 247 errors because its confidence when right (0.511) barely exceeds its
+confidence when wrong (0.413). B-028 says the opposite holds in feature space. Nothing
+has tested a jointly-trained thermal + IR/depth model.
+
+`cache/thermal_v1` is retained on disk for this.
+
+---
+
+## Disk hygiene (cleaned 2026-08-25: 25 GB → 72 GB free)
+
+Removed 12 cache directories (35 GB) and 334 checkpoints (12.4 GB) belonging to refuted
+or superseded families. **`sub_r2`'s fusion was verified byte-identical (max abs diff 0.0)
+after the deletion, and `prune_world25.py` still runs.**
+
+**Kept, and why — do not delete these:**
+
+| path | GB | why |
+|---|---|---|
+| `cache/train`, `cache/test` | 1.4 | per-clip npz; `imu_stats` refits from them at inference |
+| `cache/crop_224`, `cache/crop_wrist224` | 2.3 | the two video views in the package |
+| `cache/crop_224_t32`, `cache/crop_wrist224_t32` | 4.5 | 32-frame caches; temporal TTA rides free on these |
+| `cache/thermal_v1` | 2.5 | retained for the two-stream thermal experiment (③) |
+| `checkpoints/` 58 files | 1.6 | 48 `world25` sources + 2 package models + 8 fold instruments |
+| `third_party/` | 0.5 | pretrained weights that may not be re-downloadable |
+
+Everything deleted is rebuildable from `Small-Model-Track/` raw data. The 48 `world25`
+source checkpoints are kept **only** so the package can be re-quantized at a different bit
+width — pruning itself is offline via `research/artifacts/world25_per_member.npz`.
 
 ---
 
