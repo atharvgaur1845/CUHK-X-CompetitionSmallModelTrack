@@ -250,36 +250,39 @@ width — pruning itself is offline via `research/artifacts/world25_per_member.n
 
 ## Running right now
 
-**EXP-112 — layer-wise LR decay, 4 folds** (`code/run_llrd_queue.sh`, logs
-`logs/llrd_f{2,0,1,3}.log`), started 2026-08-25 05:15, ~5.6 h, **under the watchdog**.
+**Nothing. The GPU is idle** — EXP-112 completed 2026-08-25 10:33.
 
-Candidate 3 of the strategy list and the cheapest real test: no downloads, no new bytes.
-The recipe every member so far used is light for a 34M pretrained transformer on 2,281
-clips — uniform lr 1e-4 across all 397 tensors, weight decay 0.05 applied even to norms
-and biases. `--llrd 0.8` decays earlier blocks and lifts wd off norms/biases/tokens.
+### The recipe axis is now closed, on two independent probes
 
-**The 4-channel stem (`conv_proj`) is deliberately exempt from the decay:** it was rebuilt
-by surgery (IR kernel seeded from the mean of the RGB kernels), so it is effectively
-untrained wearing a pretrained layer's position. Decaying it would freeze the layer that
-most needs to move.
+| change | mean Δ micro | sd | positive folds |
+|---|---|---|---|
+| temporal jitter | +0.14 | 1.57 | 1/4 |
+| layer-wise LR decay | +0.245 | 1.79 | 2/4 |
 
-`--llrd 1.0` is the default and returns `list(model.parameters())` — bit-identical to the
-pre-2026-08-25 path, so every existing member stays reproducible and `--llrd` is a genuine
-single change.
+Both ~+0.2 with ±1.8 fold-scatter, from opposite sides of the recipe (augmentation vs
+optimizer). **MViTv2-S at 224 px on 2,281 clips is not recipe-limited — stop tuning it.**
+Note LLRD's fold 3 gave **+2.45**, the identical headline number jitter's fold 2 gave.
+That is what σ=2.80 looks like on one fold, twice, from unrelated changes.
 
-Compare `k224_mvitlr_f*` against `k224_mvit_f*`: 70.516 / 69.287 / 71.472 / 73.966.
-**Adopt only on ≥3 positive folds or one fold >2.80.**
+**What this leaves.** Of the six strategy candidates in ⓪:
+- 3 (recipe) — **dead**, this entry
+- 5 (crop identity) — **dead**, EXP-111, refuted in the opposite direction
+- 6 (pseudo-labelling) — **not pursued.** R-4 permits it but the organisers' own caveat
+  says over-fitting the current test distribution generalises poorly, and the on-site
+  test is 30% of the grade vs Kaggle private's 20%. Also unworkable as specified: the
+  fused output's median confidence is 0.306 and **no clip exceeds 0.90**, so a 0.70 gate
+  keeps 22 of 405.
+- **1 (distil from a large teacher) and 2 (in-domain depth/IR pretraining) are the only
+  live candidates**, and EXP-112 is direct evidence for them: two recipe probes at ~+0.2
+  say the bottleneck is *information*, not training.
+- 4 (feature-level thermal) is live but needs a budget decision — a third trunk is
+  +26 MB at int6, which does not fit beside person+wrist (110 MB), so it would have to
+  **replace** the wrist view.
 
-**Harvest each with:**
-```bash
-python3 code/build_video_slot.py --tag <NEW> \
-  --view person=k224_mvit_f0,k224_mvit_f1,k224_mvit_f2,k224_mvit_f3:0.5 \
-  --view wrist=k224_mvitwrist_f0,k224_mvitwrist_f1,k224_mvitwrist_f2,k224_mvitwrist_f3:0.5
-python3 code/ordered_transition_decoder.py test --probs research/artifacts/testprobs_<NEW>.npz \
-  --transition-weight 0.5 --transition-score conditional --backoff unigram \
-  --output submissions/sub_<NEW>.csv
-python3 code/rowdiff.py submissions/sub_n8.csv submissions/sub_<NEW>.csv
-```
+**Both live candidates are multi-day builds with real failure risk.** Against that: we
+hold 166 with a **+4** margin over a bar that moved 160 → 162, and 70% of the final grade
+is not the leaderboard (on-site 30%, report 20%, presentation 10%, repro 10%). That is a
+strategic call for Atharv, not a default.
 
 **Packaging tools built in EXP-105:**
 ```bash

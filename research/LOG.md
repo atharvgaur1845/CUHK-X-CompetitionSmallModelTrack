@@ -13,6 +13,60 @@ results.
 
 ---
 
+## EXP-112 — Layer-wise LR decay is null. TWO recipe changes now say the member is not recipe-limited.
+**Date:** 2026-08-25/26 · `--llrd 0.8` · **Tier:** explore · **Purpose:** SCORE
+
+| fold | base micro | LLRD micro | Δ | base object | LLRD object | Δ |
+|---|---|---|---|---|---|---|
+| 0 | 70.516 | 71.130 | +0.61 | 59.034 | 60.286 | +1.25 |
+| 1 | 69.287 | 69.042 | −0.25 | 62.735 | 62.051 | −0.68 |
+| 2 | 71.472 | 69.632 | −1.84 | 64.927 | 61.169 | −3.76 |
+| 3 | 73.966 | 76.417 | **+2.45** | 65.837 | 69.683 | +3.85 |
+
+**Mean +0.245, sd 1.79, 2 of 4 folds positive.** Fails the adoption bar (≥3 folds, or one
+fold >2.80). Note fold 3 gave +2.45 — the *same* headline number fold 2 gave for jitter,
+from a different change. That is what σ=2.80 noise looks like when you only run one fold.
+
+### The pattern across two independent recipe changes
+
+| change | mean Δ | sd | positive folds |
+|---|---|---|---|
+| temporal jitter (EXP-110/111) | +0.14 | 1.57 | 1/4 |
+| layer-wise LR decay | +0.245 | 1.79 | 2/4 |
+
+Both land at ~+0.2 with fold-scatter of ±1.8, i.e. indistinguishable from seed noise, from
+changes on opposite sides of the recipe (data augmentation vs optimizer schedule).
+
+**Conclusion: MViTv2-S at 224 px on 2,281 clips is not recipe-limited.** The bottleneck is
+*information* — data volume, initialisation domain, or architecture — not how we train.
+This is direct evidence for strategy candidates 1 (distil from a large teacher) and 2
+(in-domain depth/IR pretraining), and against further recipe work. **Stop tuning the
+recipe.**
+
+### Side finding: the fused output is severely under-confident
+
+`sub_r2` scores 166/201 = 82.6% and yet its max-probability is **median 0.306**, with
+**zero** clips above 0.90 and only 86 of 405 above 0.50.
+
+Consequences:
+- **Confidence-thresholded pseudo-labelling is unworkable on the fused probabilities** —
+  a 0.70 gate retains 22 of 405 clips. Any self-training here would have to use rank
+  selection or a member's own softmax, not the fusion output.
+- It does not affect accuracy directly (argmax is invariant to monotone rescaling), and
+  sharpening is equivalent to a weight change in log space, which the 5,227-point sweep
+  in EXP-108 already covered. So this is a *calibration* fact, not a lever.
+
+### On pseudo-labelling (R-4), which the low confidence forced a look at
+
+Permitted, but the organisers attach a caveat that outweighs the permission here: Stage 2
+and Stage 3 use unseen subjects, and over-fitting to the current test distribution
+generalises poorly. **The on-site test is 30% of the final grade against Kaggle private's
+20%**, so trading on-site robustness for public clips is negative on weights alone.
+`BELIEFS.md` already records naive self-training as negative at a much lower base accuracy.
+Not pursued.
+
+---
+
 ## EXP-111 — Jitter dead at 4 folds. The person-crop asymmetry is REAL but points the WRONG WAY.
 **Date:** 2026-08-25 · **Tier:** explore · **Purpose:** INFORMATION
 
