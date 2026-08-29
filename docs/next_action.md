@@ -250,39 +250,45 @@ width — pruning itself is offline via `research/artifacts/world25_per_member.n
 
 ## Running right now
 
-**Nothing. The GPU is idle** — EXP-112 completed 2026-08-25 10:33.
+**`code/run_288_all.sh`** — `k224_mvit288_all`, the shippable 288 px person model
+(log `logs/px288_all.log`, ~4.3 h, under the watchdog). When it lands, rebuild the
+package with the 288 person view replacing the 224 one and submit.
 
-### The recipe axis is now closed, on two independent probes
+## RESOLUTION IS THE ONLY LIVE MEMBER AXIS — and it passed
 
-| change | mean Δ micro | sd | positive folds |
-|---|---|---|---|
-| temporal jitter | +0.14 | 1.57 | 1/4 |
-| layer-wise LR decay | +0.245 | 1.79 | 2/4 |
+**288 px: mean +1.27 micro, sd 0.79, 4/4 folds positive** (object +1.60, 4/4). The first
+change to clear the adoption bar since 224 px itself. Fused: **+36 clips/2,700 = +2.7
+public**, projecting `sub_r2` 166 → **~169**.
 
-Both ~+0.2 with ±1.8 fold-scatter, from opposite sides of the recipe (augmentation vs
-optimizer). **MViTv2-S at 224 px on 2,281 clips is not recipe-limited — stop tuning it.**
-Note LLRD's fold 3 gave **+2.45**, the identical headline number jitter's fold 2 gave.
-That is what σ=2.80 looks like on one fold, twice, from unrelated changes.
+The `sd` is the tell: jitter sd 1.57 (1/4 positive) and LLRD sd 1.79 (2/4) each threw one
+spurious +2.45. 288 moves every fold the same way with half the scatter.
 
-**What this leaves.** Of the six strategy candidates in ⓪:
-- 3 (recipe) — **dead**, this entry
-- 5 (crop identity) — **dead**, EXP-111, refuted in the opposite direction
-- 6 (pseudo-labelling) — **not pursued.** R-4 permits it but the organisers' own caveat
-  says over-fitting the current test distribution generalises poorly, and the on-site
-  test is 30% of the grade vs Kaggle private's 20%. Also unworkable as specified: the
-  fused output's median confidence is 0.306 and **no clip exceeds 0.90**, so a 0.70 gate
-  keeps 22 of 405.
-- **1 (distil from a large teacher) and 2 (in-domain depth/IR pretraining) are the only
-  live candidates**, and EXP-112 is direct evidence for them: two recipe probes at ~+0.2
-  say the bottleneck is *information*, not training.
-- 4 (feature-level thermal) is live but needs a budget decision — a third trunk is
-  +26 MB at int6, which does not fit beside person+wrist (110 MB), so it would have to
-  **replace** the wrist view.
+| video slot (pooled 2,700) | micro | Δ public |
+|---|---|---|
+| 224 person + 224 wrist (`sub_r2` = 166) | 0.75630 | — |
+| **288 person + 224 wrist** | **0.76963** | **+2.7** |
+| 288 + 224 wrist + 224 person (3 members) | 0.76148 | +1.0 |
 
-**Both live candidates are multi-day builds with real failure risk.** Against that: we
-hold 166 with a **+4** margin over a bar that moved 160 → 162, and 70% of the final grade
-is not the leaderboard (on-site 30%, report 20%, presentation 10%, repro 10%). That is a
-strategic call for Atharv, not a default.
+Keeping the 224 person as a *third* member is worse than replacing it — EXP-109's
+saturation again: the slot rewards a **stronger** member, never an **additional** one.
+
+**Wrist stays at 224.** Person crops are median 416 px so 288 still recovers real pixels;
+wrist crops are median 147 px and already **1.52× UPsampled** at 224.
+
+### Next: push resolution further with gradient checkpointing
+
+**320 px at batch 2 OOMs on the 8 GB card** (measured; 288/bs2 peaks at 5.15 GiB,
+528 ms/step). So the cap is VRAM, not method. `--grad-checkpoint` is now implemented:
+it rebinds the MViT instance's `forward` to recompute each block in backward, ~30% slower
+per step. **Verified state_dict keys are unchanged**, so every existing checkpoint loads,
+and the eval path is untouched.
+
+**Do this when the GPU frees:** probe memory at 352 / 384 / 416 with `--grad-checkpoint`,
+then screen the largest that fits on 4 folds. Person crops are median **416 px**, so 416
+is the natural endpoint of this axis — the first resolution that discards nothing.
+
+**Honest projection:** 288 → ~169. Another resolution step of similar size → ~171–172.
+Temporal TTA adds +0.7. **0.86 = 173 is reachable but not assured by this path alone.**
 
 **Packaging tools built in EXP-105:**
 ```bash

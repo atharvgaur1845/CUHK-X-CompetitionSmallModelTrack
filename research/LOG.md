@@ -13,6 +13,71 @@ results.
 
 ---
 
+## EXP-113 — 288 px PASSES: 4/4 folds, +1.27 micro. Resolution is the only live member axis.
+**Date:** 2026-08-26/29 · `--image-size 288` · **Tier:** exploit · **Purpose:** SCORE
+
+| fold | 224 micro | 288 micro | Δ | 224 object | 288 object | Δ |
+|---|---|---|---|---|---|---|
+| 0 | 70.516 | 71.376 | +0.86 | 59.034 | 60.107 | +1.07 |
+| 1 | 69.287 | 70.147 | +0.86 | 62.735 | 63.590 | +0.85 |
+| 2 | 71.472 | 72.393 | +0.92 | 64.927 | 65.553 | +0.63 |
+| 3 | 73.966 | 76.417 | **+2.45** | 65.837 | 69.683 | +3.85 |
+
+**Mean +1.27 micro, sd 0.79, 4/4 folds positive** (object +1.60, also 4/4). **The first
+change to clear the adoption bar since 224 px itself.**
+
+The `sd` is the tell. The two nulls scattered — jitter sd 1.57 (1/4 positive), LLRD sd
+1.79 (2/4) — and each produced one spurious +2.45. This one moves every fold in the same
+direction with half the scatter. That is what a real effect looks like against σ=2.80.
+
+### Fused effect
+
+| video slot (pooled 2,700) | micro | object | Δ clips | → public |
+|---|---|---|---|---|
+| 224 person + 224 wrist (`sub_r2`, 166) | 0.75630 | 0.67768 | +0 | — |
+| **288 person + 224 wrist** | **0.76963** | **0.69632** | **+36** | **+2.7** |
+| 288 + 224 wrist + 224 person | 0.76148 | 0.68514 | +14 | +1.0 |
+| 288 person alone | 0.75444 | 0.67608 | −5 | −0.4 |
+
+Keeping the 224 person as a **third** member is worse than replacing it (+14 vs +36) —
+it is redundant with the 288 one. Consistent with EXP-109's saturation result: the video
+slot rewards a *stronger* member, never an *additional* one.
+
+### Why the wrist view stays at 224
+
+Person crops are median **416 px** (p75 480), so 224 discards 1.86× linear (~65% of
+pixels) and 288 discards 1.44× (~52%). Wrist crops are median **147 px** — already
+**1.52× UPsampled** at 224. Rendering them at 288 would interpolate, not recover.
+
+### The ceiling is hardware, and it is measured
+
+`320 px at batch 2 OOMs` on the 8 GB card. 288 at batch 2 peaks at **5.15 GiB, 528
+ms/step** (492 s/epoch, 3.3 h/fold). MViT hardcodes `spatial_size=(224,224)` and sizes
+its 32 relative-position tables to the 56×56 grid; `build_model` now rebuilds at the
+target size and linearly interpolates `rel_pos_h/w` 111→159 (the MViT/ViTDet resize),
+leaving `rel_pos_t` alone since temporal size is unchanged. Verified 397/397 tensors
+ported, 0 left at init, and the 224 path still argmax-identical.
+
+int8 size is unchanged at **34.3 MB** (34,306,504 params), so the 83.82 MB package
+budget is untouched.
+
+### Also closed this session, free
+
+**Thermal in late fusion, re-tested against the CURRENT fusion** (B-027 was measured on
+the old champion): −0.8, −0.4, −1.5, −1.6, −3.4, −4.5, −6.5 public clips at weights
+0.05→0.40. **Monotonically negative.** Thermal uniquely rescues 35 of the 640 clips the
+fusion gets wrong, and no global weight can reach them.
+
+### The oracle, for scale
+
+Over the five members we own (person, wrist, skeleton, IMU, thermal), pooled on 2,700:
+fused **0.76296** vs **oracle-any-member 0.87741** — a gap of **309 clips ≈ 23 public**.
+Unique rescues are spread evenly: person 45, wrist 50, skeleton 42, IMU 37, thermal 35.
+The information for ~0.90 is already in hand; *selection* is the barrier, and fitted
+selection has failed 4/4 on public.
+
+---
+
 ## EXP-112 — Layer-wise LR decay is null. TWO recipe changes now say the member is not recipe-limited.
 **Date:** 2026-08-25/26 · `--llrd 0.8` · **Tier:** explore · **Purpose:** SCORE
 

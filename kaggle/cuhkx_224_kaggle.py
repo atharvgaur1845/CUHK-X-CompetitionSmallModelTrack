@@ -499,14 +499,97 @@ def build_cache(paths: dict, split: str, jobs: list, windows: dict,
 # ================================================================================
 # Stage 2 — model
 # ================================================================================
-def build_model(arch: str, n_classes: int = N_CLASSES, in_channels: int = CHANNELS):
-    """224-native Kinetics backbone with the stem widened to 4 channels."""
+def enable_grad_checkpointing(model):
+    """Recompute each MViT block's activations in the backward pass instead of storing them.
+
+    Resolution is the only member axis still paying (EXP-113: 288 px = +1.27 micro, 4/4
+    folds), and the cap on it is pure VRAM -- 320 px at batch 2 OOMs on an 8 GB card.
+    Checkpointing trades ~30% step time for most of the activation memory, which is what
+    buys the next resolution step.
+
+    Rebinds the instance's forward rather than wrapping blocks in a new Module, so
+    state_dict keys are unchanged and every existing checkpoint still loads. Eval is
+    untouched -- checkpointing only engages while training.
+    """
+    import types
+    import torch.utils.checkpoint as cp
+    from torchvision.models.video.mvit import _unsqueeze
+
+    def forward(self, x):
+        x = _unsqueeze(x, 5, 2)[0]
+        x = self.conv_proj(x)
+        x = x.flatten(2).transpose(1, 2)
+        x = self.pos_encoding(x)
+        thw = (self.pos_encoding.temporal_size,) + self.pos_encoding.spatial_size
+        for block in self.blocks:
+            if self.training and torch.is_grad_enabled():
+                x, thw = cp.checkpoint(block, x, thw, use_reentrant=False)
+            else:
+                x, thw = block(x, thw)
+        x = self.norm(x)
+        return self.head(x[:, 0])
+
+    import torch
+    model.forward = types.MethodType(forward, model)
+    return model
+
+
+def _port_mvit_weights(model, src_sd):
+    """Load 224-px MViT weights into a model built for another spatial size.
+
+    MViT v2 has no absolute spatial position embedding — only per-block relative-position
+    tables `rel_pos_h/w`, sized (2*grid-1, C) for that stage's token grid (224 px -> 56x56
+    -> 111). At 320 px the grid is 80x80 -> 159. Linearly interpolating the table is the
+    standard resize from the MViT/ViTDet papers. `rel_pos_t` is untouched: the temporal
+    size is still 16.
+    """
+    import torch.nn.functional as F
+    tgt = model.state_dict()
+    out, resized = {}, 0
+    for k, v in src_sd.items():
+        if k not in tgt:
+            continue
+        if tgt[k].shape == v.shape:
+            out[k] = v
+        elif "rel_pos" in k and v.dim() == 2 and tgt[k].shape[1] == v.shape[1]:
+            x = v.t().unsqueeze(0).float()                       # (1, C, L_src)
+            x = F.interpolate(x, size=tgt[k].shape[0], mode="linear", align_corners=False)
+            out[k] = x.squeeze(0).t().contiguous().to(v.dtype)
+            resized += 1
+    missing = [k for k in tgt if k not in out]
+    model.load_state_dict(out, strict=False)
+    print(f"  ported MViT weights: {len(out)} tensors, {resized} rel-pos tables resized, "
+          f"{len(missing)} left at init ({missing[:3]})", flush=True)
+
+
+def build_model(arch: str, n_classes: int = N_CLASSES, in_channels: int = CHANNELS,
+                image_size: int = IMAGE_SIZE):
+    """Kinetics backbone, stem widened to 4 channels, optionally rebuilt off 224 px."""
     import torch
     import torch.nn as nn
     import torchvision.models.video as V
 
     if arch == "mvit_v2_s":
-        model = V.mvit_v2_s(weights=V.MViT_V2_S_Weights.KINETICS400_V1)
+        if image_size == 224:
+            model = V.mvit_v2_s(weights=V.MViT_V2_S_Weights.KINETICS400_V1)
+        else:
+            # mvit_v2_s hardcodes spatial_size=(224,224); intercept _mvit so the same
+            # block_setting is reused at the target size, then port the weights.
+            import torchvision.models.video.mvit as _M
+            ref = V.mvit_v2_s(weights=V.MViT_V2_S_Weights.KINETICS400_V1)
+            orig = _M._mvit
+
+            def _patched(block_setting, stochastic_depth_prob, weights, progress, **kw):
+                kw["spatial_size"] = (image_size, image_size)
+                return orig(block_setting, stochastic_depth_prob, None, progress, **kw)
+
+            _M._mvit = _patched
+            try:
+                model = V.mvit_v2_s(weights=None)
+            finally:
+                _M._mvit = orig
+            _port_mvit_weights(model, ref.state_dict())
+            del ref
         model.head[-1] = nn.Linear(model.head[-1].in_features, n_classes)
         stem_attr = ("conv_proj",)
     elif arch == "swin3d_t":
@@ -727,7 +810,10 @@ def stage_train(args, paths):
     vl = DataLoader(make_dataset(store, va_rows, va_lab, False), batch_size=args.batch_size,
                     shuffle=False, num_workers=args.workers, pin_memory=False)
 
-    model = build_model(args.arch).to(device)
+    model = build_model(args.arch, image_size=store.size).to(device)
+    if args.grad_checkpoint:
+        enable_grad_checkpointing(model)
+        print('  gradient checkpointing ON (train only; eval path unchanged)', flush=True)
     n = sum(q.numel() for q in model.parameters())
     print(f"{args.tag}: arch={args.arch} px={store.size} train={len(tr_rows)} "
           f"outer={len(va_rows)} params={n:,} fp16={n*2/1e6:.1f}MB int8={n/1e6:.1f}MB",
@@ -840,13 +926,13 @@ def stage_infer(args, paths):
     order = np.array([row_of[s] for s in sids])
 
     device = torch.device("cuda")
+    store = ClipStore(cache, "test")
     pkg = torch.load(paths["out"] / f"{args.tag}.pt", map_location="cpu", weights_only=False)
-    model = build_model(pkg["args"]["arch"]).to(device)
+    model = build_model(pkg["args"]["arch"], image_size=store.size).to(device)
     model.load_state_dict(pkg["state_dict"])
     model.eval()
     print(f"{args.tag}: fold-2 micro={pkg['micro']:.5f} object={pkg['object']:.5f}")
 
-    store = ClipStore(cache, "test")
     phases = max(1, store.n_frames // N_FRAMES)
     dl = DataLoader(make_dataset(store, order, None, False), batch_size=args.batch_size,
                     shuffle=False, num_workers=args.workers, pin_memory=False)
@@ -920,6 +1006,10 @@ def main(argv=None) -> int:
                          "not a runnable cache. Delete the cache dir before a real run.")
     ap.add_argument("--data-root", default=None,
                     help="skip path discovery; e.g. /kaggle/input/<dataset-name>")
+    ap.add_argument("--grad-checkpoint", action="store_true",
+                    help="recompute block activations in backward. ~30%% slower per step, "
+                         "but it is what lets resolution go past 288 on an 8 GB card. "
+                         "Training only; the eval path and every state_dict are unchanged.")
     ap.add_argument("--llrd", type=float, default=1.0,
                     help="layer-wise LR decay. 1.0 = off (the recipe every member so far "
                          "was trained with). 0.75-0.85 is standard for fine-tuning a "
