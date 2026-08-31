@@ -69,3 +69,7 @@ kaggle/__pycache__/
 # GitHub rejects any file over 100 MB, and crop_224/train.bin is ~1.08 GB.
 /crop_*/
 *.bin
+logs/slurm/
+.venv/
+cluster/activate.sh
+.hf/
