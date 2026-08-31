@@ -1,5 +1,25 @@
 # Belief Ledger
 
+## B-033 — A score can close an accuracy question. It can NEVER close an engineering one.
+- **Confidence:** 99% (new, 2026-09-01) — this is a process rule, not an empirical claim.
+- **Importance:** Critical. Violating it nearly cost the competition.
+- **Claim:** a leaderboard result tests only whether a *set of predictions* is accurate.
+  It says nothing about whether the pipeline that produced them can be serialized, fits a
+  size limit, or reproduces on someone else's machine. Those questions close **only when
+  an artifact exists and loads**.
+- **Evidence (EXP-117):** EXP-105 correctly wrote *"a legal package is 96.0 MB — what
+  remains is to build and verify it."* Four days later `sub_r2` scored 166 and EXP-109
+  recorded *"the packaging problem is closed."* No package was ever built. The 83.82 MB
+  total was arithmetic over two hypothetical int6 byte-counts, a pruned skeleton file that
+  does not exist, and an sklearn forest the packager cannot represent. The handover then
+  displayed "✅ PACKAGING CLOSED" for ten days.
+- **Mechanism:** a satisfying number arrived and was allowed to answer a question it had
+  not been asked. The earlier accurate sentence was overwritten rather than retracted.
+- **Operational rule:** for any claim about **bytes, serialization, or reproduction**, the
+  evidence must be `ls -la` on a real file plus a successful load — never a sum of
+  estimates. Size claims quote measured file sizes only.
+- **Falsification:** none — this is a rule adopted after a near-miss, not a hypothesis.
+
 ## B-032 — Pooled OOF predicts COMBINATION changes and cannot predict MEMBER-STRENGTH changes
 - **Confidence:** 85% (new, 2026-08-31)
 - **Importance:** Critical — it governs what can be screened without a submission.

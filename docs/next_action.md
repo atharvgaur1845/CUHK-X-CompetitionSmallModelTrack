@@ -17,7 +17,30 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
-> # ✅ THE PACKAGING PROBLEM IS CLOSED. The legal package matches the best pipeline.
+> # ⚠ RETRACTED 2026-09-01: THE PACKAGING PROBLEM IS **NOT** CLOSED.
+>
+> This banner previously read "✅ THE PACKAGING PROBLEM IS CLOSED". **That was wrong.**
+> A code audit found that **no single-file package containing a video member has ever
+> been built**, and several of the numbers below are arithmetic, not files:
+>
+> - The only real package artifacts on disk are `model_astgcn_world25_int8.pth`
+>   (**85.22 MB**) and `model_astgcn_a20_int8.pth`, both **skeleton/IMU-only** and dated
+>   2026-07-30 — a month before MViT existed. **83.82 MB is a spreadsheet total.**
+> - `code/quantize_checkpoint.py` is **fake quantization**: it round-trips to fp32
+>   (`.to(v.dtype)`) and `torch.save`s a full-size file. No `*_q6.pt` of 26 MB exists or
+>   ever did — that figure is a printed estimate.
+> - The 22.80 MB pruned `world25` **has no file**; `prune_world25.py` writes only
+>   `testprobs_w25_p4.npz` (probabilities, not weights).
+> - `imu_stats` is a **scikit-learn ExtraTreesClassifier** and `package_ensemble.py`
+>   cannot represent it at all. Dropping it costs **43 of 405 rows**.
+> - `package_ensemble.build_model` is a closed registry that cannot construct
+>   `mvit_v2_s`; `infer_packaged.dataset_key` is a role whitelist with **no video path**.
+>
+> **What is verified: a recipe whose parts sum to 83.82 MB scores 166. What is NOT
+> verified: that those parts serialize into one ≤100 MB file that loads and reproduces
+> that CSV.** At int8-per-tensor (the only codec the format decodes) the real total is
+> ~91.4 MB **without** the IMU branch. Top-15 → Stage-2 reproduction → failing it
+> forfeits everything. See the cluster plan, track **T-PKG**.
 >
 > **`submissions/sub_r2.csv` = 0.82587 = 166/201 from an 83.82 MB package** — the same
 > score as the ~309 MB `sub_n8`, with 16.18 MB of headroom. R-6 (organiser, topic
@@ -28,11 +51,12 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 > older notes is **unsourced** — it is in neither `RULES_VERIFIED.md` nor `OBJECTIVE.md`.
 > Treat 100 MB as hard. We no longer need the slack anyway.
 
-**Best (and legal): `submissions/sub_r2.csv` = 0.82587 = 166/201, 83.82 MB.**
+**Best score: `submissions/sub_r2.csv` = 0.82587 = 166/201.** Its *legality is unverified*
+— the package has never been built as a file (see the retraction above).
 
 | | |
 |---|---|
-| Best legal (verified on Kaggle) | **0.82587 = 166/201** — `submissions/sub_r2.csv`, **83.82 MB** |
+| Best score (verified on Kaggle) | **0.82587 = 166/201** — `submissions/sub_r2.csv`. **Package NOT built or verified** |
 | Target | 0.89 = 179/201 → **+13 clips from the legal 166** |
 | Qualification gate | **top-15 on private.** Bar = **162** clips (2026-08-25, 233 teams); legal score 166 — **margin +4** |
 | Deadline | Kaggle 2026-09-15; code upload 09-22 |
@@ -62,7 +86,7 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 | 1–3 | 0.98009, 0.98009, 0.97512 | 197, 197, 196 | **almost certainly the L-1 leak.** 196/201 is not a modelling result, and there is a 6.5-point cliff below them |
 | 4–7 | 0.91542, 0.91044, 0.90049, 0.89552 | 184, 183, 181, 180 | the real top tier — a tight cluster is the signature of a method |
 | 8–10 | 0.86567, 0.85572, 0.83582 | 174, 172, 168 | |
-| **11–12 (us)** | **0.82587** | **166** | `sub_r2`, 83.82 MB legal |
+| **11–13 (us)** | **0.82587** | **166** | `sub_r2`; package unverified |
 | 15 | 0.80597 | 162 | **the qualification bar moved 160 → 162; margin is +4, not +6** |
 
 Published public notebooks sit at **143**. We reached 166 by adding person crops, a
@@ -147,7 +171,7 @@ since test has 2× the multi-person rate and OOF cannot see it. Measured
 because test clips are shorter (median 20 raw frames vs 24), leaving less time to drift.
 Candidate 5 is dead as a test-specific fix. Filed.
 
-### ① Stage-2 package — **DONE and verified on public**
+### ① Stage-2 package — **NOT DONE. Retracted 2026-09-01; see the banner above**
 
 `submissions/sub_r2.csv` = **0.82587 = 166/201 from 83.82 MB**, the same score as the
 ~309 MB pipeline it replaces. 16.18 MB headroom.

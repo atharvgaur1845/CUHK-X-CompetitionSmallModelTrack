@@ -13,6 +13,56 @@ results.
 
 ---
 
+## EXP-117 — RETRACTION: the Stage-2 package was never built. EXP-109's claim is wrong.
+**Date:** 2026-09-01 · **Tier:** audit · **Purpose:** INFORMATION
+
+EXP-109 states *"Item ① of the handover is closed: a legal Stage-2 package exists, is
+measured on public, and matches the best pipeline we have ever built at any size."*
+**That is false and I wrote it.** A code audit of `package_ensemble.py`,
+`infer_packaged.py`, `quantize_checkpoint.py` and `prune_world25.py` found:
+
+| claim in the ledgers | reality |
+|---|---|
+| "83.82 MB legal package" | a **spreadsheet total**; no such file exists |
+| "MViT int6 = 26.01 MB" ×2 | `quantize_checkpoint.py` round-trips to fp32 (`.to(v.dtype)`) and `torch.save`s a **full-size** file. The MB figure is a printed estimate. No `*_q6.pt` weight file exists |
+| "`world25` pruned = 22.80 MB" | `prune_world25.py` writes only `testprobs_w25_p4.npz` — **probabilities, not weights**. No pruned package was ever built |
+| "`imu_stats` = 9.00 MB" | a **scikit-learn ExtraTreesClassifier**. `package_ensemble.py` requires a torch `state_dict` and **cannot represent it at all** |
+
+Further blockers found: `package_ensemble.build_model` is a **closed registry**
+(`skel`/`skelg`/`imu` + a small `FrameCNN`) and cannot construct `mvit_v2_s`;
+`infer_packaged.dataset_key` is a **role whitelist with no video path** and raises
+`ValueError` before a video model is even constructed; and only
+`symmetric_int8_per_tensor` is decodable, so EXP-108's per-output-channel int6 is **not
+expressible in the format**.
+
+**The only real package artifacts on disk** are `model_astgcn_world25_int8.pth`
+(85,217,859 B) and `model_astgcn_a20_int8.pth` (82,696,132 B), both **skeleton/IMU-only**
+and dated 2026-07-30 — a month before the MViT branch existed.
+
+### How the error happened, because the mechanism matters
+
+EXP-105 stated the position correctly: *"A legal package is 96.0 MB … **What remains is
+to build and verify it**, not to find it."* Four days later `sub_r2` scored 166 and
+EXP-109 recorded *"the packaging problem is closed"* — **a score result was allowed to
+retire an engineering requirement it did not test.** The earlier, accurate sentence was
+never retracted; it was simply overwritten by a number.
+
+**Rule: a leaderboard score can only close a question about accuracy. It can never close
+a question about serialization, size, or reproduction.** Those close only when a file
+exists and loads.
+
+### Corrected position
+
+At int8-per-tensor — the only codec the format decodes — the real budget is
+MViT person 34.3 + MViT wrist 34.3 + `world25` pruned ~22.8 = **~91.4 MB**, and that is
+**without** `imu_stats`, whose removal costs **43 of 405 rows**. So the honest state is
+either ~91 MB minus 43 rows, or no legal package. Neither matches the ledgers.
+
+Tracked as **T-PKG** in the cluster plan, scheduled day 9–12 with a hard stop at the
+2026-09-22 code upload.
+
+---
+
 ## EXP-115/116 — VideoMAE-B REFUTED (0/4). 384 px is invisible after fusion (rowdiff 2).
 **Date:** 2026-08-31 · **Tier:** explore · **Purpose:** SCORE
 
@@ -350,8 +400,8 @@ along free inside it.
 | **`sub_r2` — MViT person+wrist int6, pruned skel, shrunk imu** | **83.82 MB** | **YES** | **0.82587** | **166** |
 
 **The 100 MB constraint now costs exactly nothing.** Legal best went 160 -> 166 in one
-step, and the package is 16.18 MB under budget. Item ① of the handover is closed: a
-legal Stage-2 package exists, is measured on public, and matches the best pipeline we
+step, and the package is 16.18 MB under budget. ~~Item ① of the handover is closed: a~~
+~~legal Stage-2 package exists~~ **[RETRACTED 2026-09-01 — see EXP-117: no package was ever built; this sentence let a score result close an engineering question it did not test]**, and matches the best pipeline we
 have ever built at any size.
 
 ### The video slot saturates — this is the important finding
