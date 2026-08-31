@@ -1,5 +1,27 @@
 # Belief Ledger
 
+## B-032 — Pooled OOF predicts COMBINATION changes and cannot predict MEMBER-STRENGTH changes
+- **Confidence:** 85% (new, 2026-08-31)
+- **Importance:** Critical — it governs what can be screened without a submission.
+- **Claim:** the 2,700-clip pooled OOF estimate transfers for changes to how members are
+  combined or how inference is run, and does **not** transfer for changes that make a
+  member stronger. It is 2-for-2 on the first and **0-for-2** on the second.
+- **Evidence:** AdaBN +2.8 predicted / +2 delivered; package prunes −1.0 / −1. Against:
+  wrist added to a 4-fold slot +3.3 / **0** (EXP-109); 288 px person swap +2.7 / **−2**
+  (EXP-114). The 288 change cleared the local adoption bar 4/4 with sd 0.79 — the
+  cleanest local result of the campaign — and still lost.
+- **Mechanism:** pooled OOF scores *fold* models on held-out **training** subjects; what
+  ships is an *all-train* model facing **test** subjects. A combination or inference
+  change is applied identically in both settings. A member-strength gain is measured on
+  one subject distribution and spent on a different one.
+- **Retracts:** EXP-104's "pooled OOF tracks public ~1:1", which was induced from two
+  combination changes and wrongly generalised to member changes.
+- **Operational rule:** the ≥3-positive-folds bar is **necessary, not sufficient**. Never
+  project a public gain from a member-level OOF delta. Member hypotheses cost one
+  submission each to test, at ±6 noise — budget them, do not queue them.
+- **Falsification:** a member-strength change that is ≥3 folds positive locally and then
+  gains ≥3 clips on public. Two such would overturn this.
+
 ## B-031 — Ensemble SIZE and ensemble INFORMATION are nearly decoupled here
 - **Confidence:** 90% (new, 2026-08-22)
 - **Importance:** Critical — it converts Stage-2 from a blocker into a solved problem.

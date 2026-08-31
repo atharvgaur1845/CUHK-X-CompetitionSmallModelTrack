@@ -13,6 +13,65 @@ results.
 
 ---
 
+## EXP-114 — 288 px LOST on public (166 -> 164). Pooled OOF splits: it predicts COMBINATION changes and fails on MEMBER-STRENGTH changes.
+**Date:** 2026-08-31 · **Tier:** exploit · **Purpose:** SCORE
+
+`sub_s2` (288 px person replacing the 224 px person in the package, single change,
+rowdiff 21) scored **0.81592 = 164/201** against `sub_r2`'s **166**. Pooled OOF predicted
+**+2.7**. Delivered **-2**.
+
+### The calibration split, which is the real result
+
+| change | kind | pooled OOF | public |
+|---|---|---|---|
+| AdaBN bag (`n1`) | inference | +2.8 | **+2** ✓ |
+| package prunes (`q4` vs `q1`) | combination | −1.0 | **−1** ✓ |
+| wrist added to 4-fold slot (`r1`) | member strength | +3.3 | **0** ✗ |
+| 288 px person swap (`s2`) | member strength | +2.7 | **−2** ✗ |
+
+**Both hits are combination/inference changes. Both misses are member-strength changes.**
+That is not noise arranging itself; it is structural.
+
+**Mechanism.** Pooled OOF scores *fold* models on held-out **training** subjects. What
+ships is an *all-train* model facing **test** subjects. A combination or inference change
+is applied identically in both settings, so its measured effect transfers. A member-
+strength gain is measured on one subject distribution and spent on another — and the 18
+training subjects say nothing about how a stronger member behaves on users 10/11/25/26.
+Same shape as B-029: OOF validates a parameter, not a structural change.
+
+**This retracts the screening rule from EXP-104.** "Pooled OOF tracks public ~1:1" was
+induced from two combination changes and then applied to member changes, where it is
+0-for-2. The adoption bar (≥3 positive folds, or one fold >2.80) is **necessary and not
+sufficient**: 288 px cleared it 4/4 with sd 0.79 — the cleanest local result of the
+campaign — and still lost 2 clips.
+
+**Operational consequence: member improvements cannot be screened locally at all.** They
+can only be measured on public, at a ±6 noise floor, with ~5 submissions/day and 15 days
+left. That is a hard limit on how many member hypotheses can be tested, and it applies to
+the 384 px ladder currently running.
+
+### 384 px, for the record
+
+| fold | 224 | 288 | 384 | 384−288 |
+|---|---|---|---|---|
+| 0 | 70.516 | 71.376 | 70.885 | −0.49 |
+| 1 | 69.287 | 70.147 | 73.096 | **+2.95** |
+| 2 | 71.472 | 72.393 | 70.859 | −1.53 |
+
+1 of 3 positive, scatter 4.5 points wide — the jitter/LLRD signature, not 288's tight
+4/4. Fold 1's +2.95 is the third time a single fold has produced a spurious ~+2.5 on this
+partition. **Resolution peaks at 288 locally and does not even transfer there**, so the
+ladder is closed on both counts.
+
+### Where this leaves the campaign
+
+`sub_r2` = **166/201 from an 83.82 MB legal package** remains the best, and it is the
+thing to defend. Public is **4 subjects**; private is **8 different ones**; the on-site
+stage is **8 more**. Chasing public clips at ±6 noise with a +4 margin risks selecting
+something that does not hold where 50% of the grade is actually decided.
+
+---
+
 ## EXP-113 — 288 px PASSES: 4/4 folds, +1.27 micro. Resolution is the only live member axis.
 **Date:** 2026-08-26/29 · `--image-size 288` · **Tier:** exploit · **Purpose:** SCORE
 

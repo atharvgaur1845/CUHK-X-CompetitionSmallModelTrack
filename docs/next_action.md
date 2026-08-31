@@ -37,7 +37,7 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 | Qualification gate | **top-15 on private.** Bar = **162** clips (2026-08-25, 233 teams); legal score 166 — **margin +4** |
 | Deadline | Kaggle 2026-09-15; code upload 09-22 |
 | Noise floor | **±6 clips.** A change moving <20 of 405 rows cannot be read |
-| Screening estimator | **2,700-clip pooled OOF only.** It tracked public 1:1 (+2.8 predicted, +2 delivered). Fold-2 OOF produced n7's −3 and is not used for adoption |
+| Screening estimator | **SPLIT — see B-032.** Pooled OOF predicts *combination/inference* changes (2-for-2) and **cannot predict member-strength changes (0-for-2)**. 288 px cleared the bar 4/4, sd 0.79, and still lost 2 clips on public. Member hypotheses cost one submission each to test |
 | Champion recipe | `code/build_video_slot.py --tag n8 --view mvit=k224_mvit_f0,k224_mvit_f1,k224_mvit_f2,k224_mvit_f3` then the transition decoder λ=0.5 conditional unigram. **Reproduces the champion to 0.0** |
 
 > ### ⚠ THE PACKAGING BLOCKER IS SOLVED — see EXP-105. Do not re-plan it.
