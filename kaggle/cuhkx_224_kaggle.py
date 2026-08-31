@@ -499,6 +499,70 @@ def build_cache(paths: dict, split: str, jobs: list, windows: dict,
 # ================================================================================
 # Stage 2 — model
 # ================================================================================
+def _build_videomae(n_classes, in_channels, image_size, variant="base"):
+    """VideoMAE-B/K400 as a drop-in video member: 16 frames, 224 px, tubelet 2.
+
+    Two things must be got right or this silently ships a half-pretrained model.
+
+    1. **Attention biases.** The published checkpoint stores fused `q_bias` / `v_bias`
+       (k_bias is implicitly zero); transformers 5.x wants separate
+       `query.bias` / `key.bias` / `value.bias` and reports the checkpoint's keys as
+       UNEXPECTED while newly initialising its own. Measured |q_bias| = 0.34, so that is
+       not harmless -- it is the same class of silent breakage that made Swin3D collapse.
+       We remap explicitly and assert nothing was left random.
+    2. **Input layout.** Our loader emits (B, C, T, H, W) (torchvision convention);
+       VideoMAE wants (B, T, C, H, W).
+    """
+    import torch
+    import torch.nn as nn
+    from transformers import VideoMAEForVideoClassification
+
+    repo = f"MCG-NJU/videomae-{variant}-finetuned-kinetics"
+    model = VideoMAEForVideoClassification.from_pretrained(repo)
+
+    # --- 1. restore the fused attention biases -------------------------------------
+    from huggingface_hub import hf_hub_download
+    import safetensors.torch as st
+    raw = st.load_file(hf_hub_download(repo, "model.safetensors"))
+    sd, fixed = model.state_dict(), 0
+    for k in list(raw):
+        if k.endswith(".attention.attention.q_bias"):
+            base = k[: -len("q_bias")]
+            sd[base + "query.bias"] = raw[k]
+            sd[base + "value.bias"] = raw[base + "v_bias"]
+            sd[base + "key.bias"] = torch.zeros_like(raw[k])   # k_bias is zero by design
+            fixed += 1
+    model.load_state_dict(sd, strict=True)
+    assert fixed == model.config.num_hidden_layers, f"remapped {fixed} of {model.config.num_hidden_layers}"
+    print(f"  videomae: restored fused q/v attention biases on {fixed} layers", flush=True)
+
+    # --- 2. 4-channel stem, same surgery as MViT ------------------------------------
+    proj = model.videomae.embeddings.patch_embeddings.projection
+    if in_channels != proj.in_channels:
+        new = nn.Conv3d(in_channels, proj.out_channels, proj.kernel_size,
+                        proj.stride, proj.padding, bias=proj.bias is not None)
+        with torch.no_grad():
+            new.weight[:, :3] = proj.weight.data
+            for extra in range(3, in_channels):
+                new.weight[:, extra:extra + 1] = proj.weight.data.mean(dim=1, keepdim=True)
+            if proj.bias is not None:
+                new.bias.copy_(proj.bias.data)
+        model.videomae.embeddings.patch_embeddings.projection = new
+        model.videomae.embeddings.patch_embeddings.num_channels = in_channels
+
+    model.classifier = nn.Linear(model.classifier.in_features, n_classes)
+
+    class _Wrap(nn.Module):
+        def __init__(self, m):
+            super().__init__()
+            self.m = m
+
+        def forward(self, x):                      # (B,C,T,H,W) -> (B,T,C,H,W)
+            return self.m(pixel_values=x.permute(0, 2, 1, 3, 4)).logits
+
+    return _Wrap(model)
+
+
 def enable_grad_checkpointing(model):
     """Recompute each MViT block's activations in the backward pass instead of storing them.
 
@@ -592,6 +656,8 @@ def build_model(arch: str, n_classes: int = N_CLASSES, in_channels: int = CHANNE
             del ref
         model.head[-1] = nn.Linear(model.head[-1].in_features, n_classes)
         stem_attr = ("conv_proj",)
+    elif arch == "videomae_b":
+        return _build_videomae(n_classes, in_channels, image_size, "base")
     elif arch == "swin3d_t":
         model = V.swin3d_t(weights=V.Swin3D_T_Weights.KINETICS400_V1)
         model.head = nn.Linear(model.head.in_features, n_classes)
@@ -974,7 +1040,7 @@ def main(argv=None) -> int:
     ap.add_argument("--stage", default="all", choices=("cache", "train", "infer", "all"))
     ap.add_argument("--tag", default="k224_mvit_f2")
     ap.add_argument("--arch", default="mvit_v2_s",
-                    choices=("mvit_v2_s", "swin3d_t", "swin3d_s", "s3d"))
+                    choices=("mvit_v2_s", "videomae_b", "swin3d_t", "swin3d_s", "s3d"))
     ap.add_argument("--fold", type=int, default=2, choices=(0, 1, 2, 3),
                     help="which subject fold to hold out; matches the local vid_* folds")
     ap.add_argument("--epochs", type=int, default=20)

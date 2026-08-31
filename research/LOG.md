@@ -13,6 +13,48 @@ results.
 
 ---
 
+## EXP-115/116 — VideoMAE-B REFUTED (0/4). 384 px is invisible after fusion (rowdiff 2).
+**Date:** 2026-08-31 · **Tier:** explore · **Purpose:** SCORE
+
+### VideoMAE-B / K400 as the video member — refuted
+
+| fold | MViT 224 | VideoMAE-B | Δ | MViT object | vMAE object |
+|---|---|---|---|---|---|
+| 0 | 70.516 | 69.165 | −1.35 | 59.034 | 57.424 |
+| 1 | 69.287 | 67.568 | −1.72 | 62.735 | 60.342 |
+| 2 | 71.472 | 67.791 | −3.68 | 64.927 | 60.125 |
+| 3 | 73.966 | 73.507 | −0.46 | 65.837 | 64.480 |
+
+**Mean −1.80, sd 1.36, 0 of 4 folds positive.** Not noise — a consistent loss, on a
+backbone ~6 points *stronger* than MViTv2-S on K400 (≈86% vs 80.3%) and natively
+16-frame, so the Swin3D temporal-mismatch failure does not apply. Most plausible cause:
+**86.7M params, 2.5× MViT's, fine-tuned on 2,281 clips**, plus a plain ViT lacking the
+multiscale inductive bias that helps on small data. No submission spent.
+
+**A bug worth recording, because it would have faked this result.** transformers 5.x
+changed VideoMAE's attention parameterisation: the published checkpoint stores fused
+`q_bias`/`v_bias`, the new code wants `query/key/value.bias`, and the loader reports the
+checkpoint's keys as UNEXPECTED while **newly initialising its own**. Measured
+|q_bias| = 0.34, so those biases are load-bearing. `_build_videomae` remaps them
+explicitly (`k_bias` is zero by design) and asserts all 12 layers were restored. Without
+that, "VideoMAE loses" would have been a story about random biases, not about VideoMAE.
+
+### 384 px is invisible after fusion
+
+`sub_t1` = 4-fold 384 person + 4-fold wrist is **rowdiff 2** against `sub_r1` (4-fold 224
+person + 4-fold wrist, 166). Unreadable at ±6.
+
+The lesson generalises: **swapping one stable k-fold bag for another is invisible through
+a 0.2925-weight video slot plus the decoder**, even when the member is +1.58 micro
+better. `sub_s2` moved 21 rows only because it replaced a *single all-train model*, which
+carries far more variance than a 4-model bag. So member experiments must be shipped in
+the form they will actually be deployed in, or the rowdiff will not clear the noise floor.
+
+384 all-train is training now purely to produce a readable submission. Expectation stated
+in advance and low: 288 was 4/4 locally and lost 2 clips on public; 384 is 2/4 over 288.
+
+---
+
 ## EXP-114 — 288 px LOST on public (166 -> 164). Pooled OOF splits: it predicts COMBINATION changes and fails on MEMBER-STRENGTH changes.
 **Date:** 2026-08-31 · **Tier:** exploit · **Purpose:** SCORE
 
