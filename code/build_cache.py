@@ -20,7 +20,11 @@ from multiprocessing import Pool
 import cv2
 import numpy as np
 
-ROOT = "/home/atharv/Desktop/projects/KAggle /CUHK-X-CompetitionSmallModelTrack"
+# Portable root: env CUHKX_ROOT wins, else the repo dir two levels up from this
+# file. Was a hardcoded absolute path (with a space in it) in 11 files, which was
+# the #1 blocker for running anywhere but the original laptop.
+ROOT = os.environ.get("CUHKX_ROOT") or os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))
 TRAIN = os.path.join(ROOT, "Small-Model-Track/Training/data/HAR/data")
 TEST = os.path.join(ROOT, "Small-Model-Track/Testing/data/small_model_track_test")
 CACHE = os.path.join(ROOT, "cache")

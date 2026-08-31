@@ -15,7 +15,11 @@ import numpy as np
 
 from build_cache import TRAIN, TEST, invert_jet, fname_ts  # reuse paths + JET LUT
 
-ROOT = "/home/atharv/Desktop/projects/KAggle /CUHK-X-CompetitionSmallModelTrack"
+# Portable root: env CUHKX_ROOT wins, else the repo dir two levels up from this
+# file. Was a hardcoded absolute path (with a space in it) in 11 files, which was
+# the #1 blocker for running anywhere but the original laptop.
+ROOT = os.environ.get("CUHKX_ROOT") or os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))
 CACHE = os.path.join(ROOT, "cache")
 SIZE = int(os.environ.get("ROI_SIZE", "112"))
 SUFFIX = "_roi" if SIZE == 112 else f"_roi{SIZE}"

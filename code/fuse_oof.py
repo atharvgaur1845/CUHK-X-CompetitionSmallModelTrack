@@ -14,7 +14,12 @@ from scipy.optimize import linear_sum_assignment
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from hungarian_sim import radar_groups
 
-ART = "/home/atharv/Desktop/projects/KAggle /CUHK-X-CompetitionSmallModelTrack/research/artifacts"
+# Portable root: env CUHKX_ROOT wins, else the repo dir two levels up from this
+# file. Was a hardcoded absolute path (with a space in it) in 11 files, which was
+# the #1 blocker for running anywhere but the original laptop.
+ROOT = os.environ.get("CUHKX_ROOT") or os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))
+ART = os.path.join(ROOT, "research", "artifacts")
 
 
 def hungarian_acc(P, Y, sids, gkey):
