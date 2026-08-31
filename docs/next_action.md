@@ -207,6 +207,21 @@ feature statistics, and validate the clustering against true user labels on trai
 have no BatchNorm to re-estimate, so as the video slot moves to MViT, AdaBN's reach
 shrinks. Quantify what AdaBN is still worth in the current champion before investing.
 
+### ⑤ External data (NTU RGB+D) — ❌ CLOSED, cannot be obtained
+
+NTU RGB+D requires a **supervisor's countersignature** on the access agreement. Dead, not
+deferred. For the record, the ROSE listing that is NTU RGB+D is **"Action Recognition
+Dataset"** (60: 56,880 samples; 120: 114,480; masked depth 83/147 GB, IR 221/389 GB).
+
+**Do not source it from an unofficial mirror** — signed-agreement licence, plus the
+competition requires disclosing external data. Other ungated depth/IR corpora do not
+substitute: NTU's value was **106 subjects vs our 18**, and UTD-MHAD (8 subjects) or
+CAD-60 cannot move cross-subject generalisation.
+
+Effort redirects to self-supervised pretraining on our own 3,338 clips (train + test,
+unlabeled) — in-domain by construction, ungated, legal under R-4/R-7, and EXP-021 already
+measured **+3.0** for a cross-modal masked pretext that was never re-attached to a trunk.
+
 ### ③ Thermal — the WITHDRAWAL WAS WRONG, see candidate 4 above
 
 Earlier versions of this file killed thermal fusion because thermal is a separate camera
