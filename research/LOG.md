@@ -13,6 +13,59 @@ results.
 
 ---
 
+## EXP-118 — Forum/notebook mining: a team tied with us at 166 is THERMAL-based. Our thermal member is badly underdeveloped.
+**Date:** 2026-09-02 · Kaggle API (auth now configured) · **Tier:** explore · **Purpose:** INFORMATION
+
+First systematic mining of public notebooks, mandated by `DIRECTIVE.md` §1 and never done
+before. **8 public notebooks exist**; the highest claimed score is **LB 0.711 = 143**
+(`phuongncn/lb-0-711-yolo-person-crop-r2plus1d-100mb`), which we already ported and passed
+in EXP-086. The 176–188 teams have published nothing.
+
+**The one new signal, and it is a big one:**
+`skomuro/cuhk-x-14th-place-0-8-thermal-baseline` — *"From 14th Place to 0.8+: A
+Leakage-Safe **Thermal** Baseline"*. **`skomuro` sits at 0.82587 = 166 — tied with us.**
+
+Their published (deliberately "pre-optimization") recipe:
+
+| | theirs | ours |
+|---|---|---|
+| input | **thermal only, FULL FRAME, no crop** | thermal, **YOLO person crop** |
+| resolution | 112 px | 128 px |
+| frames | 8, uniform | 16 |
+| model | tiny from-scratch 2D ResNet, **frame logits averaged** | 3D video net (r2plus1d), Kinetics-pretrained |
+| training | 8 epochs, AdamW 3e-4 | 30 epochs, fine-tune |
+| validation | GroupKFold(5) **by user** | 4-fold by subject |
+
+Our thermal members: `pre_thermal` pooled OOF **0.36277**; EXP-088's video-recipe thermal
+**0.54448** (fold 2). A team reaches our whole-system score on a thermal-centred pipeline.
+
+### The mechanism this suggests — and it fits our error profile exactly
+
+**They do not crop to the person. We do.** In thermal, the discriminative signal for an
+OBJECT class may be the *object's own heat signature* — a kettle, a laptop, a stove, a
+running tap — not the subject's pose. **Cropping to the person deletes exactly that.**
+75% of our residual error is OBJECT classes, and thermal is the paper's best modality
+(92.57) while contributing **exactly zero** to our fusion.
+
+This also re-frames B-027. We measured that thermal cannot be harvested by any global
+weight and concluded thermal was uninformative-in-practice. The alternative explanation
+we never tested is that **our thermal member is crippled by preprocessing**, and a
+competent thermal member would fuse fine.
+
+**Caveat, stated honestly:** the notebook contains **no test inference** — it stops at
+fold-0 held-out accuracy. The "0.8+" is a leaderboard claim in prose, and their LB score
+is 166, the same as ours. So this is evidence that *thermal can carry a strong pipeline*,
+not proof that full-frame beats cropped.
+
+### Falsifiable next experiment (cheap, cluster)
+
+Build a **full-frame** thermal cache (no YOLO crop) and train the same recipe against our
+cropped thermal cache. Same folds, same seeds. If full-frame ≥ cropped by >2.80 micro on
+one fold, or is positive on ≥3 folds, the crop is the defect and B-027 needs re-testing
+against a repaired member.
+
+---
+
 ## EXP-117 — RETRACTION: the Stage-2 package was never built. EXP-109's claim is wrong.
 **Date:** 2026-09-01 · **Tier:** audit · **Purpose:** INFORMATION
 

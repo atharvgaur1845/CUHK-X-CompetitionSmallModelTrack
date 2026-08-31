@@ -171,6 +171,36 @@ since test has 2× the multi-person rate and OOF cannot see it. Measured
 because test clips are shorter (median 20 raw frames vs 24), leaving less time to drift.
 Candidate 5 is dead as a test-specific fix. Filed.
 
+### ⓪ THERMAL IS UNDERDEVELOPED — the strongest new lead   ← **START HERE after T0**
+
+`skomuro`, **tied with us at 0.82587 = 166**, published a notebook titled *"From 14th
+Place to 0.8+: A Leakage-Safe **Thermal** Baseline"*. Their recipe uses **thermal only,
+FULL FRAME, no person crop**, 8 frames at 112 px, a tiny from-scratch 2D CNN with frame
+logits averaged.
+
+Ours: `pre_thermal` pooled OOF **0.36277**; EXP-088's video-recipe thermal **0.54448**
+(fold 2) — built on a **YOLO person crop**.
+
+**Hypothesis:** in thermal, the discriminative cue for an OBJECT class is the *object's
+own heat signature* (kettle, laptop, stove, running tap), not the subject's pose — and
+**cropping to the person deletes it**. 75% of our residual error is OBJECT classes, and
+thermal is the paper's best modality (92.57) while contributing exactly zero to our fusion.
+
+This re-frames B-027. We measured that no global weight can harvest thermal and concluded
+thermal was uninformative. The untested alternative is that **our thermal member is
+crippled by preprocessing** and a competent one would fuse fine.
+
+**Experiment:** build a full-frame thermal cache (no YOLO), train the same recipe against
+the cropped cache, same folds and seeds. Adopt only on >2.80 micro on one fold or ≥3
+positive folds. If it wins, re-test B-027 against the repaired member.
+
+**Caveat:** their notebook has **no test inference** — the "0.8+" is prose, and their LB
+is 166, the same as ours. This is evidence thermal can carry a pipeline, not proof that
+full-frame beats cropped.
+
+**Also from the mining:** 8 public notebooks exist, the best claims **LB 0.711 = 143**
+(already ported and passed in EXP-086). The 176–188 teams have published nothing.
+
 ### ① Stage-2 package — **NOT DONE. Retracted 2026-09-01; see the banner above**
 
 `submissions/sub_r2.csv` = **0.82587 = 166/201 from 83.82 MB**, the same score as the
