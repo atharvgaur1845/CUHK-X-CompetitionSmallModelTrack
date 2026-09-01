@@ -49,8 +49,13 @@ KIN_STD = torch.tensor([0.22803, 0.22145, 0.216989]).view(1, 3, 1, 1, 1)
 
 
 def main() -> int:
+    global CACHE
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--tag", default="vidth_f2")
+    p.add_argument("--cache", default="thermal_v1",
+                   help="cache dir under cache/. thermal_v1 = YOLO person crop (EXP-088, "
+                        "fold-2 micro 0.54448); thermal_full = uncropped whole frame "
+                        "(EXP-118 hypothesis). Default keeps EXP-088 reproducible.")
     p.add_argument("--fold-oof", default="oof_visual_mil_v1_f2.npz")
     p.add_argument("--arch", default="r2plus1d_18")
     p.add_argument("--epochs", type=int, default=30)
@@ -63,6 +68,8 @@ def main() -> int:
     p.add_argument("--workers", type=int, default=0)
     p.add_argument("--resume", action="store_true")
     args = p.parse_args()
+    CACHE = os.path.join(ROOT, "cache", args.cache)
+    print(f"  cache: {CACHE}", flush=True)
 
     torch.manual_seed(20260730)
     np.random.seed(20260730)

@@ -65,7 +65,15 @@ def thermal_frames(directory: Path) -> list[Path]:
     return sorted(files, key=key)
 
 
-def load_clip(model, thermal_dir: Path) -> np.ndarray:
+def load_clip(model, thermal_dir: Path, full_frame: bool = False) -> np.ndarray:
+    """full_frame=True skips person detection entirely and keeps the whole thermal view.
+
+    EXP-118: the team tied with us at 166 runs a thermal pipeline on UNCROPPED frames.
+    The hypothesis is that in thermal the discriminative cue for an OBJECT class is the
+    object's own heat signature -- a kettle, a laptop, a stove, a running tap -- rather
+    than the subject's pose, and cropping to the person deletes it. 75% of our residual
+    error is OBJECT classes, so this is exactly where it would show.
+    """
     frames = thermal_frames(thermal_dir)
     out = np.zeros((N_FRAMES, CHANNELS, IMAGE_SIZE, IMAGE_SIZE), dtype=np.uint8)
     if not frames:
@@ -78,7 +86,7 @@ def load_clip(model, thermal_dir: Path) -> np.ndarray:
             break
         except Exception:
             continue
-    window = crop_window(model, frames, width, height)
+    window = None if full_frame else crop_window(model, frames, width, height)
     for slot, path in enumerate(endpoint_uniform(frames, N_FRAMES)):
         try:
             image = Image.open(path).convert("RGB")
@@ -92,13 +100,26 @@ def load_clip(model, thermal_dir: Path) -> np.ndarray:
 
 
 def main() -> int:
+    global OUT_ROOT, IMAGE_SIZE
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--split", choices=("train", "test"), required=True)
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--full-frame", action="store_true",
+                    help="no person crop; keep the whole thermal view (EXP-118)")
+    ap.add_argument("--out-name", default="",
+                    help="cache dir under cache/ (default thermal_v1, or "
+                         "thermal_full when --full-frame)")
+    ap.add_argument("--image-size", type=int, default=IMAGE_SIZE)
     args = ap.parse_args()
 
-    from ultralytics import YOLO
-    model = YOLO("yolo11n.pt")
+    IMAGE_SIZE = args.image_size
+    OUT_ROOT = ROOT / "cache" / (args.out_name or
+                                 ("thermal_full" if args.full_frame else "thermal_v1"))
+
+    model = None
+    if not args.full_frame:
+        from ultralytics import YOLO
+        model = YOLO("yolo11n.pt")   # only needed when we actually crop
 
     jobs: list[tuple[str, Path]] = []
     if args.split == "train":
@@ -127,7 +148,7 @@ def main() -> int:
         shape=(len(jobs), N_FRAMES, CHANNELS, IMAGE_SIZE, IMAGE_SIZE))
     nonempty = 0
     for i, (sid, thermal_dir) in enumerate(jobs):
-        memmap[i] = load_clip(model, thermal_dir)
+        memmap[i] = load_clip(model, thermal_dir, args.full_frame)
         if memmap[i].any():
             nonempty += 1
         if i % 100 == 0 or i == len(jobs) - 1:
@@ -136,6 +157,7 @@ def main() -> int:
     with open(OUT_ROOT / f"{args.split}_index.json", "w") as handle:
         json.dump({"sids": [j[0] for j in jobs], "n_frames": N_FRAMES,
                    "channels": CHANNELS, "image_size": IMAGE_SIZE,
+                   "full_frame": bool(args.full_frame),
                    "crop_margin": CROP_MARGIN,
                    "min_side_fraction": MIN_SIDE_FRACTION,
                    "detection_frames": DETECTION_FRAMES,
