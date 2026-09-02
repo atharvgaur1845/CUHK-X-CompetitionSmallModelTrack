@@ -13,6 +13,60 @@ results.
 
 ---
 
+## EXP-119 — Full-frame thermal beats cropped by +1.38 micro, and the whole gain is OBJECT. Below the bar on one fold.
+**Date:** 2026-09-02 · `--full-frame` · **Tier:** explore · **Purpose:** SCORE
+
+Testing EXP-118's hypothesis: `skomuro`, tied with us at 166, runs thermal on
+**uncropped** frames, and in thermal the cue for an OBJECT class may be the object's own
+heat signature rather than the subject's pose — so a person crop would delete it.
+
+Identical recipe, identical split (train=2165 after dropping 116 thermal-empty clips,
+outer=652), 128 px both, **the crop is the only change**:
+
+| fold-2 thermal member | micro | object | motion |
+|---|---|---|---|
+| cropped (`thermal_v1`, EXP-088) | 0.54448 | 224/479 | 131/173 |
+| **full frame (`thermal_full`)** | **0.55828** | **233/479** | 131/173 |
+| delta | **+1.38** | **+9 clips** | **0** |
+
+**Every clip of the gain is in OBJECT classes; motion is identical to the clip
+(131/173 both).** That is exactly the predicted signature — the person crop was deleting
+object heat and nothing else — and it is the error mass that matters, since OBJECT holds
+75% of our residual error.
+
+**But +1.38 does not clear the adoption bar** (>2.80 on one fold, or ≥3 positive folds).
+σ on this partition is 2.80 and single folds have produced three spurious ~+2.5s already.
+Not adopted on this evidence.
+
+**And it does not explain the gap to skomuro.** Their pipeline scores 166 overall; our
+best thermal member is 0.558 against our video members' 0.71–0.72. Full-frame recovers
+1.4 points of a much larger difference, so the crop is *a* defect, not *the* defect.
+Their other differences — a 2D CNN with frame-logit averaging instead of a 3D net, from
+scratch instead of Kinetics, 112 px, 8 frames, 8 epochs — remain untested.
+
+**Honest caveat carried forward:** their notebook contains no test inference, and their
+leaderboard score equals ours. "0.8+ thermal" is prose.
+
+### Next, now affordable
+
+Kaggle's free tier is unlocked (private dataset `atharvgaur18/cuhkx-smt-derived-caches`,
+crop_224 + thermal_full, 3.7 GB) — ~30 GPU-h/week on a 16 GB card. Run full-frame thermal
+on **4 folds** for a pooled number and test probabilities, then measure the **fused**
+effect. That is the only number that decides it: thermal currently contributes exactly
+zero at every weight (EXP-113), and B-027 says calibration, not accuracy, is the binding
+constraint for a fusion member.
+
+### Infrastructure note: the third silent OOM
+
+The first attempt died after epoch 9 with no traceback, no artifacts and an idle GPU.
+15 GB system RAM against a 2.3 GB raw `.npy` memmap, with ~11 GB held by browsers/editor.
+A resume checkpoint existed so nothing was lost, and the rerun went under
+`run_with_watchdog.sh`. **The raw-uint8 thermal cache is the structural culprit** — the
+JPEG-backed format used by `crop_224` is 8x smaller and would remove this failure mode
+entirely if thermal is pursued further.
+
+---
+
 ## EXP-118 — Forum/notebook mining: a team tied with us at 166 is THERMAL-based. Our thermal member is badly underdeveloped.
 **Date:** 2026-09-02 · Kaggle API (auth now configured) · **Tier:** explore · **Purpose:** INFORMATION
 
