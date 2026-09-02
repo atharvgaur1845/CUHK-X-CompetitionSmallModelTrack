@@ -17,6 +17,77 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
+> ### ⚠ COMPUTE, 2026-09-03: the cluster is DOWN for 15 days — i.e. past the deadline.
+>
+> `ssh sharanga` is under storage maintenance until ~2026-09-17. The Kaggle deadline is
+> **2026-09-15**. **Plan as though the cluster does not exist.** Everything in
+> `cluster/` is written and staged but must not be counted on; the "HIGH JUMP" cluster
+> campaign (T1 LOSO at 54 runs, T2 SSL, T4 multimodal) is **not affordable** on what we
+> actually have. Do not queue work against it.
+>
+> **What we actually have:** the 8 GB laptop, and **Kaggle notebooks at ~30 GPU-h/week**
+> (~2 h per 224 px MViT fold). That is roughly **50 GPU-hours before the deadline**.
+> Split them by what each machine is good at: 224 px MViT work goes to Kaggle, 128 px
+> thermal/skeleton work goes to the laptop, and they run concurrently.
+
+> ### ⚠ THE KAGGLE PARITY GATE WAS UNMEETABLE. I wrote it. See EXP-120.
+>
+> The gate was *"retrain `k224_mvit_f2` and reproduce micro = 0.71472"*. Kaggle returned
+> **0.68252** and this looked like a failure. It is not: **`kaggle/cuhkx_224_kaggle.py`
+> seeds nothing** — no `manual_seed`, no `np.random.seed` — so 0.71472 is one draw of a
+> random process and **the laptop cannot reproduce it either**. Everything checkable
+> matched (split 2281/652, params, epoch-1 lr 5.23e-05, 142 steps/epoch under both
+> batch/accum pairs, normal loss curve), and the entire deficit is in OBJECT with
+> `gross_motion` **identical to five decimals** — the shape of a weaker draw, not of a
+> broken pipeline. **The environment is not implicated. Do not go looking for a bug.**
+>
+> Fixed: the trainer now takes **`--seed`** (default `None` = historical behaviour, so
+> no existing artifact or comparison is invalidated). Seeding the parent is sufficient —
+> verified under fork — and a per-worker seed is deliberately **not** added, because it
+> would change augmentation semantics and make the measured spread describe a pipeline
+> we never ran. `cluster/parity.sbatch` and `cluster/README.md` are rewritten to match.
+>
+> Also falsified and recorded so nobody re-derives it: the augmentation draws from the
+> numpy *global* RNG with no `worker_init_fn`, which looks exactly like the classic
+> duplicate-stream bug. **It is not present** — torch seeds numpy per worker; measured,
+> not assumed. And both arms ran the same `--workers 2` default, so it was never a
+> laptop-vs-Kaggle difference either.
+
+> ### ⚠ THE VISUAL BRANCH'S SEED σ HAS NEVER BEEN MEASURED. It is now the critical path.
+>
+> `LOG.md:2069` and `:2161` both say so; it cost 9.3 h per seed on the laptop. **The
+> 2.80 that every visual gate in this campaign has been quoting is a *fold* σ**, and the
+> skeleton branch — the one that actually measured itself (EXP-018) — has a seed σ of
+> **0.18**. The visual branch inherited a number that was never about it, and three
+> spurious single-fold "+2.45"s came out of that.
+>
+> **Why this is the gate and not a detour:** B-032 says pooled OOF cannot screen
+> member-strength changes (0-for-2), and public carries ±9–10 clips of noise against a
+> **+2** margin. Every remaining score lead — full-frame thermal first — *is* a
+> member-strength change. Without σ we cannot legitimately adopt any of them, which is
+> exactly how the last four experiments were wasted. On Kaggle this costs ~6 GPU-hours.
+
+**Two jobs are in flight as of 2026-09-03. Check these before starting anything.**
+
+| where | job | command / status | reads out |
+|---|---|---|---|
+| **laptop** | **EXP-120b — paired thermal folds** | `bash code/run_thermal_pairs.sh` → `logs/thermal_pairs_queue.log`, per-run `logs/vidth*_f{0,1,3}.log`. ~16 h, 6 runs, started 2026-09-03 00:53 | Is EXP-119's full-frame **+1.38** real or one draw? |
+| **Kaggle** | **EXP-120a — visual seed σ** | 3 × `--seed {1,2,3}` replicates of `k224_mvit_f2`, ~6 GPU-h | the first honest visual σ; also settles the parity question |
+
+**On the thermal queue's design:** only fold 2 exists for *either* thermal variant, so
+folds 0/1/3 need **both** arms or the comparison is unpaired and unreadable — hence 6
+runs, not 3. They are ordered **fold-major** (`full f0, crop f0, full f1, crop f1, …`)
+so that killing the queue at any point still leaves complete **pairs** on disk. An
+interrupted arm-major queue would be worthless.
+
+**Read the thermal result against this, not against micro alone:** the thermal branch
+contributes **exactly zero** to the fusion today, because its confidence when right
+(0.511) barely exceeds its confidence when wrong (0.413). A member-accuracy gain on a
+branch whose fusion weight is 0 buys nothing. The question that decides adoption is
+whether full-frame thermal changes the **fused** score — so the deliverable is
+`--stage infer` test probabilities on all four folds, not four more micro numbers.
+
+
 > # ⚠ RETRACTED 2026-09-01: THE PACKAGING PROBLEM IS **NOT** CLOSED.
 >
 > This banner previously read "✅ THE PACKAGING PROBLEM IS CLOSED". **That was wrong.**

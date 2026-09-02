@@ -13,6 +13,77 @@ results.
 
 ---
 
+## EXP-120 — The Kaggle parity gate was UNMEETABLE: the trainer sets no seed. 0.68252 vs 0.71472 is two draws, not an environment fault.
+**Date:** 2026-09-03 · `kaggle/cuhkx_224_kaggle.py --seed` · **Tier:** exploit · **Purpose:** INFORMATION
+
+Kaggle notebooks are now our only compute beyond the laptop (cluster is down for
+15 days, i.e. past the 2026-09-15 Kaggle deadline). The bring-up gate I wrote in
+`cluster/README.md` was **"retrain `k224_mvit_f2` and reproduce micro = 0.71472"**.
+The first Kaggle run returned **0.68252** — and the gate cannot distinguish a broken
+environment from a normal draw, because **the trainer never seeds anything**:
+
+    $ grep -n "seed" kaggle/cuhkx_224_kaggle.py
+    729:    surgically rebuilt to 4 channels (IR kernel seeded from ...)   # a docstring
+
+No `manual_seed`, no `np.random.seed`. **Every run of this trainer, laptop runs
+included, is a fresh random draw.** Demanding exact reproduction of a number produced
+by an unseeded process is not a gate; the laptop cannot pass it either.
+
+**The environment is not implicated.** Everything checkable matches:
+
+| | laptop `k224_mvit_f2` | Kaggle `k224_mvit_f2_kaggle` |
+|---|---|---|
+| split | train 2281 / outer 652 | train 2281 / outer 652 |
+| params | 34,275,016 | 34,275,016 |
+| epoch-1 lr | 5.23e-05 | 5.23e-05 |
+| optimiser steps/epoch | 142 (bs 4 x accum 4) | 142 (bs 8 x accum 2) |
+| epoch-1 loss | 3.49777 (f0) / 3.46239 (f1) | 3.48388 |
+| final loss | 0.78712 (f0) | 0.76994 |
+| **micro** | **0.71472** | **0.68252** |
+| **gross_motion** | **0.89595** | **0.89595** |
+
+`steps = len(tl) // accum` makes the OneCycle schedule identical under both
+batch/accum pairs — confirmed by the matching epoch-1 lr — so the batch change is
+**not** a confound. Pretrained K400 weights clearly loaded: a scratch MViT scores
+~0.30 here, and 0.68252 beats the local `vid_ig65m_f2` reference of 0.67638.
+
+**The deficit is 100% OBJECT: 290/479 vs 311/479, with gross_motion identical to five
+decimals.** That is the shape of a weaker draw on the fine-grained classes, not of a
+pipeline fault — a wrong normalisation, channel order or frame order would degrade
+motion too.
+
+**Falsified along the way.** I suspected the classic NumPy-in-DataLoader bug: the
+augmentation draws from the numpy *global* RNG (lines 792-806) with no `worker_init_fn`,
+which duplicates the stream across workers. Measured instead of assumed:
+
+    workers=2, same seed  -> identical: True     # fork inheritance: seeding the parent IS enough
+    worker0 batch == worker1 batch: False        # torch DOES seed numpy per worker
+
+**No such bug exists.** Both arms also ran the same `--workers 2` default
+(`code/run_mvit_folds.sh` passes no `--workers`), so it was never a laptop/Kaggle
+difference either. Recorded so nobody re-derives it.
+
+**Change:** added `--seed` (default `None` = historical behaviour, so no existing
+artifact or comparison is invalidated). Seeding the parent process is sufficient and
+a per-worker seed is deliberately NOT added — it would change augmentation semantics
+and make the measured spread describe a pipeline we never ran.
+
+**This promotes the campaign's oldest unmeasured quantity to the critical path.**
+`LOG.md:2069` and `:2161` both record that **the visual branch's seed variance has
+never been measured** — it cost 9.3 h per seed on the laptop. On Kaggle it is 2 h.
+The 2.80 figure every visual gate has been quoting is a **fold** sigma; the skeleton
+branch measured its own seed sigma at 0.18 (EXP-018), and the visual branch simply
+inherited a number that was never about it.
+
+**Why this is not overhead:** B-032 says pooled OOF cannot screen member-strength
+changes (0-for-2), and public carries +-9-10 clips of noise against our +2 margin.
+So *every* remaining score lead — full-frame thermal first — is a member-strength
+change we currently have no valid way to adopt. Sigma is the gate, not a detour.
+
+**Verdict: parity INCONCLUSIVE by construction, environment UNIMPLICATED, gate rewritten.**
+The gate is now "3 seeded replicates on Kaggle; laptop 0.71472 must fall inside the
+measured spread", which is answerable.
+
 ## EXP-119 — Full-frame thermal beats cropped by +1.38 micro, and the whole gain is OBJECT. Below the bar on one fold.
 **Date:** 2026-09-02 · `--full-frame` · **Tier:** explore · **Purpose:** SCORE
 

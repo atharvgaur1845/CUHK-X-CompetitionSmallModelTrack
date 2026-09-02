@@ -95,18 +95,55 @@ sys.path.insert(0, str(REPO / "kaggle"))
 os.chdir(REPO)
 import cuhkx_224_kaggle as K
 
-# --cache-dir is the important part: it lets train/infer run WITHOUT the raw
-# IR/depth trees, which is the error this cell fixes.
+# EXP-120a — MEASURE THE VISUAL BRANCH'S SEED SIGMA.  It has never been measured
+# (research/LOG.md:2069, :2161); it cost 9.3 h per seed on the laptop and costs ~2 h
+# here.  The 2.80 that every visual gate in this campaign quotes is a *fold* sigma;
+# the skeleton branch, which actually measured itself, has a seed sigma of 0.18.
 #
-# Kaggle gives a 16 GB card (T4/P100) against the 8 GB laptop, so batch_size can go
-# up -- but accum drops to match, keeping the EFFECTIVE batch at 16 as in every
-# previous run. Otherwise the OneCycleLR schedule shifts and every comparison
-# against our existing folds is confounded.
-K.run(stage="train", fold=2, tag="k224_mvit_f2_kaggle",
-      cache_dir=str(CROP224), batch_size=8, accum=2, workers=2)
+# This also settles the parity question.  The old gate demanded this run reproduce
+# micro = 0.71472 exactly.  It cannot: the trainer seeds NOTHING, so 0.71472 is one
+# draw and the laptop fails its own gate too.  Kaggle's first run returned 0.68252
+# with the split, params, lr schedule, step count and loss curve all matching, and
+# with gross_motion identical to five decimals -- a weaker draw, not a broken
+# environment.  Replicate under --seed and ask whether 0.71472 sits inside the spread.
+#
+# --cache-dir is what lets this run at all: Kaggle mounts only sample_submission.csv
+# for this competition, never the raw IR/Depth trees.
+#
+# batch_size 8 x accum 2 keeps steps = len(tl)//accum = 142, identical to the
+# laptop's bs4 x accum4.  The OneCycleLR schedule is therefore unchanged -- confirmed
+# by epoch-1 lr matching at 5.23e-05 -- so the bigger batch is NOT a confound.
+#
+# Outputs land in /kaggle/working (persisted, downloadable); /kaggle/temp is not.
+# ~2 h per seed.  If the session dies partway, the finished seeds are still there and
+# two replicates already bound the spread usefully -- just rerun the missing one.
+REF_LAPTOP = 0.71472      # laptop k224_mvit_f2, EXP-102 -- one unseeded draw
+REF_KAGGLE = 0.68252      # this notebook, unseeded
 
-# Then, to bring the result home:
-#   from IPython.display import FileLink; FileLink('oof_k224_mvit_f2_kaggle.npz')
-#
-# Reference to reproduce (parity check before trusting any Kaggle number):
-#   k224_mvit_f2  micro = 0.71472   (laptop, EXP-102)
+import numpy as np
+got = {}
+for seed in (1, 2, 3):
+    tag = f"k224_mvit_f2_s{seed}"
+    print(f"\n=========== seed {seed} -> {tag} ===========", flush=True)
+    K.run(stage="train", fold=2, tag=tag, cache_dir=str(CROP224),
+          batch_size=8, accum=2, workers=2, seed=seed)
+    d = np.load(f"/kaggle/working/oof_{tag}.npz", allow_pickle=True)
+    got[seed] = float((d["probs"].argmax(1) == d["labels"]).mean())
+    print(f"  seed {seed}: micro={got[seed]:.5f}", flush=True)
+
+m = np.array(list(got.values()))
+print("\n================ EXP-120a RESULT ================")
+for s, v in got.items():
+    print(f"  seed {s}: {v:.5f}")
+if len(m) >= 2:
+    mu, sd = float(m.mean()), float(m.std(ddof=1))
+    print(f"  mean {mu:.5f}   VISUAL SEED SIGMA = {100*sd:.2f} points")
+    print(f"  2sd band [{mu-2*sd:.5f}, {mu+2*sd:.5f}]")
+    print(f"  laptop {REF_LAPTOP:.5f} inside: {mu-2*sd <= REF_LAPTOP <= mu+2*sd}")
+    print(f"  kaggle unseeded {REF_KAGGLE:.5f} inside: {mu-2*sd <= REF_KAGGLE <= mu+2*sd}")
+    print("  If both are inside, parity is settled and sigma replaces the inherited")
+    print("  2.80 as the adoption bar for every visual member-strength change.")
+
+# To bring results home: the files are already in /kaggle/working, so use the
+# notebook's Output tab, or:
+#   from IPython.display import FileLink; FileLink('/kaggle/working/oof_k224_mvit_f2_s1.npz')

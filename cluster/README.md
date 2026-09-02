@@ -27,12 +27,29 @@ sbatch cluster/parity.sbatch         # ⚠ GATE — must pass before anything el
 sbatch cluster/skel_retrain.sbatch   # T1.5, 12 tasks, minutes each
 ```
 
-## The parity gate is not optional
+## The parity gate is not optional — but check 1 as originally written was unmeetable
 
-`cluster/parity.sbatch` retrains `k224_mvit_f2` and requires **micro = 0.71472**, then
-rebuilds `testprobs_r2.npz` and requires **max abs diff 0.0**. A silent environment
-difference (cuDNN algo, torchvision version, JPEG decoder) would invalidate every
-cluster-vs-laptop comparison downstream, and we would not notice for days.
+`cluster/parity.sbatch` rebuilds `testprobs_r2.npz` and requires **max abs diff 0.0**.
+That half is sound: it is pure inference over fixed weights, so it is genuinely
+deterministic, and a silent environment difference (cuDNN algo, torchvision version,
+JPEG decoder) would invalidate every cluster-vs-laptop comparison downstream.
+
+**Check 1 — "retrain `k224_mvit_f2` and require micro = 0.71472" — was wrong, and I
+wrote it.** `kaggle/cuhkx_224_kaggle.py` sets no seed anywhere, so 0.71472 is one draw
+of an unseeded process and *the laptop cannot reproduce it either*. Kaggle returned
+0.68252 and the gate could not say whether that was a broken environment or an ordinary
+draw. See **EXP-120**.
+
+The trainer now takes `--seed`. The gate is therefore:
+
+1. **Deterministic half (hard):** `testprobs_r2.npz` to **max abs diff 0.0**.
+2. **Stochastic half (distributional):** three `--seed`-replicated runs of
+   `k224_mvit_f2`; the laptop's 0.71472 must fall inside the measured spread.
+   Cheap side-effect: this finally measures the **visual branch's seed sigma**, which
+   `LOG.md:2069` records as never measured. The 2.80 every visual gate quotes is a
+   *fold* sigma inherited from the skeleton branch, whose own seed sigma is 0.18.
+
+Do not re-impose an equality gate on any unseeded trainer.
 
 ## Gotchas carried over from the laptop
 
@@ -41,6 +58,9 @@ cluster-vs-laptop comparison downstream, and we would not notice for days.
   *deliberately* and watch RSS.
 - **Keep `persistent_workers=False` in `code/train.py`.** `epoch_seed` mutates every epoch
   and worker copies must observe it, else every clip gets one frozen augmented view.
+  This does **not** generalise to `kaggle/cuhkx_224_kaggle.py`, which draws augmentation
+  from the numpy global RNG: measured under fork, torch seeds numpy per worker, so its
+  workers do *not* share a stream and `persistent_workers=True` is safe there (EXP-120).
 - **`research/artifacts/results.csv` has no file locking.** A 12–48 task array will
   interleave rows. Prefer the per-run `run_{exp}_{tag}_{folds}.json` manifests.
 - **`CUHKX_ROOT`** now overrides the repo root (was hardcoded in 11 files).

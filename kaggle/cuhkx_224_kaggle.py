@@ -1076,6 +1076,16 @@ def main(argv=None) -> int:
     ap.add_argument("--ema", type=float, default=0.99)
     ap.add_argument("--label-smoothing", type=float, default=0.1)
     ap.add_argument("--workers", type=int, default=2)
+    ap.add_argument("--seed", type=int, default=None,
+                    help="seed python/numpy/torch so a run is repeatable. Left unset "
+                         "(the historical behaviour) EVERY run is a fresh draw, which "
+                         "is why 'reproduce micro=0.71472' was never a meetable gate: "
+                         "the laptop's 0.71472 and Kaggle's 0.68252 are two draws of "
+                         "the same recipe, not evidence of an environment difference. "
+                         "Workers inherit the parent numpy state at fork, so seeding "
+                         "here is enough -- deliberately NOT adding a per-worker seed, "
+                         "which would change augmentation semantics and make the "
+                         "measured spread describe a pipeline we never ran.")
     ap.add_argument("--all-train", action="store_true",
                     help="train on all 18 users; the reported fold-2 number is then "
                          "TRAIN-ON-TEST and must never be compared with an honest OOF")
@@ -1115,6 +1125,17 @@ def main(argv=None) -> int:
                          "at 16 (median clip holds 24, 32.4%% hold >32).")
     ap.add_argument("--cache-workers", type=int, default=max(2, (os.cpu_count() or 4)))
     args = ap.parse_args(argv)
+
+    if args.seed is not None:
+        import random as _random
+        import torch as _torch
+        _random.seed(args.seed)
+        np.random.seed(args.seed)
+        _torch.manual_seed(args.seed)
+        _torch.cuda.manual_seed_all(args.seed)
+        # cudnn autotune and fp16 atomics stay on: run-to-run drift from those is far
+        # below seed spread, and turning them off would change the recipe being measured.
+        print(f"  seed={args.seed} (python/numpy/torch)", flush=True)
 
     stored_frames = args.frames
     cache_name = (f"crop_{args.image_size}" if args.crop == "person"
