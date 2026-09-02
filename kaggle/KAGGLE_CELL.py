@@ -12,7 +12,7 @@
 # (crop224_train.bin, cuhkx_code.tar.gz, ...) because `kaggle datasets create`
 # skips subfolders; this cell restores the layout the trainer expects.
 # ============================================================================
-import os, sys, glob, json, tarfile
+import os, sys, glob, json, shutil, tarfile
 from pathlib import Path
 
 WORK = Path("/kaggle/temp") if Path("/kaggle/temp").is_dir() else Path("/kaggle/working")
@@ -38,17 +38,33 @@ def _tree(root="/kaggle/input", depth=3):
     return "\n".join(out[:40])
 
 # ---- 1. code -------------------------------------------------------------
-hits = find("cuhkx_code.tar.gz")
-assert hits, ("cuhkx-repo not found under /kaggle/input.\n"
-              "Sidebar -> Add Input -> Datasets -> 'cuhkx-repo'.\n"
-              "What is mounted:\n" + _tree())
-tar = hits[0]
+# Kaggle AUTO-EXTRACTS uploaded archives, so cuhkx_code.tar.gz may not exist as a file
+# -- the dataset lists code/*.py and kaggle/*.py directly. Handle both, and copy the
+# tree somewhere writable: /kaggle/input is read-only and the trainer writes beside cwd.
 REPO = WORK / "cuhkx"
-REPO.mkdir(parents=True, exist_ok=True)
-with tarfile.open(tar) as t:
-    t.extractall(REPO)
-assert (REPO / "kaggle/cuhkx_224_kaggle.py").is_file(), "tarball layout unexpected"
-print("code:", REPO)
+if REPO.exists():
+    shutil.rmtree(REPO)
+
+extracted = find("cuhkx_224_kaggle.py")
+tarballs = find("cuhkx_code.tar.gz")
+if extracted:
+    src = Path(extracted[0]).parent.parent          # <root>/kaggle/cuhkx_224_kaggle.py
+    shutil.copytree(src, REPO)
+    print(f"code: copied extracted dataset {src} -> {REPO}")
+elif tarballs:
+    REPO.mkdir(parents=True, exist_ok=True)
+    with tarfile.open(tarballs[0]) as t:
+        t.extractall(REPO)
+    print(f"code: extracted {tarballs[0]} -> {REPO}")
+else:
+    raise SystemExit(
+        "cuhkx-repo not found under /kaggle/input.\n"
+        "If you JUST uploaded it, Kaggle may still be processing -- the dataset can\n"
+        "mount with 0 files. Wait for 'ready to use', then use the refresh icon next to\n"
+        "the dataset in the sidebar (or restart the session) so it re-mounts.\n"
+        "What is mounted:\n" + _tree())
+assert (REPO / "kaggle" / "cuhkx_224_kaggle.py").is_file(), \
+    f"unexpected layout under {REPO}: {sorted(p.name for p in REPO.iterdir())}"
 
 # ---- 2. caches -----------------------------------------------------------
 cache_hits = find("crop224_train.bin")
