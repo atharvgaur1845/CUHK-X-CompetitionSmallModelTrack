@@ -17,10 +17,32 @@ from pathlib import Path
 
 WORK = Path("/kaggle/temp") if Path("/kaggle/temp").is_dir() else Path("/kaggle/working")
 
+def find(pattern: str):
+    """Search /kaggle/input recursively.
+
+    Kaggle does not use one fixed layout. Some sessions mount datasets flat at
+    /kaggle/input/<slug>/, others nest them as /kaggle/input/datasets/<user>/<slug>/
+    with competitions under /kaggle/input/competitions/<slug>/. A one-level glob
+    silently misses the nested form and reports "not attached" when it plainly is,
+    so match at any depth instead of guessing the layout.
+    """
+    return sorted(glob.glob(f"/kaggle/input/**/{pattern}", recursive=True))
+
+def _tree(root="/kaggle/input", depth=3):
+    out = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        d = dirpath[len(root):].count(os.sep)
+        if d >= depth:
+            dirnames[:] = []
+        out.append(f"    {dirpath}  [{len(dirnames)} dirs, {len(filenames)} files]")
+    return "\n".join(out[:40])
+
 # ---- 1. code -------------------------------------------------------------
-tar = next(iter(glob.glob("/kaggle/input/*/cuhkx_code.tar.gz")), None)
-assert tar, ("cuhkx-repo not attached. Sidebar -> Add Input -> Datasets -> 'cuhkx-repo'. "
-             "Mounted now: " + str(sorted(os.listdir("/kaggle/input"))))
+hits = find("cuhkx_code.tar.gz")
+assert hits, ("cuhkx-repo not found under /kaggle/input.\n"
+              "Sidebar -> Add Input -> Datasets -> 'cuhkx-repo'.\n"
+              "What is mounted:\n" + _tree())
+tar = hits[0]
 REPO = WORK / "cuhkx"
 REPO.mkdir(parents=True, exist_ok=True)
 with tarfile.open(tar) as t:
@@ -29,19 +51,19 @@ assert (REPO / "kaggle/cuhkx_224_kaggle.py").is_file(), "tarball layout unexpect
 print("code:", REPO)
 
 # ---- 2. caches -----------------------------------------------------------
-DSET = next(iter(glob.glob("/kaggle/input/cuhkx-smt-derived-caches")), None)
-if DSET is None:
-    hits = glob.glob("/kaggle/input/*/crop224_train.bin")
-    DSET = str(Path(hits[0]).parent) if hits else None
-assert DSET, ("cuhkx-smt-derived-caches not attached. Mounted now: "
-              + str(sorted(os.listdir("/kaggle/input"))))
+cache_hits = find("crop224_train.bin")
+assert cache_hits, ("cuhkx-smt-derived-caches not found under /kaggle/input.\n"
+                    "Sidebar -> Add Input -> Datasets -> 'cuhkx-smt-derived-caches'.\n"
+                    "What is mounted:\n" + _tree())
+DSET = str(Path(cache_hits[0]).parent)
+print("caches:", DSET)
 
 def unflatten(prefix: str, name: str) -> Path:
     """Rebuild cache/<name>/ from the flattened <prefix>_* files, via symlinks."""
     d = WORK / "cache" / name
     d.mkdir(parents=True, exist_ok=True)
     n = 0
-    for src in sorted(glob.glob(f"{DSET}/{prefix}_*")):
+    for src in sorted(glob.glob(f"{DSET}/{prefix}_*")):  # DSET is now an exact dir
         dst = d / Path(src).name[len(prefix) + 1:]
         if not dst.exists():
             os.symlink(src, dst)
