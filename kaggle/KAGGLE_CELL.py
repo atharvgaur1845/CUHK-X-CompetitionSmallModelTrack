@@ -95,6 +95,19 @@ sys.path.insert(0, str(REPO / "kaggle"))
 os.chdir(REPO)
 import cuhkx_224_kaggle as K
 
+# The notebook pins a dataset VERSION. Editing the trainer locally and pushing a new
+# version does nothing until this notebook is pointed at it -- and the failure mode is
+# an argparse "unrecognized arguments: --seed" dump 3 lines into a 6-hour run. Fail
+# here instead, with the fix in the message.
+if "\"--seed\"" not in Path(K.__file__).read_text():
+    raise SystemExit(
+        "The mounted cuhkx-repo is an OLD VERSION: its cuhkx_224_kaggle.py has no "
+        "--seed.\n"
+        "Fix: sidebar -> the cuhkx-repo input -> refresh/update it to the latest "
+        "version\n"
+        "(or remove and re-add it), then restart the session and rerun this cell.\n"
+        f"Mounted copy: {K.__file__}")
+
 # EXP-120a — MEASURE THE VISUAL BRANCH'S SEED SIGMA.  It has never been measured
 # (research/LOG.md:2069, :2161); it cost 9.3 h per seed on the laptop and costs ~2 h
 # here.  The 2.80 that every visual gate in this campaign quotes is a *fold* sigma;
