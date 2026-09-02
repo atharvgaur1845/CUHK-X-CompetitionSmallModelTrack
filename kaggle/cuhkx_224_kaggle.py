@@ -151,10 +151,17 @@ def _describe(base: Path, max_depth: int = 3, limit: int = 40) -> str:
     return "\n".join(lines)
 
 
-def find_paths(data_root: str | None = None, cache_name: str = f"crop_{IMAGE_SIZE}") -> dict:
+def find_paths(data_root: str | None = None, cache_name: str = f"crop_{IMAGE_SIZE}",
+               cache_dir: str | None = None) -> dict:
     """Locate the competition data wherever Kaggle mounted it.
 
     Set --data-root (or run(data_root=...)) to skip the search entirely.
+
+    `cache_dir` points at a PREBUILT cache. Only the `cache` stage needs the raw IR/depth
+    trees; `train` and `infer` read the cache and (for submission row order) the sample
+    submission. On Kaggle the competition mount holds just sample_submission.csv and
+    test.csv -- the raw sensor data is not there at all -- so without this the script
+    exits before it can use a cache uploaded as a dataset.
     """
     bases = []
     if data_root:
@@ -166,6 +173,9 @@ def find_paths(data_root: str | None = None, cache_name: str = f"crop_{IMAGE_SIZ
             bases.extend(sorted(p for p in inp.iterdir() if p.is_dir()))
             bases.append(inp)
         bases += [Path.cwd(), Path.cwd().parent]
+
+    prebuilt = Path(cache_dir) if cache_dir else None
+    have_cache = bool(prebuilt and (prebuilt / "train_index.json").is_file())
 
     train_ir = test_root = sample_sub = None
     for base in bases:
@@ -185,7 +195,12 @@ def find_paths(data_root: str | None = None, cache_name: str = f"crop_{IMAGE_SIZ
         if train_ir and test_root:
             break
 
-    if train_ir is None or test_root is None:
+    if have_cache and (train_ir is None or test_root is None):
+        # Enough to train and infer: the cache carries the clips, and sample_submission
+        # carries the row order. Raw trees stay None and the `cache` stage is unavailable.
+        print(f"  prebuilt cache at {prebuilt} — skipping the raw-data search "
+              f"(the 'cache' stage is unavailable in this mode)", flush=True)
+    elif train_ir is None or test_root is None:
         seen = "\n".join(_describe(b) for b in bases[:4] if b.is_dir())
         sys.exit(
             "could not locate the competition data.\n"
@@ -195,8 +210,10 @@ def find_paths(data_root: str | None = None, cache_name: str = f"crop_{IMAGE_SIZ
             "  run(data_root='/kaggle/input/<name>')")
 
     # Depth_Color normally sits beside IR; fall back to a search if it does not.
-    depth = train_ir.parent / "Depth_Color"
-    if not depth.is_dir():
+    depth = None
+    if train_ir is not None:
+        depth = train_ir.parent / "Depth_Color"
+    if depth is not None and not depth.is_dir():
         for root, dirs, _ in _walk_prune(train_ir.parent.parent, max_depth=4):
             if root.name in ("Depth_Color", "Depth"):
                 depth = root
@@ -211,14 +228,19 @@ def find_paths(data_root: str | None = None, cache_name: str = f"crop_{IMAGE_SIZ
         scratch.mkdir(parents=True, exist_ok=True)
     out = Path("/kaggle/working") if Path("/kaggle/working").is_dir() else Path.cwd()
     paths = {"train_ir": train_ir, "train_depth": depth, "test_root": test_root,
-             "sample_sub": sample_sub, "cache": scratch / cache_name, "out": out}
+             "sample_sub": sample_sub,
+             "cache": prebuilt if have_cache else scratch / cache_name, "out": out}
     print("resolved paths:")
     for k, v in paths.items():
         print(f"  {k:12s} {v}")
-    if not paths["train_depth"].is_dir():
-        sys.exit(f"Depth_Color not found near IR (looked at {paths['train_depth']})")
-    n_test = len(list(test_root.glob("SM_test_*")))
-    print(f"  test clips visible: {n_test}")
+    if not have_cache:
+        if paths["train_depth"] is None or not paths["train_depth"].is_dir():
+            sys.exit(f"Depth_Color not found near IR (looked at {paths['train_depth']})")
+        print(f"  test clips visible: {len(list(test_root.glob('SM_test_*')))}")
+    else:
+        meta = json.loads((prebuilt / "train_index.json").read_text())
+        print(f"  prebuilt cache: {len(meta['sids'])} train clips, "
+              f"{meta.get('image_size')}px, {meta.get('n_frames')} frames")
     if sample_sub is None:
         print("  NOTE: no sample_submission.csv found; inference will use sorted sid order")
     return paths
@@ -1070,6 +1092,11 @@ def main(argv=None) -> int:
     ap.add_argument("--limit", type=int, default=0,
                     help="cache only the first N clips of each split — a smoke test, "
                          "not a runnable cache. Delete the cache dir before a real run.")
+    ap.add_argument("--cache-dir", default=None,
+                    help="path to a PREBUILT cache (train_index.json inside). Lets "
+                         "--stage train/infer run without the raw IR/depth trees, which "
+                         "Kaggle does not mount -- only sample_submission.csv and "
+                         "test.csv are there.")
     ap.add_argument("--data-root", default=None,
                     help="skip path discovery; e.g. /kaggle/input/<dataset-name>")
     ap.add_argument("--grad-checkpoint", action="store_true",
@@ -1096,7 +1123,7 @@ def main(argv=None) -> int:
         cache_name += f"_t{stored_frames}"
     if args.stage in ("cache", "all"):
         N_FRAMES = stored_frames        # only the writer needs the deeper count
-    paths = find_paths(args.data_root, cache_name)
+    paths = find_paths(args.data_root, cache_name, args.cache_dir)
     if args.stage in ("cache", "all"):
         train_jobs, test_jobs = build_jobs(paths)
         print(f"jobs: train={len(train_jobs)} test={len(test_jobs)}")
