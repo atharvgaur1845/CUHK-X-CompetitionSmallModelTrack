@@ -73,3 +73,5 @@ logs/slurm/
 .venv/
 cluster/activate.sh
 .hf/
+/.kdset/
+/.krepo/
