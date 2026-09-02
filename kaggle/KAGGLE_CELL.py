@@ -90,23 +90,39 @@ def unflatten(prefix: str, name: str) -> Path:
 CROP224 = unflatten("crop224", "crop_224")
 THERMAL = unflatten("thermalfull", "thermal_full")
 
-# ---- 3. go ---------------------------------------------------------------
+# ---- 3. import the trainer, defeating BOTH staleness traps ---------------
+# There are two independent ways to end up running OLD trainer code here, and they
+# look identical from the outside: argparse prints "unrecognized arguments: --seed"
+# a few lines into what should be a six-hour run.
+#
+#   Trap 1 — Kaggle pins a dataset VERSION. Pushing a new version of cuhkx-repo does
+#            nothing until this notebook's input is refreshed to point at it.
+#   Trap 2 — a re-run cell does NOT re-import. `import x` returns the object already
+#            in sys.modules, so after `shutil.rmtree(REPO)` + copytree replaces the
+#            file on disk, the NEW file is on disk and the OLD code is still in
+#            memory. Refreshing the dataset input mid-session lands you here.
+#
+# Trap 2 is why a file-text guard is not enough: it reads the (new) file while K is
+# the (old) module. Check the LOADED object's bytecode instead -- `--seed` is a
+# literal constant of main(), so this is immune to both traps at once.
+import importlib
 sys.path.insert(0, str(REPO / "kaggle"))
 os.chdir(REPO)
+
+for _stale in [m for m in list(sys.modules) if m.split(".")[0] == "cuhkx_224_kaggle"]:
+    del sys.modules[_stale]
+importlib.invalidate_caches()
 import cuhkx_224_kaggle as K
 
-# The notebook pins a dataset VERSION. Editing the trainer locally and pushing a new
-# version does nothing until this notebook is pointed at it -- and the failure mode is
-# an argparse "unrecognized arguments: --seed" dump 3 lines into a 6-hour run. Fail
-# here instead, with the fix in the message.
-if "\"--seed\"" not in Path(K.__file__).read_text():
+if "--seed" not in K.main.__code__.co_consts:
     raise SystemExit(
-        "The mounted cuhkx-repo is an OLD VERSION: its cuhkx_224_kaggle.py has no "
-        "--seed.\n"
-        "Fix: sidebar -> the cuhkx-repo input -> refresh/update it to the latest "
-        "version\n"
-        "(or remove and re-add it), then restart the session and rerun this cell.\n"
+        "The trainer in memory has no --seed.\n"
+        "The forced re-import above rules out a stale module, so this is Trap 1: the\n"
+        "mounted cuhkx-repo is an OLD VERSION.\n"
+        "Fix: sidebar -> cuhkx-repo -> refresh/update to the latest version (or remove\n"
+        "and re-add it), then Run -> Restart session, and rerun this cell.\n"
         f"Mounted copy: {K.__file__}")
+print(f"trainer OK (--seed present): {K.__file__}")
 
 # EXP-120a — MEASURE THE VISUAL BRANCH'S SEED SIGMA.  It has never been measured
 # (research/LOG.md:2069, :2161); it cost 9.3 h per seed on the laptop and costs ~2 h
