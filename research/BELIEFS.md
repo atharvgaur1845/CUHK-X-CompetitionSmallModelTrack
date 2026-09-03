@@ -1,5 +1,31 @@
 # Belief Ledger
 
+## B-027 — ~~Thermal fails to fuse because it is uncalibrated~~ DOWNGRADED (EXP-123): mechanism unproven
+- **Confidence:** 30% in the stated mechanism, down from ~85%. The *observation* it was
+  built on (thermal adds exactly 0.00 at every weight 0.05-0.35, EXP-088) is unchanged.
+- **What was claimed:** decorrelation is insufficient; a fusion member must also be
+  *calibrated*, and thermal's confidence when right ≈ when wrong.
+- **What EXP-123 measured:** the same separation statistic for every member on the same
+  552 fold-2 clips. `vidth` (thermal) has the **highest** separation of any member
+  (**+0.0650**); `k224_mvit_pooled`, our strongest and best-fusing member, has a
+  **negative** one (−0.0202). The criterion ranks thermal best and the flagship worst,
+  i.e. it does not discriminate fusing members from non-fusing ones.
+- **Bias check, and it cuts toward the finding:** the comparison understates in-champion
+  members, because the champion's errors are defined after absorbing them. Thermal still
+  tops the table despite the bias favouring the others.
+- **The better-supported reading:** thermal brings **19 rescues against 247 errors**.
+  At 0.55 accuracy against a 0.75 champion, any weight that harvests the 19 imports from
+  a pool 13x larger. That is an **accuracy** constraint, not a calibration one.
+- **Why it matters:** the calibration framing pointed three weeks of thermal work at
+  recalibration and preprocessing. The accuracy framing points at the recipe — and the
+  paper ranks thermal FIRST of six sensors (92.57) while our member sits at 0.544 against
+  the IR+depth member's 0.715.
+- **Falsification test:** leave-one-out fusions (champion-minus-X vs X) to remove the
+  absorption bias; and their recipe (2D per-frame, 8 frames, ~8 epochs) to see whether
+  thermal accuracy moves off 0.544 at all.
+- **Do not cite "thermal is uncalibrated" as settled.** See [[EXP-123]].
+- **Last updated:** EXP-123
+
 ## B-034 — Visual seed σ is ≈1.16 points (n=3), and the single-fold screening bar was too LOOSE
 - **Confidence:** 95% that parity is settled and the environment is sound; **70%** that σ
   is nearer 1.16 than 2.80 — the n=3 CI is [0.60, 7.30] and does **not** exclude 2.80.

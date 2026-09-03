@@ -133,9 +133,14 @@ Read-first order: **`docs/next_action.md`** → `research/DIRECTIVE.md` →
 
 ## Transferable lessons from this campaign
 
-- *Decorrelation is not sufficient for a fusion gain — the member must also be calibrated.*
-  Thermal is maximally decorrelated (54% agreement) and strong (0.544) and contributes
-  exactly zero, because its confidence when right ≈ its confidence when wrong.
+- *Decorrelation is not sufficient for a fusion gain.* Thermal is maximally decorrelated
+  (54% agreement) and strong (0.544) and contributes **exactly zero** at every weight
+  0.05–0.35. That observation is solid. **The explanation is not:** this file used to say
+  the cause was poor calibration, and EXP-123 measured the same separation statistic across
+  all members — thermal's is the **highest** (+0.0650) and the best-fusing member's is
+  **negative** (−0.0202). The better-supported reading is **accuracy**: thermal brings 19
+  rescues against 247 errors, so any weight that harvests the 19 imports from a pool 13×
+  larger. See B-027 (downgraded).
 - *An estimate is only valid on the distribution it was measured on.* OOF is positively
   correlated with public (+0.910) but biased high by 8–11 points.
 - *Our own failure is not a ceiling.* "0.65–0.73 achievable" was asserted here and

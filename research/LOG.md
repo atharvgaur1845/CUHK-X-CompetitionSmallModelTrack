@@ -13,6 +13,76 @@ results.
 
 ---
 
+## EXP-123 — Retrospective on thermal: EXP-120b refuted ONE of six differences, and B-027's stated mechanism does not survive a like-for-like check.
+**Date:** 2026-09-03 · analysis only, no new training · **Tier:** explore · **Purpose:** INFORMATION
+
+Prompted by the right question after EXP-120b came back null: *how does `skomuro` use
+thermal versus how we use it?* Re-reading EXP-118, their pipeline differs from ours on
+**six** axes. **EXP-120b tested one.**
+
+| | theirs | ours | tested? |
+|---|---|---|---|
+| crop | full frame | YOLO person crop | ✅ **EXP-120b: null** (+0.13 over 3 folds) |
+| resolution | 112 px | 128 px | ❌ |
+| frames | **8, uniform** | 16 | ❌ |
+| model | **tiny 2D ResNet from scratch, frame logits averaged** | 3D r2plus1d, Kinetics-pretrained | ❌ |
+| training | **8 epochs, AdamW 3e-4** | 30 epochs fine-tune | ❌ |
+| validation | GroupKFold(5) by user | 4-fold by subject | ❌ |
+
+**So "thermal is null" was my overstatement.** The supported claim is narrower: **the
+person crop is not the defect.** Five differences remain, and the two in bold are large.
+
+### The bigger finding: B-027's mechanism is not supported
+
+B-027 and `CLAUDE.md` both say thermal contributes zero *because* "its confidence when
+right ≈ its confidence when wrong". Measured against the fused champion on the 552 fold-2
+clips it also covers — **the same statistic, same clips, for every member**:
+
+| member | acc | rescues | errors | rescues/error | **confidence separation** |
+|---|---|---|---|---|---|
+| `vidth` (thermal 3D, 0.544) | 0.5525 | 19 | 247 | 0.077 | **+0.0650** |
+| `k224_mvit_pooled` | 0.6975 | 25 | 167 | 0.150 | **−0.0202** |
+| `k224_mvitwrist_pooled` | 0.7065 | 28 | 162 | 0.173 | +0.0205 |
+| `astgcn_world25` | 0.5942 | 14 | 224 | 0.062 | +0.0069 |
+| `imu_stats` | 0.3605 | 7 | 353 | 0.020 | +0.0109 |
+| `pre_thermal_pooled` | 0.3478 | 13 | 360 | 0.036 | +0.0295 |
+
+**Thermal has the HIGHEST confidence separation of any member — and the flagship person
+video member has a NEGATIVE one.** If poor separation were the mechanism, thermal would be
+our most harvestable member and `k224_mvit_pooled` our least. It is the other way round.
+
+**Caveat, and it cuts the right way.** This comparison is biased *against* the in-champion
+members: the champion's errors are defined after absorbing them, so their rescues are
+understated by construction, while `vidth` is outside the fusion and its 19 are genuinely
+additional. Thermal still tops the table despite the bias favouring the others. A clean
+version needs leave-one-out fusions. **B-027 is therefore DOWNGRADED, not overturned** —
+its mechanism is unproven, and it is stated in the ledgers as established.
+
+### What the numbers say the obstacle actually is
+
+**19 rescues against 247 errors.** At 0.55 accuracy versus a 0.75 champion, any weight
+large enough to move the 19 imports from a pool of 247 that is 13x larger. That is an
+**accuracy** problem, not a calibration problem — and it points at a different lever than
+the one the ledgers have been pointing at for three weeks.
+
+The paper ranks thermal **first of six sensors (92.57)**. Our thermal member reaches
+**0.544** where the IR+depth member reaches 0.715. **A modality that should be our best is
+our second-weakest.** That gap, not the crop and not the calibration, is where the
+headroom is — and the two bold rows above are the untested candidates for it: a
+Kinetics-pretrained 3D motion architecture may be the wrong inductive bias for a modality
+whose OBJECT cue is a static heat signature, and 30 epochs of fine-tuning 2,165 clips is a
+lot of overfitting next to their 8.
+
+**Next experiment, if thermal is reopened:** their recipe, not their crop — tiny 2D
+per-frame net, 8 frames, ~8 epochs, logits averaged over frames. Minutes per fold, not
+2.6 h. **Judge it on member accuracy first**, since that is the binding quantity; the
+fusion question only becomes meaningful if accuracy moves well above 0.544.
+
+**Not queued yet:** T3 (EXP-122) is the agreed priority for the remaining Kaggle hours,
+and this is a laptop-sized job that can follow EXP-120b's fold 3.
+
+---
+
 ## EXP-122 — T3 distillation student: built, smoke-tested, QUEUED. Design recorded before the run.
 **Date:** 2026-09-03 · `--teacher / --distill-alpha / --distill-temp` · **Tier:** explore · **Purpose:** SCORE + COMPLIANCE
 
