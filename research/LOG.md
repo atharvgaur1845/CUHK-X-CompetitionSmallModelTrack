@@ -13,6 +13,51 @@ results.
 
 ---
 
+## EXP-121 — Seed soup: built the evaluator, then PRICED IT DOWN before spending a GPU-hour on it. Not run.
+**Date:** 2026-09-03 · `code/soup_seeds.py` · **Tier:** explore · **Purpose:** SCORE
+
+**Origin.** EXP-120a left three seed replicates of `k224_mvit_f2` as a by-product, and
+seed-averaging looked like a free lever: the skeleton branch measured **+0.8** from a
+seed soup (`LOG.md:3965`).
+
+**The size-cap refinement, which is the part worth keeping.** *Probability* averaging of
+three MViT seeds means shipping three checkpoints — 3 x 34.3 MB = **102.9 MB for the
+person view alone**, before wrist, skeleton or IMU. It breaks R-6 outright, so its score
+is academic. *Weight* averaging costs nothing: the soup **is** one 34.3 MB checkpoint.
+And the precondition holds here — every seed fine-tunes from the same Kinetics-400 init
+and differs only in data order, which is the regime model soups (Wortsman 2022) reports
+as souppable. `code/soup_seeds.py` measures both, reports against the **seed mean** (not
+the best seed: with σ=1.16 the best of three runs ≈ +1.3 high by construction), and
+labels each row with the MB it would actually cost.
+
+**Why it is not queued.** Two facts already in the ledgers price the expected fused gain
+near zero:
+
+- **The video slot is saturated with respect to combination.** The 4-fold probability
+  bag (`k224_mvit_f0..f3`, **137 MB**) and the single all-train model
+  (`k224_mvit_all_q6`, **34 MB**) both score **166**. Four models' worth of combination
+  buys nothing over one. A seed soup is the same kind of move on the same slot.
+- **B-032:** member-strength changes are the class pooled OOF cannot screen (0-for-2),
+  and 288 px went 0-for-1 on public after clearing the local bar 4/4. So even a clean
+  +2 OOF from a soup would not license adoption without a submission.
+
+**Cost if run anyway:** the three checkpoints were lost — the Kaggle session had
+**Persistence = "No persistence"**, so `/kaggle/working` was wiped at session end.
+Re-running is **6.6 GPU-h** of a ~40 h remaining budget. The σ result itself survived
+intact because it was printed to the notebook output, not stored in a file.
+
+**Verdict: evaluator kept, experiment NOT queued.** Recorded so the next session does not
+rediscover the idea and spend the hours. It becomes live again only if the video slot
+stops looking saturated, or if a distilled student (T3) makes the person branch the
+single member rather than one of five.
+
+**Operational lesson, generally applicable:** on Kaggle, set **Persistence = "Files
+only"** or use **Save Version -> Save & Run All (Commit)** before any run whose
+*artifacts* matter. A draft session persists nothing, and the loss is silent — the
+printed numbers survive and look like the whole result.
+
+---
+
 ## EXP-120a — VISUAL SEED σ MEASURED AT LAST: 1.16 points (n=3). Parity settled. And the single-fold bar was too LOOSE, not too tight.
 **Date:** 2026-09-03 · Kaggle T4, 3 x `--seed` on `k224_mvit_f2` · **Tier:** exploit · **Purpose:** INFORMATION
 
