@@ -13,6 +13,66 @@ results.
 
 ---
 
+## EXP-122 — T3 distillation student: built, smoke-tested, QUEUED. Design recorded before the run.
+**Date:** 2026-09-03 · `--teacher / --distill-alpha / --distill-temp` · **Tier:** explore · **Purpose:** SCORE + COMPLIANCE
+
+Distillation now lives in `kaggle/cuhkx_224_kaggle.py` rather than a new trainer, so the
+student shares the cache, model, EMA, eval and resume path that produced every video
+member. The only change is the loss:
+
+    loss = alpha * T^2 * KL(softmax(logits/T) || teacher^(1/T))
+         + (1 - alpha) * CE(logits + log_prior, y)
+
+**Prior space, handled explicitly.** `build_teacher_targets.py` adds `0.25*log(prior)` to
+the fused target. `--teacher-prior-exp 0.25` divides it back out, so the student's softmax
+stays **uniform-prior** like every other video member and is drop-in for
+`build_video_slot.py`. Getting this backwards scored 0.58706 vs 0.62686 once already, so
+it is a flag with a default, not an assumption.
+
+**Verified before queueing** (CPU, no GPU contention with the thermal job):
+
+| check | result |
+|---|---|
+| teacher aligns to fold-2 train | 2,148 of 2,281 kept, **133 dropped** (no teacher entry) |
+| fused target top-1 vs label | 0.76536 raw → **0.76257** de-priored |
+| oracle target top-1 vs label | 0.87523 raw → **0.87989** de-priored |
+| target confidence (softness) | 0.376 fused / 0.580 oracle — usefully soft |
+| dataset / loss / backward | 3-tuple batch, finite CE and KD, gradients flow |
+| argv from `K.run(...)` | all three flags parse |
+
+**Three runs, because the third is what makes the first two readable.**
+
+| run | alpha | teacher | what it isolates |
+|---|---|---|---|
+| `distil_ctrl` | **0.0** | fused | the SAME 2,148 clips, zero weight on the teacher — separates the cost of dropping 133 clips from distillation itself, and is **leak-free** |
+| `distil_fused` | 0.7 | fused | imitate the champion mix (0.765) |
+| `distil_oracle` | 0.7 | oracle | imitate, per clip, only members that were RIGHT there (0.880) |
+
+**⚠ THE LEAK, stated before the run.** Teacher targets for fold-2 *training* clips come
+from pooled OOF — and each entry was produced by the one fold model that held that clip
+out, a model which **trained on fold 2's validation users**. Knowledge of the val users
+therefore reaches the student through the teacher, and **absolute fold-2 numbers for the
+two alpha=0.7 runs are optimistic.** A clean estimate would need nested inner folds inside
+fold 2's training set, i.e. retraining every member — not affordable. Two consequences:
+`ctrl` (alpha=0) is leak-free and is the honest anchor, and **`oracle - fused` is the
+clean contrast** (identical clips, identical leak structure, one changed factor).
+
+**⚠ UNDERPOWERED BY CONSTRUCTION.** One fold, and EXP-120a puts the 2-SE bar for a paired
+single-fold delta at **3.28 points**. This screens for a LARGE effect only. Anything
+smaller is a lead to replicate, not a result — writing that down now so it is not
+re-decided after seeing the number, which is how three "+2.45"s got recorded as results.
+
+**Why this is the right spend of the remaining Kaggle hours.** It is the only open lead
+that is simultaneously (a) aimed at the 309-clip *selection* gap rather than at member
+strength, which the video slot has been saturated against, and (b) a route through
+T-PKG — one student is one architecture, one modality, one dataset path, retiring both
+the sklearn ExtraTrees member that `package_ensemble.py` cannot represent and the closed
+model registry.
+
+**Cost:** 3 x ~2.2 h = 6.6 GPU-h. Not yet run.
+
+---
+
 ## EXP-121 — Seed soup: built the evaluator, then PRICED IT DOWN before spending a GPU-hour on it. Not run.
 **Date:** 2026-09-03 · `code/soup_seeds.py` · **Tier:** explore · **Purpose:** SCORE
 

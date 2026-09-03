@@ -92,8 +92,8 @@ THERMAL = unflatten("thermalfull", "thermal_full")
 
 # ---- 3. import the trainer, defeating BOTH staleness traps ---------------
 # There are two independent ways to end up running OLD trainer code here, and they
-# look identical from the outside: argparse prints "unrecognized arguments: --seed"
-# a few lines into what should be a six-hour run.
+# look identical from the outside: argparse prints "unrecognized arguments" a few
+# lines into what should be a multi-hour run.
 #
 #   Trap 1 — Kaggle pins a dataset VERSION. Pushing a new version of cuhkx-repo does
 #            nothing until this notebook's input is refreshed to point at it.
@@ -103,8 +103,7 @@ THERMAL = unflatten("thermalfull", "thermal_full")
 #            memory. Refreshing the dataset input mid-session lands you here.
 #
 # Trap 2 is why a file-text guard is not enough: it reads the (new) file while K is
-# the (old) module. Check the LOADED object's bytecode instead -- `--seed` is a
-# literal constant of main(), so this is immune to both traps at once.
+# the (old) module. Check the LOADED object's bytecode instead.
 import importlib
 sys.path.insert(0, str(REPO / "kaggle"))
 os.chdir(REPO)
@@ -114,65 +113,96 @@ for _stale in [m for m in list(sys.modules) if m.split(".")[0] == "cuhkx_224_kag
 importlib.invalidate_caches()
 import cuhkx_224_kaggle as K
 
-if "--seed" not in K.main.__code__.co_consts:
-    raise SystemExit(
-        "The trainer in memory has no --seed.\n"
-        "The forced re-import above rules out a stale module, so this is Trap 1: the\n"
-        "mounted cuhkx-repo is an OLD VERSION.\n"
-        "Fix: sidebar -> cuhkx-repo -> refresh/update to the latest version (or remove\n"
-        "and re-add it), then Run -> Restart session, and rerun this cell.\n"
-        f"Mounted copy: {K.__file__}")
-print(f"trainer OK (--seed present): {K.__file__}")
+for _need in ("--seed", "--teacher", "--distill-alpha"):
+    if _need not in K.main.__code__.co_consts:
+        raise SystemExit(
+            f"The trainer in memory has no {_need}.\n"
+            "The forced re-import above rules out a stale module, so this is Trap 1: the\n"
+            "mounted cuhkx-repo is an OLD VERSION.\n"
+            "Fix: sidebar -> cuhkx-repo -> refresh/update to the latest version (or remove\n"
+            "and re-add it), then Run -> Restart session, and rerun this cell.\n"
+            f"Mounted copy: {K.__file__}")
+TEACHERS = REPO / "research" / "artifacts"
+assert (TEACHERS / "teacher_fused.npz").is_file(), \
+    f"teacher targets missing from the dataset: {sorted(p.name for p in TEACHERS.iterdir())}"
+print(f"trainer OK (--seed, --teacher, --distill-alpha present): {K.__file__}")
 
-# EXP-120a — MEASURE THE VISUAL BRANCH'S SEED SIGMA.  It has never been measured
-# (research/LOG.md:2069, :2161); it cost 9.3 h per seed on the laptop and costs ~2 h
-# here.  The 2.80 that every visual gate in this campaign quotes is a *fold* sigma;
-# the skeleton branch, which actually measured itself, has a seed sigma of 0.18.
+# ⚠ SET Persistence = "Files only" IN Session options BEFORE RUNNING.
+# EXP-120a's three checkpoints were lost because a draft session wipes /kaggle/working
+# at session end. The printed numbers survived and looked like the whole result; the
+# models did not. Better still: Save Version -> Save & Run All (Commit).
+
+# ============================================================================
+# T3 / EXP-122 — DISTIL THE FIVE-MEMBER ENSEMBLE INTO ONE STUDENT
 #
-# This also settles the parity question.  The old gate demanded this run reproduce
-# micro = 0.71472 exactly.  It cannot: the trainer seeds NOTHING, so 0.71472 is one
-# draw and the laptop fails its own gate too.  Kaggle's first run returned 0.68252
-# with the split, params, lr schedule, step count and loss curve all matching, and
-# with gross_motion identical to five decimals -- a weaker draw, not a broken
-# environment.  Replicate under --seed and ask whether 0.71472 sits inside the spread.
+# The target. Over the five members, fused accuracy is 0.763 while oracle-any-member
+# is 0.877 -- 309 clips of 2,700. A global geometric weight must pick ONE compromise
+# for every clip; a soft target carries each member's full posterior on THAT clip, so
+# the student can learn a per-clip arbitration no scalar weight can express. Fitted
+# arbitration has failed 4/4 on public, but all four fit in PROBABILITY space on 2,700
+# rows; this fits in FEATURE space against dense 40-dim targets, which is B-028's
+# distinction and the reason it is not simply a fifth attempt at the same thing.
 #
-# --cache-dir is what lets this run at all: Kaggle mounts only sample_submission.csv
-# for this competition, never the raw IR/Depth trees.
+# It is also the packaging fix. One student is one architecture, one modality, one
+# dataset path -- it retires the sklearn ExtraTrees IMU member that package_ensemble.py
+# cannot represent at all, and the closed model registry. T-PKG is the only failure
+# mode that costs the whole competition, and this is the cheapest route through it.
 #
-# batch_size 8 x accum 2 keeps steps = len(tl)//accum = 142, identical to the
-# laptop's bs4 x accum4.  The OneCycleLR schedule is therefore unchanged -- confirmed
-# by epoch-1 lr matching at 5.23e-05 -- so the bigger batch is NOT a confound.
+# THREE RUNS, and the third is the control that makes the first two readable:
 #
-# Outputs land in /kaggle/working (persisted, downloadable); /kaggle/temp is not.
-# ~2 h per seed.  If the session dies partway, the finished seeds are still there and
-# two replicates already bound the spread usefully -- just rerun the missing one.
-REF_LAPTOP = 0.71472      # laptop k224_mvit_f2, EXP-102 -- one unseeded draw
-REF_KAGGLE = 0.68252      # this notebook, unseeded
+#   ctrl   alpha=0.0  -> teacher loaded (so the SAME 2,148 clips) but zero weight on it.
+#                        Isolates the cost of dropping 133 clips that lack a teacher
+#                        entry from the effect of distillation itself. Without this,
+#                        student-vs-baseline confounds objective with training-set size.
+#   fused  alpha=0.7  -> imitate the champion mix (target top-1 0.765)
+#   oracle alpha=0.7  -> imitate, per clip, only the members that were RIGHT there
+#                        (target top-1 0.880). This is the selection hypothesis stated
+#                        as sharply as it can be: if the inputs carry enough signal to
+#                        tell those cases apart, the oracle gap is reachable.
+#
+# ⚠ HOW TO READ THE NUMBERS -- two limits, stated before the run, not after.
+#
+#  1. ABSOLUTE fold-2 numbers are OPTIMISTIC. The teacher targets for fold-2 TRAINING
+#     clips were produced by member models that trained on fold-2's VALIDATION users
+#     (each pooled OOF entry comes from the one fold model that held that clip out --
+#     and that model saw fold 2's users). So knowledge of the val users leaks through
+#     the teacher into the student. `ctrl` has alpha=0 and is therefore leak-free,
+#     which is a second reason it earns its 2.2 h.
+#  2. ONE FOLD IS UNDERPOWERED. Seed sigma is 1.16, a paired single-fold delta carries
+#     1.64, so the 2-SE bar here is 3.28 (EXP-120a). This run can only detect a LARGE
+#     effect. `oracle - fused` is the cleanest contrast on offer (identical clips,
+#     identical leak structure, one changed factor); anything under ~3 points is a lead
+#     to replicate on more folds, NOT a result.
+# ============================================================================
+RUNS = [
+    ("distil_ctrl",   "teacher_fused.npz",  0.0),
+    ("distil_fused",  "teacher_fused.npz",  0.7),
+    ("distil_oracle", "teacher_oracle.npz", 0.7),
+]
+BASELINE = 0.70501        # k224_mvit_f2 seed MEAN, n=3 (EXP-120a). NOT 0.71472, which
+                          # is the highest of five draws and biases every delta by -1.
 
 import numpy as np
 got = {}
-for seed in (1, 2, 3):
-    tag = f"k224_mvit_f2_s{seed}"
-    print(f"\n=========== seed {seed} -> {tag} ===========", flush=True)
+for tag, teacher, alpha in RUNS:
+    print(f"\n=========== {tag}  (teacher={teacher}, alpha={alpha}) ===========", flush=True)
     K.run(stage="train", fold=2, tag=tag, cache_dir=str(CROP224),
-          batch_size=8, accum=2, workers=2, seed=seed)
+          teacher=str(TEACHERS / teacher), distill_alpha=alpha, distill_temp=2.0,
+          seed=1, batch_size=8, accum=2, workers=2)
     d = np.load(f"/kaggle/working/oof_{tag}.npz", allow_pickle=True)
-    got[seed] = float((d["probs"].argmax(1) == d["labels"]).mean())
-    print(f"  seed {seed}: micro={got[seed]:.5f}", flush=True)
+    got[tag] = float((d["probs"].argmax(1) == d["labels"]).mean())
+    print(f"  {tag}: micro={got[tag]:.5f}", flush=True)
 
-m = np.array(list(got.values()))
-print("\n================ EXP-120a RESULT ================")
-for s, v in got.items():
-    print(f"  seed {s}: {v:.5f}")
-if len(m) >= 2:
-    mu, sd = float(m.mean()), float(m.std(ddof=1))
-    print(f"  mean {mu:.5f}   VISUAL SEED SIGMA = {100*sd:.2f} points")
-    print(f"  2sd band [{mu-2*sd:.5f}, {mu+2*sd:.5f}]")
-    print(f"  laptop {REF_LAPTOP:.5f} inside: {mu-2*sd <= REF_LAPTOP <= mu+2*sd}")
-    print(f"  kaggle unseeded {REF_KAGGLE:.5f} inside: {mu-2*sd <= REF_KAGGLE <= mu+2*sd}")
-    print("  If both are inside, parity is settled and sigma replaces the inherited")
-    print("  2.80 as the adoption bar for every visual member-strength change.")
-
-# To bring results home: the files are already in /kaggle/working, so use the
-# notebook's Output tab, or:
-#   from IPython.display import FileLink; FileLink('/kaggle/working/oof_k224_mvit_f2_s1.npz')
+print("\n================ EXP-122 RESULT ================")
+for k, v in got.items():
+    print(f"  {k:16s} {v:.5f}   {100*(v-BASELINE):+.2f} vs baseline seed mean")
+if "distil_ctrl" in got:
+    c = got["distil_ctrl"]
+    print(f"\n  cost of dropping 133 clips : {100*(c-BASELINE):+.2f}  (ctrl vs baseline, leak-free)")
+    for k in ("distil_fused", "distil_oracle"):
+        if k in got:
+            print(f"  {k:16s} vs ctrl      : {100*(got[k]-c):+.2f}  (distillation effect, OPTIMISTIC)")
+if {"distil_fused", "distil_oracle"} <= set(got):
+    print(f"  oracle vs fused target     : {100*(got['distil_oracle']-got['distil_fused']):+.2f}"
+          "  <- the CLEAN contrast: same clips, same leak, one factor")
+print("\n  2-SE bar on one fold is 3.28 points. Under that = lead, not result.")

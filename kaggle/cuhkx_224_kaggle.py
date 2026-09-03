@@ -769,7 +769,7 @@ def param_groups(model, base_lr, llrd):
     return g
 
 
-def make_dataset(store, rows, labels, train, phase=0):
+def make_dataset(store, rows, labels, train, phase=0, soft=None):
     """phase selects which interleaved N_FRAMES subset of a deeper cache to read.
 
     A 32-frame cache holds 32 uniform samples over the clip; taking every other frame
@@ -805,7 +805,10 @@ def make_dataset(store, rows, labels, train, phase=0):
                                   align_corners=False).permute(1, 0, 2, 3)
                 if np.random.rand() < 0.5:
                     x = torch.flip(x, dims=[-1])
-            return x, (-1 if labels is None else int(labels[i]))
+            y = -1 if labels is None else int(labels[i])
+            if soft is None:
+                return x, y
+            return x, y, torch.from_numpy(soft[i])
 
     return Clips()
 
@@ -891,8 +894,36 @@ def stage_train(args, paths):
     log_prior = torch.tensor(np.log(np.maximum(counts / counts.sum(), 1e-9)),
                              dtype=torch.float32, device=device)
 
+    soft = None
+    if args.teacher:
+        tp = Path(args.teacher)
+        if not tp.is_file():
+            tp = Path(__file__).resolve().parents[1] / "research" / "artifacts" / args.teacher
+        td = np.load(tp, allow_pickle=True)
+        tmap = {str(k): v for k, v in zip(td["sids"], td["probs"].astype(np.float64))}
+        keep = [i for i, sid in enumerate(tr_sids) if sid in tmap]
+        dropped = len(tr_sids) - len(keep)
+        tr_sids = [tr_sids[i] for i in keep]
+        tr_rows, tr_lab = tr_rows[keep], tr_lab[keep]
+        soft = np.stack([tmap[s] for s in tr_sids])
+        # The teacher carries +teacher_prior_exp*log(train prior) from the fusion recipe.
+        # Divide it out so the student's softmax stays UNIFORM-prior, matching every
+        # other video member and staying drop-in for fuse_*.py / build_video_slot.py.
+        if args.teacher_prior_exp:
+            cnt = np.bincount(np.array([lab[s] for s in sids]), minlength=N_CLASSES)
+            pri = np.maximum(cnt / cnt.sum(), 1e-9) ** args.teacher_prior_exp
+            soft = soft / pri[None, :]
+        soft = (soft / soft.sum(1, keepdims=True)).astype(np.float32)
+        agree = float((soft.argmax(1) == tr_lab).mean())
+        print(f"  teacher {tp.name}: {len(tr_sids)} clips kept, {dropped} dropped "
+              f"(no teacher entry) | target top-1 vs train label = {agree:.5f}")
+        print(f"  distill: alpha={args.distill_alpha} T={args.distill_temp} "
+              f"prior_exp={args.teacher_prior_exp} | mean target confidence "
+              f"{float(soft.max(1).mean()):.4f}", flush=True)
+
     store = ClipStore(cache, "train")
-    tl = DataLoader(make_dataset(store, tr_rows, tr_lab, True), batch_size=args.batch_size,
+    tl = DataLoader(make_dataset(store, tr_rows, tr_lab, True, soft=soft),
+                    batch_size=args.batch_size,
                     shuffle=True, num_workers=args.workers, drop_last=True,
                     pin_memory=False, persistent_workers=args.workers > 0)
     vl = DataLoader(make_dataset(store, va_rows, va_lab, False), batch_size=args.batch_size,
@@ -940,13 +971,26 @@ def stage_train(args, paths):
         model.train()
         total, seen, t0 = 0.0, 0, time.time()
         opt.zero_grad(set_to_none=True)
-        for step, (x, y) in enumerate(tl):
+        for step, batch in enumerate(tl):
+            x, y = batch[0], batch[1]
+            t = batch[2].to(device, non_blocking=True) if soft is not None else None
             x = (x.to(device, non_blocking=True) - mean) / std
             y = y.to(device, non_blocking=True)
             with torch.autocast("cuda", dtype=torch.float16):
                 # LOGIT-ADJUSTED: keeps the softmax in uniform-prior space for fusion.
-                loss = F.cross_entropy(model(x) + log_prior, y,
+                logits = model(x)
+                loss = F.cross_entropy(logits + log_prior, y,
                                        label_smoothing=args.label_smoothing)
+                if t is not None:
+                    # Both sides at temperature T. The teacher is already a probability
+                    # vector, so temperature is a power rather than a logit division --
+                    # equivalent up to the renormalisation that follows.
+                    T = args.distill_temp
+                    tt = t.float().clamp_min(1e-12) ** (1.0 / T)
+                    tt = tt / tt.sum(1, keepdim=True)
+                    kd = F.kl_div(F.log_softmax(logits.float() / T, dim=1), tt,
+                                  reduction="batchmean") * (T * T)
+                    loss = args.distill_alpha * kd + (1 - args.distill_alpha) * loss
             scaler.scale(loss / args.accum).backward()
             if (step + 1) % args.accum == 0:
                 scaler.unscale_(opt)
@@ -1076,6 +1120,28 @@ def main(argv=None) -> int:
     ap.add_argument("--ema", type=float, default=0.99)
     ap.add_argument("--label-smoothing", type=float, default=0.1)
     ap.add_argument("--workers", type=int, default=2)
+    ap.add_argument("--teacher", default=None,
+                    help="T3: path to a teacher npz from code/build_teacher_targets.py "
+                         "(probs/sids). Turns training into distillation. Clips with no "
+                         "teacher entry are DROPPED from the train split, so the run "
+                         "prints a smaller train= count -- that is expected, the teacher "
+                         "covers the 2,700-clip intersection of all five members.")
+    ap.add_argument("--distill-alpha", type=float, default=0.7,
+                    help="weight on the KL-to-teacher term; (1-alpha) stays on "
+                         "logit-adjusted CE against the hard label. 1.0 = pure "
+                         "distillation, 0.0 = the baseline recipe exactly.")
+    ap.add_argument("--distill-temp", type=float, default=2.0,
+                    help="softmax temperature for BOTH sides of the KL. T>1 spreads mass "
+                         "onto runner-up classes, which is where the oracle headroom "
+                         "lives; the KL is scaled by T^2 so its gradient magnitude does "
+                         "not shrink as T rises.")
+    ap.add_argument("--teacher-prior-exp", type=float, default=0.25,
+                    help="build_teacher_targets.py adds 0.25*log(train prior) to the "
+                         "fused target. Divide it back out so the student emits "
+                         "UNIFORM-prior posteriors like every other video member and "
+                         "stays drop-in for fuse_*.py. Getting prior space backwards "
+                         "scored 0.58706 vs 0.62686 once already; set 0 only if the "
+                         "teacher was built without that term.")
     ap.add_argument("--seed", type=int, default=None,
                     help="seed python/numpy/torch so a run is repeatable. Left unset "
                          "(the historical behaviour) EVERY run is a fresh draw, which "
