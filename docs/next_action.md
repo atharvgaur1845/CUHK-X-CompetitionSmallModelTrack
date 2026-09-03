@@ -53,32 +53,62 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 > not assumed. And both arms ran the same `--workers 2` default, so it was never a
 > laptop-vs-Kaggle difference either.
 
-> ### ⚠ THE VISUAL BRANCH'S SEED σ HAS NEVER BEEN MEASURED. It is now the critical path.
+> ### ✅ VISUAL SEED σ MEASURED — 1.16 points (n=3). Parity settled. See EXP-120a.
 >
-> `LOG.md:2069` and `:2161` both say so; it cost 9.3 h per seed on the laptop. **The
-> 2.80 that every visual gate in this campaign has been quoting is a *fold* σ**, and the
-> skeleton branch — the one that actually measured itself (EXP-018) — has a seed σ of
-> **0.18**. The visual branch inherited a number that was never about it, and three
-> spurious single-fold "+2.45"s came out of that.
+> Three seeded replicates of `k224_mvit_f2` on Kaggle: **0.71012 / 0.69172 / 0.71319**,
+> mean **0.70501**, sd **1.16 points**. The 2σ band [0.68178, 0.72824] contains both the
+> laptop's 0.71472 and Kaggle's unseeded 0.68252. **There is no environment difference —
+> Kaggle is a trustworthy second machine and its numbers count.**
 >
-> **Why this is the gate and not a detour:** B-032 says pooled OOF cannot screen
-> member-strength changes (0-for-2), and public carries ±9–10 clips of noise against a
-> **+2** margin. Every remaining score lead — full-frame thermal first — *is* a
-> member-strength change. Without σ we cannot legitimately adopt any of them, which is
-> exactly how the last four experiments were wasted. On Kaggle this costs ~6 GPU-hours.
+> **Two things this changes, one of them counter-intuitive:**
+>
+> 1. **0.71472 is an upper draw, not a baseline.** It is the highest of the five draws we
+>    now have of this exact recipe, against a mean of 0.70501. Every delta measured
+>    against it was biased ≈ −1 point. Stop quoting it as *the* fold-2 number.
+> 2. **The single-fold bar was too LOOSE, not too tight.** A smaller σ does not lower it:
+>    a delta is a difference of two runs and carries σ√2 = 1.64, so the 2-SE bar for
+>    "one new run vs one old run on one fold" — the design this campaign actually used —
+>    is **3.28**, *higher* than the 2.80 it screened against. Three spurious "+2.45"s is
+>    exactly what a bar set half a point too low produces.
+>
+> | design | SE of mean | 2-SE bar |
+> |---|---|---|
+> | one fold, new vs old | 1.64 | **3.28** |
+> | 4 paired folds | 0.82 | **1.64** |
+>
+> **Operating rule: never screen a visual member-strength change on one fold, at any
+> threshold. Use paired multi-fold designs**, where four folds bring the bar to 1.64.
+>
+> **⚠ Honest limit:** n=3, so the 95% CI on σ is **[0.60, 7.30]** and does **not** exclude
+> 2.80. 1.16 is the best point estimate and the first ever measured on this branch, but it
+> does not refute 2.80. More seeds are not worth buying — n=6 tightens the CI only to
+> ≈[0.72, 2.84]. Use 1.16 as the working estimate and quote the CI.
 
-**Two jobs are in flight as of 2026-09-03. Check these before starting anything.**
+**Job status, 2026-09-03.**
 
-| where | job | command / status | reads out |
+| where | job | status |
+|---|---|---|
+| **Kaggle** | EXP-120a — visual seed σ | ✅ **DONE.** σ = 1.16 (n=3); parity settled; Kaggle vindicated as a second machine |
+| **laptop** | EXP-120b — paired thermal folds | **running**, 3 of 6 runs done (~2.5 h each). `logs/thermal_pairs_queue.log` |
+
+**EXP-120b interim — full-frame minus cropped thermal, paired:**
+
+| fold | full | cropped | delta |
 |---|---|---|---|
-| **laptop** | **EXP-120b — paired thermal folds** | `bash code/run_thermal_pairs.sh` → `logs/thermal_pairs_queue.log`, per-run `logs/vidth*_f{0,1,3}.log`. ~16 h, 6 runs, started 2026-09-03 00:53 | Is EXP-119's full-frame **+1.38** real or one draw? |
-| **Kaggle** | **EXP-120a — visual seed σ** | 3 × `--seed {1,2,3}` replicates of `k224_mvit_f2`, ~6 GPU-h | the first honest visual σ; also settles the parity question |
+| 0 | 0.58354 | 0.58231 | **+0.12** |
+| 2 | 0.55828 | 0.54448 | **+1.38** |
+| 1 | 0.56511 | *running* | |
+| mean (n=2) | | | **+0.75 = 0.65 SE** — null so far |
 
-**On the thermal queue's design:** only fold 2 exists for *either* thermal variant, so
-folds 0/1/3 need **both** arms or the comparison is unpaired and unreadable — hence 6
-runs, not 3. They are ordered **fold-major** (`full f0, crop f0, full f1, crop f1, …`)
-so that killing the queue at any point still leaves complete **pairs** on disk. An
-interrupted arm-major queue would be worthless.
+**Fold 0 does not replicate fold 2**, which is the outcome the design existed to detect:
+EXP-119's +1.38 was a single fold, and the 2-SE bar at 4 paired folds is 1.64. Do not
+adopt on the interim. Wait for folds 1 and 3. (The SE borrows the MViT seed σ; thermal's
+own σ is unmeasured, so treat it as indicative.)
+
+**On the queue's design:** only fold 2 existed for *either* thermal variant, so folds
+0/1/3 need **both** arms or the comparison is unpaired and unreadable — hence 6 runs, not
+3. They are ordered **fold-major** so killing the queue at any point still leaves complete
+**pairs** on disk. An interrupted arm-major queue would be worthless.
 
 **Read the thermal result against this, not against micro alone:** the thermal branch
 contributes **exactly zero** to the fusion today, because its confidence when right

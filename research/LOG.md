@@ -13,6 +13,73 @@ results.
 
 ---
 
+## EXP-120a — VISUAL SEED σ MEASURED AT LAST: 1.16 points (n=3). Parity settled. And the single-fold bar was too LOOSE, not too tight.
+**Date:** 2026-09-03 · Kaggle T4, 3 x `--seed` on `k224_mvit_f2` · **Tier:** exploit · **Purpose:** INFORMATION
+
+The campaign's oldest unmeasured quantity (`LOG.md:2069`, `:2161`), finally measured.
+Identical recipe, three seeds, ~2.2 h each:
+
+| seed | micro | object | gross_motion |
+|---|---|---|---|
+| 1 | 0.71012 | 303/479 | 160/173 |
+| 2 | 0.69172 | 295/479 | 156/173 |
+| 3 | 0.71319 | 309/479 | 156/173 |
+| **mean** | **0.70501** | | |
+| **seed σ** | **1.16 points** | | |
+
+**① Parity is settled and the environment is vindicated.** 2σ band = [0.68178, 0.72824].
+The laptop's 0.71472 is inside; Kaggle's unseeded 0.68252 is inside. **There is no
+Kaggle-vs-laptop environment difference. Kaggle is usable and its numbers count.**
+
+**② The reference we have measured everything against is an UPPER DRAW, not a centre.**
+0.71472 is the highest of the five draws we now have of this exact recipe, against a
+mean of 0.70501. **Every delta ever computed against it was biased ≈ −1 point.** Any
+past experiment rejected for scoring "below baseline" by about a point was rejected
+against a number that was never the baseline.
+
+**③ The single-fold screening bar was too PERMISSIVE — the opposite of the intuition.**
+A σ of 1.16 sounds like it should lower the bar from 2.80. It does not, because a
+*delta* is a difference of two runs and carries **σ√2 = 1.64**:
+
+| design | SE of the mean | 2-SE detection bar |
+|---|---|---|
+| one fold, new run vs old run | 1.64 | **3.28** |
+| 4 paired folds | 0.82 | **1.64** |
+
+**The campaign screened single folds against 2.80 when the correct bar for that design
+is 3.28.** Three spurious "+2.45"s is exactly what a bar set 0.5 points too low
+produces. The fix is not a different threshold — it is **paired multi-fold designs**,
+where the bar falls to 1.64 for four folds.
+
+**Consequence for the live lead:** EXP-119's full-frame thermal **+1.38 on fold 2** was
+rejected against 2.80. It is *also* short of the correct single-fold bar of 3.28 — so
+that rejection stands. **But as a mean over 4 paired folds the bar is 1.64, and +1.38
+would come within 1.7 SE of it.** EXP-120b (running) is therefore the right design and
+was worth starting; it may return a borderline result, and borderline is not adopted.
+
+**⚠ HONEST LIMIT — n = 3.** The 95% CI on σ is **[0.60, 7.30]** and **does not exclude
+2.80**. 1.16 is the best point estimate we have and is the first measured on this
+branch, but it does not *refute* 2.80 on this evidence. Three more seeds would tighten
+the CI only to ≈[0.72, 2.84] — still not excluding it — so buying more seeds is not
+worth the GPU-hours. **Use 1.16 as the working estimate, quote the CI, and prefer
+paired multi-fold designs over any single-fold threshold.**
+
+**⚠ RETRACTION inside EXP-120.** I wrote that laptop and Kaggle had `gross_motion`
+"identical to five decimals" and used it as evidence the deficit was cleanly confined
+to OBJECT. **That was overstated.** `gross_motion` is k/173 and takes only ~173
+discrete values; seeds 2 and 3 here collide at 156/173 as well. The collision is
+unremarkable and carried no information. The underlying observation — that the deficit
+sat in OBJECT — survives; the "identical" framing does not.
+
+**Free by-product: three fold-2 members of the same config.** Seed-averaging is a
+*combination* change, the class B-032 says pooled OOF predicts (2-for-2), and the
+skeleton branch measured +0.8 from a seed soup (`LOG.md:3965`). This is **not** the
+closed "bag composition" axis, which varied *which* members were bagged; this varies
+*seeds of one member* and is a variance-reduction move. Measurable for free from the
+three OOF files.
+
+---
+
 ## EXP-120 — The Kaggle parity gate was UNMEETABLE: the trainer sets no seed. 0.68252 vs 0.71472 is two draws, not an environment fault.
 **Date:** 2026-09-03 · `kaggle/cuhkx_224_kaggle.py --seed` · **Tier:** exploit · **Purpose:** INFORMATION
 

@@ -1,26 +1,27 @@
 # Belief Ledger
 
-## B-034 — The 2.80 sigma every VISUAL gate quotes was never measured on the visual branch
-- **Confidence:** 90% that the number is misattributed; **0%** on what the right one is — it is being measured now (EXP-120a).
-- **Importance:** Highest. It is the denominator of every visual adoption decision this campaign has made.
-- **Evidence:** `LOG.md:2069` and `:2161` both state outright that *the visual branch's
-  seed variance has never been measured* (9.3 h per seed on the laptop). The 2.80 comes
-  from `research/Plan.md`'s Phase 3 gate and is a **fold** sigma. The one branch that did
-  measure its own seed spread is the skeleton stack: **0.18** (EXP-018), with fold sigma
-  at 2–3 points. So the visual branch inherited a fold sigma and has been using it as a
-  seed sigma ever since.
-- **Why it is load-bearing:** three separate single-fold "+2.45"s were called results and
-  retracted; 288 px cleared the local bar 4/4 at sd 0.79 and then **lost 2 clips on
-  public**. If the true visual seed sigma is well below 2.80, real gains were discarded.
-  If it is above, the bar has been too permissive. Both errors are live.
-- **Compounding factor found in EXP-120:** `kaggle/cuhkx_224_kaggle.py` **seeds nothing**,
-  so every visual run ever made is an independent draw and no two are comparable except
-  distributionally. The laptop's 0.71472 and Kaggle's 0.68252 are the same recipe.
-- **Falsification test:** 3 seeded replicates of `k224_mvit_f2` (EXP-120a, ~6 GPU-h on
-  Kaggle). If sd is materially different from 2.80, re-read every adoption call that used
-  it — starting with 288 px and temporal jitter.
-- **Do not quote 2.80 for a visual member-strength change until this returns.**
-- **Last updated:** EXP-120
+## B-034 — Visual seed σ is ≈1.16 points (n=3), and the single-fold screening bar was too LOOSE
+- **Confidence:** 95% that parity is settled and the environment is sound; **70%** that σ
+  is nearer 1.16 than 2.80 — the n=3 CI is [0.60, 7.30] and does **not** exclude 2.80.
+- **Importance:** Highest. It is the denominator of every visual adoption decision made.
+- **Measured (EXP-120a):** 3 seeds of `k224_mvit_f2`, identical recipe — 0.71012 /
+  0.69172 / 0.71319, mean **0.70501**, sd **1.16 points**.
+- **What is settled:** the 2σ band [0.68178, 0.72824] contains both the laptop's 0.71472
+  and Kaggle's unseeded 0.68252. **No environment difference. Kaggle numbers count.**
+- **What is corrected:** 0.71472 is the *highest* of five draws of this recipe, not a
+  centre. Every delta measured against it was biased ≈ −1 point.
+- **The counter-intuitive part:** a smaller σ does **not** lower the single-fold bar. A
+  delta between two runs carries σ√2 = 1.64, so the 2-SE bar for the design this campaign
+  actually used — one new run vs one old run on one fold — is **3.28**, *higher* than the
+  2.80 it was screening against. Three spurious "+2.45"s is what that produces. Over 4
+  paired folds the SE falls to 0.82 and the bar to **1.64**.
+- **Operating rule:** prefer paired multi-fold designs. Do not screen a visual
+  member-strength change on one fold against any threshold; the design is underpowered
+  at any bar.
+- **Not worth buying down further:** n=6 would tighten the CI only to ≈[0.72, 2.84].
+- **Supersedes:** the inherited 2.80, which was a *fold* σ from `research/Plan.md`, never
+  measured on the visual branch. Skeleton's own seed σ is 0.18 (EXP-018).
+- **Last updated:** EXP-120a
 
 ## B-033 — A score can close an accuracy question. It can NEVER close an engineering one.
 - **Confidence:** 99% (new, 2026-09-01) — this is a process rule, not an empirical claim.
