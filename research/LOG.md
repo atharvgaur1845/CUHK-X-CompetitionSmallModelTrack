@@ -13,6 +13,69 @@ results.
 
 ---
 
+## EXP-124 — Diagnostic pass: the error is a RANKING problem, subject variance derives the noise floor, and B-022 is finally testable.
+**Date:** 2026-09-03 · analysis only, artifacts already on disk · **Tier:** explore · **Purpose:** INFORMATION
+**Full write-up: [`docs/RESEARCH_PROGRAM.md`](../docs/RESEARCH_PROGRAM.md)**
+
+Four findings, on 2,700 pooled OOF clips of the current champion fusion.
+
+**1. It is a ranking problem, not a recognition problem.** top-1 **0.7630**, top-2
+**0.8685**, top-3 0.9067, top-5 0.9393. **285 of the 640 errors — 44.5% — have the true
+label at exactly rank 2.** Resolving only rank-1-vs-rank-2 is worth **+10.55 points**.
+
+**2. The oracle gap IS the rank-2 gap.** Oracle-any-member = **0.8774**; the champion's
+own top-2 = **0.8685**. Within 0.9 points. The campaign has framed its headroom as *which
+member to trust*; the measurement says almost every clip another member would have won was
+already sitting at rank 2. **That reframes T3:** the student does not need to learn member
+arbitration, it needs one binary decision on a pair the fusion already produced — and it
+predicts the oracle target beats the fused target precisely because it sharpens that pair.
+
+**3. Subject variance derives the noise floor.** Per-subject accuracy runs `user23`
+**0.6515** to `user19` **0.8172**, **between-subject sd 5.26 points** — **4.5x seed σ
+(1.16)**. Public is 4 subjects, so SE = 5.26/√4 = **2.63 points**, and 2 SE = **±5.3
+points ≈ ±10.6 clips of 201**. That is the ±9-10 clip floor `CLAUDE.md` states as an
+observation. **It is subject sampling, not measurement sloppiness, and no amount of seed
+averaging reduces it.** On-site (8 subjects) has SE 1.86.
+
+**4. Error is broad, not pair-concentrated.** 49.7% of errors sit inside a symmetric
+confusion pair, but they spread over **175 distinct pairs**: top-10 = 32.3%, top-20 =
+45.5%. Largest single pair 21 `Read_documents` <-> 22 `Turn_pages` at 43 errors (6.7%).
+All twelve worst classes are OBJECT. **This is evidence against `QUEUE.md` X-02** (per-pair
+specialists): ten models buy 32% of the mass, each fitted on tens of clips. One
+*pair-conditioned* discriminator sees all 640 errors instead of splitting them 175 ways.
+
+### And a rediscovery, recorded so nobody repeats the detour
+
+I re-derived the recording structure from timestamps (60 s blocks are **100% single-user**,
+**93.4%** all-distinct, consecutive same-class **0.1%**) and believed it was new. **It is
+not** — EXP-097 and the 2026-07 audit established it, `ordered_transition_decoder.py`
+already implements `--distinctness none|hard|penalty`, and session-scale distinctness was
+correctly killed (my sweep reproduces it: gap<300 s = **−39 points**).
+
+**What IS open is B-022's standing prediction.** It says distinctness pays only above a
+base-accuracy threshold; the public ladder reads **−1 clip at base 112, 0 at base 121**,
+never run at 123, and **we are now at 166**. On today's fusion I measure it **positive for
+the first time**: soft repeat penalty λ=2.0 over 30 s blocks gives **+2.41 points, 102
+rescued against 37 broken**, on a smooth plateau across λ ∈ [1,4].
+
+| variant | OOF | Δ | rescued/broken |
+|---|---|---|---|
+| baseline argmax | 0.76296 | — | — |
+| hard all-distinct, blocks ≤8 | 0.77815 | +1.52 | 85 / 44 |
+| **soft λ=2.0, gap<30 s** | **0.78704** | **+2.41** | **102 / 37** |
+| soft λ=2.0, gap<60 s | 0.76074 | −0.22 | 100 / 106 |
+
+The 30 s-vs-60 s sign flip is the mechanism visible in the data: the constraint holds for
+tight recording passes and fails for sessions, so block granularity is the experiment.
+**`--distinctness` is `none` in the champion recipe. Cost to test: one submission, zero
+GPU.** Prediction recorded before submitting: **positive, +4 to +5 public clips.**
+
+**Verdict:** no new training, four measured findings, one standing prediction moved to
+live. `docs/RESEARCH_PROGRAM.md` carries the mechanism map and the predicted sign and
+magnitude of eight candidate changes.
+
+---
+
 ## EXP-123 — Retrospective on thermal: EXP-120b refuted ONE of six differences, and B-027's stated mechanism does not survive a like-for-like check.
 **Date:** 2026-09-03 · analysis only, no new training · **Tier:** explore · **Purpose:** INFORMATION
 

@@ -123,6 +123,8 @@ Read-first order: **`docs/next_action.md`** → `research/DIRECTIVE.md` →
 
 - `docs/next_action.md` — **the handover.** Default task; update in the same commit as any
   state change
+- `docs/RESEARCH_PROGRAM.md` — **the mechanism map.** Why the errors are what they are, and
+  the predicted sign/magnitude of each candidate change. Read it before proposing a lever
 - `research/DIRECTIVE.md` — the standing research directive (no premature ceilings;
   investigate external evidence before ideating)
 - `research/RULES_VERIFIED.md` — organiser rulings with topic ids

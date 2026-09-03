@@ -84,6 +84,30 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 > does not refute 2.80. More seeds are not worth buying — n=6 tightens the CI only to
 > ≈[0.72, 2.84]. Use 1.16 as the working estimate and quote the CI.
 
+> ### 📄 NEW: `docs/RESEARCH_PROGRAM.md` — read it before proposing any lever.
+>
+> A diagnostic pass over artifacts already on disk (EXP-124, no new training) changed the
+> shape of the problem:
+>
+> - **It is a RANKING problem.** top-1 0.7630 but **top-2 0.8685** — **44.5% of all errors
+>   have the true label at exactly rank 2**. Resolving only rank-1-vs-rank-2 is +10.55 pts.
+> - **The oracle gap IS the rank-2 gap.** Oracle-any-member 0.8774 ≈ champion top-2 0.8685.
+>   The headroom is not "which member to trust", it is one binary decision on a pair the
+>   fusion already surfaced. This reframes T3.
+> - **Subject variance derives the noise floor.** Between-subject sd **5.26 pts** (4.5× seed
+>   σ). Public is 4 subjects → SE 2.63 → 2 SE ≈ **±10.6 clips of 201**. The ±9–10 floor is
+>   *subject sampling*; no amount of seed or member averaging reduces it. A +2-clip margin
+>   is a fifth of one standard error.
+> - **Errors spread over 175 pairs** (top-10 = 32.3%), so per-pair specialists (`QUEUE.md`
+>   X-02) are the wrong shape; one pair-conditioned discriminator is the right one.
+>
+> **The cheapest live candidate in the campaign: turn on soft distinctness.** B-022 predicts
+> the coupling pays only above a base-accuracy threshold; the public ladder is −1 clip at
+> base 112, 0 at base 121, never run above that — **and we are at 166**. On today's fusion
+> it measures **+2.41 pts (102 rescued / 37 broken)** at λ=2.0 over 30 s blocks, on a smooth
+> plateau. `--distinctness` is `none` in the champion recipe. **One submission, zero GPU.**
+> Prediction recorded before submitting: **+4 to +5 public clips.**
+
 **Job status, 2026-09-03.**
 
 | where | job | status |
