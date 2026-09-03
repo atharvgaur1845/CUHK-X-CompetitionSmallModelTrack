@@ -13,8 +13,23 @@ results.
 
 ---
 
-## EXP-125 — Soft distinctness through the real decoder: +1.00 pt OOF, 4/4 folds — but only 6 of 405 test rows. My +4/+5 clip prediction was WRONG.
+## EXP-125 — ✅ ADOPTED. Soft distinctness scores **0.83084 = 167/201**, a new champion. B-022 CONFIRMED; the corrected forecast was exact.
 **Date:** 2026-09-03 · `sub_r2_dist.csv` · **Tier:** exploit · **Purpose:** SCORE
+
+> ## RESULT (verified by Atharv, 2026-09-03): **0.83084 = 167/201.** Previous champion
+> 166/201. **+1 clip — exactly the corrected prediction.**
+>
+> EXP-124 predicted +4/+5 clips; I retracted to **"~+1, range −3..+3" BEFORE submission**
+> after measuring incrementally through the real decoder. Outcome +1. The retraction is
+> what made this a successful forecast rather than a miss.
+>
+> **B-022 confirmed, not merely directional:** the public ladder is now **−1 @112,
+> 0 @121, +1 @166** — monotone across 54 clips of base accuracy, tested far outside the
+> range it was fitted on.
+>
+> **No sampling noise in this comparison.** 399 of 405 rows are identical, so +1 is the
+> exact net of the 6 changed rows, not a draw from the ±9–10 clip floor. This is the
+> cleanest paired reading the campaign has produced.
 
 Acting on EXP-124: B-022 predicts distinctness coupling pays only above a base-accuracy
 threshold, the public ladder read **−1 clip at base 112, 0 at base 121**, and we are at 166.

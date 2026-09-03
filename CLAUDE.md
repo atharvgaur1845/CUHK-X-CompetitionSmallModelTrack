@@ -10,9 +10,10 @@
 > `docs/next_action.md` in the *same commit*. A stale handover is worse than no handover —
 > it sends the next session confidently in the wrong direction.
 >
-> **Currently: 0.82587 = 166/201 from an 83.82 MB LEGAL package** (`sub_r2`) — the same
-> score as the ~309 MB pipeline it replaces, with 16 MB of headroom. Top-15 bar is 160,
-> so margin is **+6**. Standing target 0.89 = 179/201 → **+13 clips**.
+> **Currently: 0.83084 = 167/201** (`sub_r2_dist`, verified 2026-09-03). Top-15 bar was
+> 164 at the 2026-09-01 snapshot, so margin is **+3**. Standing target 0.89 = 179/201 →
+> **+12 clips**. ⚠ The *package* for this recipe has never been built as a file — see the
+> retraction banner in `docs/next_action.md`.
 >
 > **The video branch is information-saturated.** Four person folds and one person + one
 > wrist both reach 166; adding members to the video slot is now a graveyard axis, as are
@@ -55,7 +56,8 @@ python3 code/fuse_general.py --visual A.npz B.npz --visual-weights 0.45 0.55 \
         --weight 0.65 --output fused.npz
 python3 code/ordered_transition_decoder.py test --probs research/artifacts/fused.npz \
         --transition-weight 0.5 --transition-score conditional --backoff unigram \
-        --output submissions/sub_X.csv
+        --distinctness penalty --distinctness-penalty 2.0 \
+        --output submissions/sub_X.csv     # distinctness: +1 clip, EXP-125
 python3 code/rowdiff.py submissions/sub_champion.csv submissions/sub_X.csv
 ```
 

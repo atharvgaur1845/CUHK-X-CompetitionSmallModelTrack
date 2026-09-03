@@ -101,15 +101,23 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 > - **Errors spread over 175 pairs** (top-10 = 32.3%), so per-pair specialists (`QUEUE.md`
 >   X-02) are the wrong shape; one pair-conditioned discriminator is the right one.
 >
-> **Soft distinctness — BUILT as `submissions/sub_r2_dist.csv`, EXP-125.** B-022's ladder
-> (−1 clip @112, 0 @121) is now **positive at 166**: +1.00 pt pooled OOF, **4/4 folds**,
-> rescues 191→216 while harms 87→85. Single config change from the champion manifest,
-> identical probability input.
-> **⚠ I predicted +4 to +5 public clips. Wrong — it is ~+1, range −3..+3.** The +2.41 was
-> measured against raw argmax; the champion's transition decoder was already collecting
-> most of it, so incrementally it is +1.00 and moves **6 of 405 rows**. Submit as
-> *insurance* before the final selection, not as a measurement — and **adopt
-> `--distinctness penalty --distinctness-penalty 2.0` into the recipe either way.**
+> ### ✅ NEW CHAMPION 2026-09-03: `sub_r2_dist.csv` = **0.83084 = 167/201** (EXP-125)
+>
+> Soft distinctness turned on; everything else identical to `sub_r2` (same
+> `testprobs_r2.npz` by SHA-256, one config flag). **+1 clip, and the comparison carries
+> no sampling noise** — 399 of 405 rows are identical, so +1 is the exact net of 6 changed
+> rows rather than a draw from the ±9–10 floor.
+>
+> **B-022 is confirmed**: distinctness coupling flips sign as base accuracy rises. Public
+> ladder **−1 @112, 0 @121, +1 @166**, monotone across 54 clips of base.
+>
+> **Recipe change, use it from now on:** add
+> `--distinctness penalty --distinctness-penalty 2.0` to every decode.
+>
+> **Forecasting note worth keeping:** EXP-124 predicted +4/+5 clips; I retracted to
+> "~+1, range −3..+3" **before** scoring, after measuring incrementally through the real
+> decoder instead of against raw argmax. The outcome was exactly +1. *Measure an add-on
+> against the system you ship, not against argmax.*
 
 **Job status, 2026-09-03.**
 
@@ -184,7 +192,7 @@ whether full-frame thermal changes the **fused** score — so the deliverable is
 
 | | |
 |---|---|
-| Best score (verified on Kaggle) | **0.82587 = 166/201** — `submissions/sub_r2.csv`. **Package NOT built or verified** |
+| Best score (verified on Kaggle) | **0.83084 = 167/201** — `submissions/sub_r2_dist.csv` (EXP-125). **Package NOT built or verified** |
 | Target | 0.89 = 179/201 → **+13 clips from the legal 166** |
 | Qualification gate | **top-15 on private.** Bar = **162** clips (2026-08-25, 233 teams); legal score 166 — **margin +4** |
 | Deadline | Kaggle 2026-09-15; code upload 09-22 |

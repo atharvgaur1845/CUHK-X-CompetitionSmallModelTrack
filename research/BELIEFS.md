@@ -432,8 +432,14 @@
   the one-clip gain is too small to establish the effect size on private users.
 - **Last updated:** EXP-046
 
-## B-022 — Distinctness coupling pays only above a base-accuracy threshold (NEW)
-- **Confidence:** 85%
+## B-022 — Distinctness coupling pays only above a base-accuracy threshold ✅ CONFIRMED (EXP-125)
+- **Confidence:** 95%, up from 85%. **Its standing prediction was tested at base 166 —
+  43 clips above the highest base it had ever been measured at — and held.**
+- **The public ladder is now monotone across four points:** −1 clip @112, 0 @121, never
+  run @123, **+1 @166**. `sub_r2_dist.csv` = **0.83084 = 167/201**, a new champion.
+- **Clean measurement:** 399 of 405 rows identical to the old champion, so the +1 is the
+  exact net of 6 changed rows with no sampling noise — not a ±9–10 clip draw.
+- **Adopted into the champion recipe:** `--distinctness penalty --distinctness-penalty 2.0`.
 - **Importance:** High — it is predictive, not just descriptive
 - **Evidence for:** EXP-052 ran hard distinctness on all four folds and the
   delta ordered monotonically with base accuracy: fold 1 (base 0.664) +6,

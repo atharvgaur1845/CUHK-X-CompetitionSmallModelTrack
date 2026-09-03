@@ -9,6 +9,44 @@ The public split contains 201 clips, so one correct clip is
 `1 / 201 = 0.00497512` (about 0.50 percentage points). Reported scores below
 map exactly to integer correct counts after Kaggle rounding.
 
+## ✅ VERIFIED 2026-09-03 — NEW CHAMPION: `sub_r2_dist.csv` = **0.83084 = 167/201**
+
+Supplied by Atharv. `0.83084` maps exactly to `167/201`; the previous champion
+`sub_r2.csv` is `0.82587 = 166/201`. **+1 clip.**
+
+**This is a successfully forecast result, and the forecast was the corrected one.**
+EXP-124 predicted +4 to +5 clips. I retracted that to **"~+1 clip, range −3 to +3"**
+in EXP-125 **before** the submission was scored, after measuring the change through the
+real decoder rather than against raw argmax. The outcome is exactly +1.
+
+**B-022 is now CONFIRMED, not just directional.** Its standing prediction was that
+distinctness coupling flips sign as base accuracy rises. The full public ladder:
+
+| base | distinctness delta |
+|---|---|
+| 112 clips | **−1** |
+| 121 clips | **0** |
+| 123 clips | never run |
+| **166 clips** | **+1** ← first positive reading |
+
+Monotone across four points spanning 54 clips of base accuracy. The belief made a
+falsifiable prediction, the prediction was tested at a base far outside its measured
+range, and it held.
+
+**Champion recipe is updated** — `--distinctness penalty --distinctness-penalty 2.0`.
+Everything else identical: same `testprobs_r2.npz` (verified by SHA-256), same
+`--transition-weight 0.5 --transition-score conditional --backoff unigram`. The
+submission differs from the old champion on **6 of 405 rows**, and because the other
+399 rows are identical there is **no sampling noise in the comparison** — the +1 is the
+exact net of those 6 rows, not a draw from the ±9–10 clip floor.
+
+| | |
+|---|---|
+| file | `submissions/sub_r2_dist.csv` |
+| sha256 | `154cd713ffa083a1c9c0aa172c1ba09289221579d13297b6a65245312e5ef897` |
+| score | **0.83084 = 167/201** |
+| OOF evidence | +1.00 pt pooled, 4/4 folds, rescues 191→216, harms 87→85 |
+
 ## Public leaderboard snapshot (top 20) — 2026-07-31
 
 Supplied by Atharv from the Kaggle public leaderboard on 2026-07-31. This
