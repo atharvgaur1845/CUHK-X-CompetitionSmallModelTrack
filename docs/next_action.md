@@ -101,12 +101,15 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 > - **Errors spread over 175 pairs** (top-10 = 32.3%), so per-pair specialists (`QUEUE.md`
 >   X-02) are the wrong shape; one pair-conditioned discriminator is the right one.
 >
-> **The cheapest live candidate in the campaign: turn on soft distinctness.** B-022 predicts
-> the coupling pays only above a base-accuracy threshold; the public ladder is −1 clip at
-> base 112, 0 at base 121, never run above that — **and we are at 166**. On today's fusion
-> it measures **+2.41 pts (102 rescued / 37 broken)** at λ=2.0 over 30 s blocks, on a smooth
-> plateau. `--distinctness` is `none` in the champion recipe. **One submission, zero GPU.**
-> Prediction recorded before submitting: **+4 to +5 public clips.**
+> **Soft distinctness — BUILT as `submissions/sub_r2_dist.csv`, EXP-125.** B-022's ladder
+> (−1 clip @112, 0 @121) is now **positive at 166**: +1.00 pt pooled OOF, **4/4 folds**,
+> rescues 191→216 while harms 87→85. Single config change from the champion manifest,
+> identical probability input.
+> **⚠ I predicted +4 to +5 public clips. Wrong — it is ~+1, range −3..+3.** The +2.41 was
+> measured against raw argmax; the champion's transition decoder was already collecting
+> most of it, so incrementally it is +1.00 and moves **6 of 405 rows**. Submit as
+> *insurance* before the final selection, not as a measurement — and **adopt
+> `--distinctness penalty --distinctness-penalty 2.0` into the recipe either way.**
 
 **Job status, 2026-09-03.**
 

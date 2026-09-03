@@ -13,6 +13,70 @@ results.
 
 ---
 
+## EXP-125 — Soft distinctness through the real decoder: +1.00 pt OOF, 4/4 folds — but only 6 of 405 test rows. My +4/+5 clip prediction was WRONG.
+**Date:** 2026-09-03 · `sub_r2_dist.csv` · **Tier:** exploit · **Purpose:** SCORE
+
+Acting on EXP-124: B-022 predicts distinctness coupling pays only above a base-accuracy
+threshold, the public ladder read **−1 clip at base 112, 0 at base 121**, and we are at 166.
+
+**Validated through the decoder itself** (not my simulation), champion settings, only
+`--distinctness` changed — confirmed against the champion manifest, identical probability
+input SHA-256, single config difference `distinctness: none -> penalty`:
+
+| fold | none | penalty | delta |
+|---|---|---|---|
+| 0 | +6.68 | +8.16 | **+1.48** |
+| 1 | +4.16 | +4.90 | **+0.74** |
+| 2 | +2.81 | +3.84 | **+1.03** |
+| 3 | +1.77 | +2.51 | **+0.74** |
+| **pooled** | **0.80148** | **0.81148** | **+1.00 pt = +27 of 2,700** |
+
+**4/4 folds positive, mean +1.00, sd 0.35.** Rescues **191 → 216 (+25)** while harms go
+**87 → 85 (−2)**: it adds rescues without adding harm, which is the signature you want and
+is not what a fitted threshold produces. B-022's ladder is now **−1 @112, 0 @121, positive
+@166** — the standing prediction is confirmed in sign on OOF.
+
+### ⚠ RETRACTION: my predicted magnitude was wrong by 4x
+
+EXP-124 predicted **+4 to +5 public clips**. **The real number is ~+1, range −3 to +3.**
+
+I measured +2.41 against **raw argmax**. The champion already runs the transition decoder,
+and a first-order Markov model over recording order *already* learns that consecutive clips
+almost never repeat a class (0.1% on train). So most of what I attributed to distinctness
+was being collected by a component that was already switched on. Measured incrementally it
+is **+1.00**, and on test it changes **6 of 405 rows** — which the OOF change rate predicts
+exactly (43 extra changes of 2,700 = 1.59% → 6.5 of 405). Observed: 6.
+
+    SM_test_0012:  7 -> 11    SM_test_0242:  7 -> 15
+    SM_test_0194:  8 -> 10    SM_test_0286: 34 -> 17
+    SM_test_0231: 12 -> 13    SM_test_0351: 17 -> 20
+
+**Transferable lesson: measure an add-on against the system you actually ship, not against
+argmax.** Half the apparent gain was already being collected elsewhere. This is the same
+error shape as EXP-091's "a provably stronger member swapped in is worth +0.00" — overlap
+with what is already there, not the standalone effect, is what a change is worth.
+
+### What to do with it
+
+**6 rows is below the ~20-row readability bar** (`CLAUDE.md`) for *detecting an effect
+size*. But note the bar's usual justification does not apply here: two submissions
+differing on 6 rows have **no sampling noise between them** — the delta is exactly the net
+of those 6 rows, not a ±9-10 clip draw. So a submission gives an **exact but very
+small-sample** reading: it measures those ~3 public rows, and does not generalise.
+
+**Recommendation: submit it as insurance, not as a measurement.** We intend to carry
+distinctness into the final submission on the strength of 4/4 OOF folds plus a mechanism
+that fits nothing (it is a property of the recording protocol, unlike the transition model
+which estimates statistics from train users, and should therefore transfer better to the 8
+private and 8 on-site subjects). Confirming it does not lose costs one slot of ~60
+remaining and bounds the downside at 3 clips. The precedent is EXP-097's `--start-weight`,
+which was "real but small, so it rides along" — the difference here is that we now have
+4/4 folds and a bounded downside, so it is worth the slot before the final selection.
+
+**Adopt into the champion recipe either way:** `--distinctness penalty --distinctness-penalty 2.0`.
+
+---
+
 ## EXP-124 — Diagnostic pass: the error is a RANKING problem, subject variance derives the noise floor, and B-022 is finally testable.
 **Date:** 2026-09-03 · analysis only, artifacts already on disk · **Tier:** explore · **Purpose:** INFORMATION
 **Full write-up: [`docs/RESEARCH_PROGRAM.md`](../docs/RESEARCH_PROGRAM.md)**

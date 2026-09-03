@@ -147,12 +147,35 @@ against 37 broken**, on a smooth plateau across λ ∈ [1,4], not a knife-edge f
 | **soft penalty λ=2.0, gap<30 s** | **0.78704** | **+2.41** | **102 / 37** |
 | soft penalty λ=2.0, gap<60 s | 0.76074 | −0.22 | 100 / 106 |
 
-**Prediction, stated before the submission: positive, on the order of +4 to +5 public
-clips.** The 30 s-vs-60 s sign flip is the mechanism showing itself — the constraint is
-true of tight recording passes and false of sessions, so block granularity is the whole
-experiment. **Cost: one submission, zero GPU.** This is the cheapest live test of a
-standing prediction in the campaign, and it is currently *off* in the champion recipe
-(`--distinctness` defaults to `none`).
+> ### ⚠ PREDICTION CORRECTED, same day. I predicted **+4 to +5 public clips. That was wrong.**
+>
+> The +2.41 above was measured against **raw argmax**. The champion already runs the
+> transition decoder, which captures most of the same structure — consecutive clips in a
+> recording almost never repeat a class, and a first-order Markov model learns that on its
+> own. Run through the **real decoder** on top of the champion's own settings, the
+> *incremental* value is **+1.00 point**, not +2.41:
+>
+> | | pooled OOF | rescues | harms |
+> |---|---|---|---|
+> | `--distinctness none` (champion) | 0.80148 | 191 | 87 |
+> | `--distinctness penalty 2.0` | **0.81148** | **216** | **85** |
+>
+> **4/4 folds positive** (+1.48 / +0.74 / +1.03 / +0.74, mean +1.00, sd 0.35), and it adds
+> 25 rescues while *removing* 2 harms — the ideal signature.
+>
+> **But on test it moves only 6 of 405 rows**, which the OOF change rate predicts exactly
+> (43 extra changes on 2,700 = 1.59% → 6.5 rows on 405). So ~3 rows on the public 201, and
+> an expected **+1 clip, range −3 to +3**.
+>
+> **The lesson generalises:** measure an add-on against *the system you actually ship*, not
+> against argmax. Half the apparent gain was already being collected by a component that
+> was switched on.
+
+The mechanism still stands (the 30 s-vs-60 s sign flip is the constraint being true of
+tight recording passes and false of sessions), and the change is protocol-grounded rather
+than fitted — it should transfer to private and on-site better than the transition model,
+which estimates statistics from train users. It is currently *off* in the champion recipe
+(`--distinctness` defaults to `none`), and `submissions/sub_r2_dist.csv` is built.
 
 ---
 
@@ -179,7 +202,7 @@ experiments so they can be scored honestly.
 
 | change | predicted effect | mechanism | confidence | cost |
 |---|---|---|---|---|
-| **Turn on soft distinctness at 30 s blocks** | **+4 to +5 public clips** | §4; B-022 ladder is monotone and base is now 43 clips above where it read 0 | 65% | 1 submission |
+| **Turn on soft distinctness** | **+1 clip (range −3..+3)** — corrected down from +4/+5 | §4; +1.00 pt OOF 4/4 folds, but only **6 of 405 rows** change | 70% it is ≥0 | 1 submission |
 | **Binary rank-1-vs-rank-2 re-ranker** | up to +10.5 pts available; realistically +2 to +4 | §1 — 44.5% of errors are one binary decision | 40% that ≥2 pts is reachable | 1–2 days build |
 | **T3 oracle target beats fused target** | +1 to +3 over `distil_fused` | §1a — the oracle target's advantage *is* the rank-2 pair | 55% | already queued |
 | **Per-pair specialists (X-02)** | ≈0 | §3 — 10 models buy 32% of error mass, each fitted on tens of clips | 75% it disappoints | — |
