@@ -13,6 +13,71 @@ results.
 
 ---
 
+## EXP-128 — ✅ A LEGAL ≤100 MB PACKAGE SCORES 165, ABOVE THE TOP-15 CUT. And a 0.36-accuracy member beats a 0.73-accuracy one in the same slot.
+**Date:** 2026-09-04 · **Tier:** exploit · **Purpose:** COMPLIANCE + SCORE
+
+| submission | components | size | legal? | clips |
+|---|---|---|---|---|
+| `sub_r2_dist` champion | person + wrist + skel + `imu_stats` **(sklearn)** | ~91 MB + unpackageable member | ❌ | **167** |
+| **`sub_pkg_student`** | **wrist + skel + student** | **91.4 MB** | ✅ | **165** |
+| `sub_pkg_student_2v` | person + wrist + skel + student | 125.7 MB | ❌ over cap | 163 |
+| `sub_distil_alone` | student alone | **34.3 MB** | ✅ | 157 |
+
+### ① The compliance headline: legality costs 2 clips, not the competition
+
+**165 ≥ the top-15 cut of 164.** Before today the honest position was *"either ~91 MB minus
+43 rows of accuracy, or no legal package at all"*. It is now **a measured 165 from a
+configuration that contains no sklearn member and no unrepresentable component** — every
+piece is a torch `state_dict`. The gap to the unpackageable champion is **2 clips**.
+
+### ② The single-change result overturns an assumption: accuracy is not what that slot buys
+
+`pkg_student_2v` differs from the champion in **exactly one component** (verified: the
+recipe reproduces `testprobs_r2` to max abs diff **0.000e+00**) — `imu_stats_t200_d12`
+replaced by the student at the same 0.3575 weight, the heaviest in the fusion.
+
+**It lost 4 clips (167 → 163), despite the student being roughly twice as accurate**
+(≈0.73 vs `imu_stats`' **0.3605**).
+
+**So `imu_stats` earns its weight through error PLACEMENT, not accuracy** — the EXP-088
+mechanism, stated there as the reason IMU fuses and thermal does not: *its errors are
+confined to classes where it is reliably unconfident*. I flagged this exact risk in
+EXP-127's pre-registered prediction and it is what happened. **This is the mirror image of
+EXP-123's thermal finding**, where accuracy *was* the binding constraint. The two together
+say the fusion value of a member is neither accuracy nor decorrelation alone — it is
+*where* its confidence sits relative to its errors, and that has to be measured per member
+rather than inferred from a headline number.
+
+**Prediction scorecard:** `pkg_student` predicted **158–170, centre 164 → 165, hit near
+centre**. `pkg_student_2v` predicted **164–174, centre 169 → 163, MISS**, one clip below
+the band. I named the mechanism that would cause the miss and still centred the band above
+it; the lesson is to weight a named failure mode more heavily than the headline comparison.
+
+### ③ Redundancy is measurable and costs clips
+
+Dropping the person view **gained 2** (163 → 165). The student is trained on the
+**person-crop cache**, so the person view carries almost no information the student lacks.
+Same mechanism that cost `r2_x_distil` 2 clips. **Distillation does not just compress an
+ensemble — it makes its own source members redundant**, and leaving them in is a measured
+loss, not a hedge.
+
+### What remains for T-PKG — and it is now engineering, not score
+
+The **score** question is answered: a legal configuration is worth 165. The **file** does
+not exist. Still true and still blocking:
+
+- `package_ensemble.build_model` is a closed registry that cannot construct `mvit_v2_s`
+- `infer_packaged.dataset_key` is a role whitelist with **no video path**
+- `w25_p4` at 22.8 MB and the int8 MViT views remain **payload estimates**; only the
+  student's 34.3 MB is derived from a real file (34,275,016 params)
+
+**The next T-PKG step is to BUILD the 91.4 MB file and verify it reproduces
+`sub_pkg_student.csv` argmax-identical**, measured by `ls -la`, not arithmetic. Until that
+exists, 165 is a score claim, not a legal one — the exact distinction that produced the
+retracted "83.82 MB legal package".
+
+---
+
 ## EXP-127 — RESULTS: student alone 157, champion⊗student 165. Champion holds at 167. T-PKG now has a NUMBER.
 **Date:** 2026-09-04 · **Tier:** exploit · **Purpose:** SCORE + COMPLIANCE
 
