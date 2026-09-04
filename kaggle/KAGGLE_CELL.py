@@ -128,80 +128,70 @@ assert (TEACHERS / "teacher_fused.npz").is_file(), \
 print(f"trainer OK (--seed, --teacher, --distill-alpha present): {K.__file__}")
 
 # ============================================================================
-# T3 / EXP-126 — THE ALL-TRAIN DISTILLED STUDENT: the artifact that ships.
+# EXP-130 — A DISTILLED WRIST STUDENT: upgrade a slot without disturbing what works.
 #
-# EXP-122 established the effect on fold 2 (Kaggle, seed 1):
-#     distil_ctrl  (alpha=0, leak-free) 0.71012      <- baseline seed mean 0.70501
-#     distil_fused (alpha=0.7)          0.74387      +3.38 vs ctrl
-#     distil_oracle(alpha=0.7, oracle)  0.75920      +4.91 vs ctrl,  +21 OBJECT clips
-# Both clear the 3.28 single-fold bar. The absolute numbers are optimistic (the teacher
-# saw fold-2's val users), but a student trained on ALL clips and run on TEST is NOT
-# leaked -- test subjects appear in no member's training set. So the honest read is a
-# submission, and that is what this cell produces.
+# ⚠ NEEDS A FOURTH INPUT: Add Input -> Datasets -> "cuhkx-wrist-cache".
+# ⚠ Session options -> Persistence -> "Files only", and run via
+#    Save Version -> "Save & Run All (Commit)". Two sessions have already lost their
+#    checkpoints; the compute succeeded both times and only the files died.
 #
-# ⚠⚠ BEFORE RUNNING, TWO SETTINGS. The last two sessions lost every artifact to these.
+# WHY THIS RUN AND NOT ANOTHER. Today's three submissions taught two things that
+# together pick this experiment:
 #
-#   1. Session options -> Persistence -> "Files only"  (or "Variables and Files")
-#      Without it /kaggle/working is DISCARDED when the session ends. Both previous
-#      runs completed successfully and lost their checkpoints this way. The printed
-#      numbers survive and look like the whole result; the models do not.
+#   * EXP-128: swapping the sklearn `imu_stats` (accuracy 0.3605) for the far more
+#     accurate student (~0.73) at the same 0.3575 weight LOST 4 clips. That member earns
+#     the heaviest slot in the fusion through error PLACEMENT, not accuracy. So do not
+#     touch it.
+#   * EXP-127/128: the person view is redundant with a person-crop-distilled student --
+#     dropping it GAINED 2 clips. Adding video members is a documented graveyard.
 #
-#   2. Run it as  Save Version -> "Save & Run All (Commit)",  NOT in this draft session.
-#      A draft session is tied to the browser tab -- it stops shortly after you close
-#      or lose the tab, which is what kills a multi-hour run. A commit run executes
-#      headless on Kaggle's servers and snapshots /kaggle/working as version output.
+# So the move is neither "add a member" nor "replace the IMU branch". It is to UPGRADE an
+# existing video slot in place: the champion's wrist view is `k224_mvitwrist_all` at about
+# 0.7065, and distillation lifted the person member by +4.91 over a leak-free control
+# (EXP-122). A wrist student is trained on a DIFFERENT crop, so it should not inherit the
+# person student's redundancy.
 #
-# This cell is RESUMABLE: any run whose oof_/testprobs_ file already exists is skipped.
-# With persistence on, a session that dies mid-way costs only the unfinished run.
+# PREDICTION, recorded before the run: the champion with its wrist view replaced scores
+# 164-171, centre 168. Honest EV is modest -- the video slot is a graveyard and two
+# video-slot changes lost clips today -- but this one keeps imu_stats and swaps a member
+# for a stronger version of itself rather than adding to the bag.
+#
+# Also a package upgrade: the shipped 93.37 MB file carries this same wrist checkpoint,
+# so a better one improves Stage 2 as well as the leaderboard.
 # ============================================================================
-WORKOUT = Path("/kaggle/working")
-prior = sorted(p.name for p in WORKOUT.glob("*.npz")) + sorted(p.name for p in WORKOUT.glob("*.pt"))
-print(f"/kaggle/working already holds {len(prior)} artifact(s): {prior if prior else '(none)'}")
-if prior:
-    print("  -> persistence appears to be ON (files survived a previous session). Good.")
-else:
-    print("  -> EMPTY. If you have run this notebook before, persistence is OFF and the")
-    print("     previous outputs were discarded. Fix it now: Session options -> Persistence")
-    print("     -> 'Files only', then rerun. Otherwise this run's checkpoints are lost too.")
+WRISTC = unflatten("cropwrist224", "crop_wrist224")
+if not (WRISTC / "train_index.json").is_file():
+    raise SystemExit(
+        "cuhkx-wrist-cache is not attached.\n"
+        "Sidebar -> Add Input -> Datasets -> 'cuhkx-wrist-cache', then rerun.\n"
+        "What is mounted:\n" + _tree())
 
-TAG = "distil_oracle_all"
+TAG = "distil_oracle_wrist_all"
 import numpy as np
-
-# --- train the all-train student -------------------------------------------
-# --all-train uses all 18 users, so the printed fold-2 number is TRAIN-ON-TEST and is
-# meaningless as validation -- ignore it. EXP-122 already measured the honest fold-2
-# effect; this run exists to produce test probabilities.
 if (WORKOUT / f"{TAG}.pt").is_file():
     print(f"\n{TAG}.pt exists -- skipping training")
 else:
-    print(f"\n=========== TRAIN {TAG} (oracle teacher, alpha=0.7, all 18 users) ===========",
+    print(f"\n=========== TRAIN {TAG} (oracle teacher, alpha=0.7, wrist crop) ===========",
           flush=True)
-    K.run(stage="train", all_train=True, tag=TAG, cache_dir=str(CROP224),
+    K.run(stage="train", all_train=True, tag=TAG, cache_dir=str(WRISTC), crop="wrist",
           teacher=str(TEACHERS / "teacher_oracle.npz"), distill_alpha=0.7,
           distill_temp=2.0, seed=1, batch_size=8, accum=2, workers=2)
 
-# --- test inference ---------------------------------------------------------
 if (WORKOUT / f"testprobs_{TAG}.npz").is_file():
     print(f"testprobs_{TAG}.npz exists -- skipping inference")
 else:
     print(f"\n=========== INFER {TAG} ===========", flush=True)
-    K.run(stage="infer", all_train=True, tag=TAG, cache_dir=str(CROP224),
+    K.run(stage="infer", all_train=True, tag=TAG, cache_dir=str(WRISTC), crop="wrist",
           teacher=str(TEACHERS / "teacher_oracle.npz"), distill_alpha=0.7,
           distill_temp=2.0, seed=1, batch_size=8, accum=2, workers=2)
 
-print("\n================ EXP-126 OUTPUT ================")
+print("\n================ EXP-130 OUTPUT ================")
 for f in sorted(WORKOUT.iterdir()):
     if f.suffix in (".npz", ".pt", ".csv"):
-        print(f"  {f.name:34s} {f.stat().st_size/1e6:8.2f} MB")
+        print(f"  {f.name:36s} {f.stat().st_size/1e6:8.2f} MB")
 print("""
-DOWNLOAD BEFORE THE SESSION ENDS -- from the notebook's Output panel, or the version
-output if this was a commit run. The two that matter:
-
-  testprobs_distil_oracle_all.npz   <- fuse this at home, then decode and submit
-  distil_oracle_all.pt              <- 137 MB; THE PACKAGING CANDIDATE (34.3 MB at int8)
-
-A single 34.3 MB student scoring 0.75920 on fold 2 is approaching the whole five-member
-fusion (0.7630). That is the T-PKG win as much as it is a score lead: one architecture,
-one modality, one dataset path, and it retires the sklearn ExtraTrees member that
-package_ensemble.py cannot represent at all.
+DOWNLOAD BEFORE THE SESSION ENDS:
+  testprobs_distil_oracle_wrist_all.npz   <- fuse at home as the wrist view, then decode
+  distil_oracle_wrist_all.pt              <- 137 MB; replaces the wrist member in the
+                                             93.37 MB Stage-2 package
 """)

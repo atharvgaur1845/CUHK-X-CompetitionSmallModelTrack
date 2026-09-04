@@ -75,3 +75,4 @@ cluster/activate.sh
 .hf/
 /.kdset/
 /.krepo/
+/.kwrist/
