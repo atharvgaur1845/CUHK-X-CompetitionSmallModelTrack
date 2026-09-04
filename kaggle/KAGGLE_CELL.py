@@ -167,6 +167,13 @@ print(f"trainer OK (--seed, --teacher, --distill-alpha present): {K.__file__}")
 # Also a package upgrade: the shipped 93.37 MB file carries this same wrist checkpoint,
 # so a better one improves Stage 2 as well as the leaderboard.
 # ============================================================================
+WORKOUT = Path("/kaggle/working")
+prior = sorted(f.name for f in WORKOUT.glob("*.npz")) + sorted(f.name for f in WORKOUT.glob("*.pt"))
+print(f"/kaggle/working holds {len(prior)} artifact(s): {prior if prior else '(none)'}")
+if not prior:
+    print("  -> if you have run this notebook before, persistence is OFF and the previous")
+    print("     outputs were discarded. Session options -> Persistence -> 'Files only'.")
+
 WRISTC = unflatten("cropwrist224", "crop_wrist224")
 if not (WRISTC / "train_index.json").is_file():
     raise SystemExit(
