@@ -75,11 +75,19 @@ DSET = str(Path(cache_hits[0]).parent)
 print("caches:", DSET)
 
 def unflatten(prefix: str, name: str) -> Path:
-    """Rebuild cache/<name>/ from the flattened <prefix>_* files, via symlinks."""
+    """Rebuild cache/<name>/ from the flattened <prefix>_* files, via symlinks.
+
+    Searches ALL of /kaggle/input, not one dataset directory. Each cache lives in its
+    own Kaggle dataset -- crop_224 and thermal_full in `cuhkx-smt-derived-caches`,
+    crop_wrist224 in `cuhkx-wrist-cache` -- and an earlier version of this globbed
+    inside the first dataset only, so an attached wrist cache reported "0 files" and
+    the run died at a SystemExit that blamed the sidebar. The prefixes do not collide:
+    `crop224_*` does not match `cropwrist224_*`.
+    """
     d = WORK / "cache" / name
     d.mkdir(parents=True, exist_ok=True)
     n = 0
-    for src in sorted(glob.glob(f"{DSET}/{prefix}_*")):  # DSET is now an exact dir
+    for src in find(f"{prefix}_*"):
         dst = d / Path(src).name[len(prefix) + 1:]
         if not dst.exists():
             os.symlink(src, dst)
