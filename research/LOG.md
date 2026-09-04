@@ -13,6 +13,76 @@ results.
 
 ---
 
+## EXP-127 — RESULTS: student alone 157, champion⊗student 165. Champion holds at 167. T-PKG now has a NUMBER.
+**Date:** 2026-09-04 · **Tier:** exploit · **Purpose:** SCORE + COMPLIANCE
+
+| submission | score | clips | vs champion |
+|---|---|---|---|
+| `sub_r2_dist` (champion) | 0.83084 | **167** | — |
+| `sub_r2_x_distil` | 0.82089 | 165 | **−2** |
+| `sub_distil_alone` | 0.78109 | **157** | **−10** |
+
+**Both predictions from EXP-126 held.** `distil_alone` was predicted **155–168** with
+"I do not expect it to beat 167" → **157**. `r2_x_distil` was predicted **165–174** and
+flagged as double-counting → **165**, the bottom of the band, and it **lost 2 clips**.
+Distilling from the members and then fusing back into them is not independent evidence,
+and the leaderboard agrees.
+
+### The result that matters is the packaging one
+
+**One 34.3 MB file scores 157.** That is the first honest measurement of what a *legal*
+single-file package is worth, and it converts T-PKG from an unbounded risk into an
+arithmetic problem:
+
+| | clips |
+|---|---|
+| single distilled student, 34.3 MB, fully packageable | **157** |
+| top-15 cut (2026-09-01 snapshot) | **164** |
+| **gap to close** | **7** |
+| current champion (NOT packageable — sklearn IMU member) | 167 |
+
+For scale, the published public notebooks sit at 143 and our whole ~309 MB pipeline scores
+167. **A single architecture at 22% of the size retains 94% of the score.**
+
+### The package does not have to be one model — and the arithmetic now closes
+
+R-6 caps the *file*, not the member count. With the student at 34.3 MB there is 65.7 MB of
+headroom, and every remaining member is a torch `state_dict`:
+
+| candidate | components | size | legal? | rowdiff vs champion |
+|---|---|---|---|---|
+| `sub_pkg_student` | `w25_p4` 22.8 + student 34.3 + wrist 34.3 | **91.4 MB** | ✅ | 38 |
+| `sub_pkg_student_2v` | the above + person 34.3 | 125.7 MB | ❌ over cap | 32 |
+
+**`sub_pkg_student_2v` is a clean SINGLE-CHANGE experiment**, verified: rebuilding the
+champion recipe reproduces `testprobs_r2` to **max abs diff 0.000e+00**, and the candidate
+differs from it in exactly one component — `--imu imu_stats_t200_d12 → distil_oracle_all`.
+It swaps the **sklearn ExtraTrees member (accuracy 0.3605) that `package_ensemble.py`
+cannot represent at all** for the student, at the same 0.3575 weight — the heaviest slot in
+the fusion, and the one the 2026-07 audit flagged as misallocated.
+
+**Prior space is consistent, checked not assumed:** the `I` slot enters as `L(I)` with no
+prior division, i.e. it is treated as uniform-prior — which is exactly what the student
+emits, and arguably more correct there than the tree it replaces.
+
+### Predictions, recorded BEFORE scoring
+
+- **`sub_pkg_student_2v`: 164–174, centre ~169.** A strict member upgrade in the
+  heaviest-weighted slot. The risk is that `imu_stats` earns its weight not through
+  accuracy but because *its errors sit where it is unconfident* (the EXP-088 mechanism),
+  and the student may not share that property.
+- **`sub_pkg_student`: 158–170, centre ~164.** Same upgrade, but paying for the dropped
+  person view. This is the number that decides whether a legal package can clear the cut.
+
+### ⚠ The size arithmetic is still partly arithmetic
+
+The student's 34.3 MB is exact (34,275,016 params, int8-per-tensor). **`w25_p4` at 22.8 MB
+and the int8 MViT views remain payload estimates — no such file has been built**, which is
+precisely the error that produced the retracted "83.82 MB legal package". T-PKG is not
+closed by this entry; it is *sized*.
+
+---
+
 ## EXP-126 — The all-train distilled student exists as a 34.3 MB file. Two candidates built; predictions recorded before submission.
 **Date:** 2026-09-04 · `distil_oracle_all` · **Tier:** exploit · **Purpose:** SCORE + COMPLIANCE
 
