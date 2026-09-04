@@ -13,6 +13,54 @@ results.
 
 ---
 
+## EXP-126 — The all-train distilled student exists as a 34.3 MB file. Two candidates built; predictions recorded before submission.
+**Date:** 2026-09-04 · `distil_oracle_all` · **Tier:** exploit · **Purpose:** SCORE + COMPLIANCE
+
+The all-train oracle-distilled student trained and inferred on Kaggle. Artifacts filed:
+`checkpoints/distil_oracle_all.pt`, `research/artifacts/testprobs_distil_oracle_all.npz`.
+
+**The compliance number, and it is the headline.** 34,275,016 params → **34.3 MB at
+int8-per-tensor, the only codec `infer_packaged.py` actually decodes**, leaving **65.7 MB
+of headroom** under R-6's 100 MB single-file cap. Against a five-member ensemble whose
+honest int8 total was ~91 MB *without* the sklearn IMU branch it cannot represent at all.
+
+**Prior space, checked rather than assumed.** The student trains with logit-adjusted CE
+against a de-priored teacher, so it emits **uniform-prior** posteriors like every other
+video member. Applying the recipe's `+0.25·log(prior)` was verified to be nearly inert
+here — argmax agreement with the champion is **0.8123 under raw, ^0.25 and ^0.50 alike**,
+and only `prior^1.00` moves anything (3 rows). Used ^0.25 to match the recipe's shape.
+**Sid order asserted identical to the champion's before any fusion** (a stray order shift
+would have silently mis-scored every row).
+
+**Two candidates, each a single change from the champion `sub_r2_dist`:**
+
+| candidate | what changed | rowdiff | repeat-collisions |
+|---|---|---|---|
+| `sub_distil_alone` | **the whole 5-member fusion replaced by one 34.3 MB student** | **51** | 36→4 |
+| `sub_r2_x_distil` | champion ⊗ student, equal weight in log space | **29** | 32→1 |
+
+Both clear the ~20-row readability bar. Student-vs-champion argmax agreement is
+**329/405**, so this is a genuinely different model, not a perturbation.
+
+### Predictions, recorded BEFORE scoring
+
+- **`sub_distil_alone`: 155–168, wide.** The student's fold-2 0.75920 is inflated by the
+  teacher leak; strip an estimated 2–3 points and its honest fold-2 is ≈0.73, *below* the
+  champion's 0.7536 on those clips. Working against that, it trains on all 18 users where
+  the fold models saw 14. I do **not** expect it to beat 167, and the point of submitting
+  it is not the score — it is the answer to "can one 34.3 MB model carry this pipeline",
+  which is the T-PKG question and cannot be answered any other way.
+- **`sub_r2_x_distil`: 165–174.** Most likely the higher score, but it **double-counts**:
+  the student was distilled *from* these same five members, so it is not independent
+  evidence and the equal weight is not principled the way a geometric mix of independent
+  members would be. A win here is a weaker result than it looks.
+
+**Both are worth a slot** (~5/day, ~55 remaining). Submit `distil_alone` first: it answers
+the question that decides whether T-PKG is a small job or a large one, and its answer does
+not depend on `r2_x_distil`'s.
+
+---
+
 ## EXP-120b — CLOSED: full-frame thermal is +0.83 over 4 paired folds. NOT adopted. The crop was never the defect.
 **Date:** 2026-09-03/04 · `code/run_thermal_pairs.sh`, 8 runs, ~16 h laptop · **Tier:** explore · **Purpose:** SCORE
 
