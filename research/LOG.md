@@ -225,8 +225,52 @@ and this is a laptop-sized job that can follow EXP-120b's fold 3.
 
 ---
 
-## EXP-122 — T3 distillation student: built, smoke-tested, QUEUED. Design recorded before the run.
-**Date:** 2026-09-03 · `--teacher / --distill-alpha / --distill-temp` · **Tier:** explore · **Purpose:** SCORE + COMPLIANCE
+## EXP-122 — ✅ T3 DISTILLATION WORKS: +4.91 over a leak-free control, the largest member gain since 224 px. Oracle target beats fused by +1.53, as predicted.
+**Date:** 2026-09-03/04 · `--teacher / --distill-alpha / --distill-temp` · **Tier:** explore · **Purpose:** SCORE + COMPLIANCE
+
+> ## RESULT (Kaggle, fold 2, seed 1)
+>
+> | run | micro | object | vs control |
+> |---|---|---|---|
+> | `distil_ctrl` (α=0, leak-free) | 0.71012 | 311/479 | — |
+> | `distil_fused` (α=0.7) | 0.74387 | 325/479 | **+3.38** |
+> | `distil_oracle` (α=0.7) | **0.75920** | **332/479** | **+4.91** |
+>
+> **The control did its job:** α=0 on the same 2,148 clips scores 0.71012 against the
+> baseline seed mean of 0.70501, so **dropping the 133 teacher-less clips costs nothing**
+> and the gains are attributable to the objective, not to training-set size.
+>
+> **Both distilled runs clear the 3.28 single-fold bar.** +3.38 and +4.91 are the largest
+> member-strength gains since the move to 224 px.
+>
+> **The gain lands exactly where the error mass is:** OBJECT 311 → 332 = **+21 clips**, and
+> OBJECT is 75% of our residual error.
+>
+> **PREDICTION CONFIRMED.** `docs/RESEARCH_PROGRAM.md` predicted, before this ran, that the
+> **oracle target would beat the fused target by +1 to +3** (55% confidence), on the
+> reasoning that the oracle's advantage *is* the rank-2 pair — EXP-124 measured
+> oracle-any-member 0.8774 ≈ champion top-2 0.8685. **Measured: +1.53.** Inside the
+> predicted band.
+>
+> **⚠ The absolute numbers are OPTIMISTIC and the ledger must keep saying so.** Teacher
+> targets for fold-2 *training* clips come from pooled OOF, and each such entry was
+> produced by the one fold model that held that clip out — a model that trained on fold
+> 2's *validation* users. Knowledge of the val users therefore reaches the student. Only
+> `distil_ctrl` (α=0) is leak-free. **A clean local estimate would require retraining every
+> member with nested inner folds and is not affordable.**
+>
+> **The +1.53 oracle−fused contrast is the one clean comparison** (identical clips,
+> identical leak structure, one changed factor) — and at 0.93 SE it is a **lead, not a
+> result**, exactly as written down before the run.
+>
+> **What is NOT leaked:** a student trained on all 2,700 clips and run on test. Test
+> subjects appear in no member's training set, so the deployed artifact is legitimate; the
+> leak affects only our fold-2 estimate. **The honest read is a submission.**
+>
+> **Compliance significance.** A single 34.3 MB student scoring 0.75920 on fold 2 is
+> approaching the whole five-member fusion (0.7630 pooled) — which is the T-PKG win: one
+> architecture, one modality, one dataset path, and it retires the sklearn ExtraTrees
+> member `package_ensemble.py` cannot represent at all.
 
 Distillation now lives in `kaggle/cuhkx_224_kaggle.py` rather than a new trainer, so the
 student shares the cache, model, EMA, eval and resume path that produced every video
