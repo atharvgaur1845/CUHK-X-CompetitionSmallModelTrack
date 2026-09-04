@@ -1,0 +1,212 @@
+#!/usr/bin/env python3
+"""T-PKG: build ONE Stage-2 weight file under the R-6 100 MB cap.
+
+WHY A NEW PACKER. `package_ensemble.py` works and its format is good -- zip, per-tensor
+SHA-256, streamed load -- but `build_model` is a closed registry that cannot construct
+`mvit_v2_s`, and `infer_packaged.dataset_key` is a role whitelist with no video path. The
+members we now ship are two MViT video models plus a skeleton/IMU stack, so the registry
+is the wrong shape. This reuses the FORMAT and replaces the registry.
+
+WHAT GOES IN (measured, EXP-128: this configuration scored 165/201, one clip above the
+top-15 cut, against the unpackageable champion's 167):
+
+  skeleton   5 archs x 4 folds, copied verbatim out of model_astgcn_world25_int8.pth
+             (already symmetric_int8_per_tensor)                          22.80 MB
+  student    distil_oracle_all, the oracle-distilled MViTv2-S             34.28 MB
+  wrist      k224_mvitwrist_all, the second video view                    34.28 MB
+                                                                        ---------
+                                                                          91.36 MB
+
+QUANTISATION, and why int6 codes are stored in int8 containers. The deployed video
+probabilities came from `quantize_checkpoint.py --bits 6`: symmetric, PER-OUTPUT-CHANNEL,
+weight-only, applied to every floating tensor with dim >= 2; norm scales, biases and
+positional tables stay fp32 because they are a rounding-sensitive fraction of the
+parameters. Six-bit codes live in [-32, 31] and fit an int8 container exactly, so storing
+them as int8 is LOSSLESS with respect to the weights that produced those probabilities --
+we reproduce the deployed model, not an int8 approximation of it. Bit-packing to 6/8 of a
+byte would save 8.6 MB per view and is unnecessary at 91.36 MB; it is not implemented
+rather than implemented and unused.
+
+⚠ PROVENANCE GAP FOUND AND FIXED HERE. `w25_p4`'s composition was never recorded --
+`prune_world25.py` takes `--drop`/`--merge` and no invocation survives in any ledger, so
+its 22.80 MB probabilities cannot be regenerated. The tag set is recoverable from the byte
+total (5 archs = 22.80 MB, exact), but the weight redistribution is not: the closest
+reconstruction still differs on 14 of 405 rows. **This package therefore declares its own
+skeleton spec in the manifest and derives weights from it**, so what ships is reproducible
+from the file alone. Stage 2 is a reproduction stage; an unrecorded invocation is a defect.
+"""
+from __future__ import annotations
+
+import argparse
+import collections
+import hashlib
+import json
+import zipfile
+from pathlib import Path
+
+import numpy as np
+
+ROOT = Path(__file__).resolve().parents[1]
+ART = ROOT / "research" / "artifacts"
+WORLD25 = ART / "model_astgcn_world25_int8.pth"
+CAP_BYTES = 100 * 10 ** 6
+
+
+def sha(b: bytes) -> str:
+    return hashlib.sha256(b).hexdigest()
+
+
+def quantize_video(tag: str, bits: int):
+    """Reproduce quantize_checkpoint.py exactly, but keep the CODES instead of
+    round-tripping them to fp32. Returns (entries, blobs, n_quant, n_fp32)."""
+    import torch
+    pkg = torch.load(ROOT / "checkpoints" / f"{tag}.pt", map_location="cpu",
+                     weights_only=False)
+    sd = pkg["state_dict"]
+    qmax = 2 ** (bits - 1) - 1
+    entries, blobs, nq, nf = [], {}, 0, 0
+    for name, v in sd.items():
+        if v.dtype.is_floating_point and v.dim() >= 2:
+            w = v.reshape(v.shape[0], -1).float()
+            scale = w.abs().amax(1, keepdim=True).clamp_min(1e-12) / qmax
+            code = (w / scale).round().clamp(-qmax - 1, qmax).to(torch.int8)
+            cb = code.numpy().tobytes()
+            sb = scale.reshape(-1).numpy().astype(np.float32).tobytes()
+            entries.append({"name": name, "shape": list(v.shape),
+                            "encoding": f"symmetric_int{bits}_per_output_channel",
+                            "container": "int8", "qmax": qmax,
+                            "dtype": str(v.dtype).replace("torch.", ""),
+                            "code_entry": f"{name}.code", "scale_entry": f"{name}.scale",
+                            "nbytes": len(cb) + len(sb),
+                            "sha256": sha(cb), "scale_sha256": sha(sb)})
+            blobs[f"{name}.code"] = cb
+            blobs[f"{name}.scale"] = sb
+            nq += 1
+        else:
+            b = v.float().numpy().astype(np.float32).tobytes()
+            entries.append({"name": name, "shape": list(v.shape), "encoding": "float32",
+                            "dtype": str(v.dtype).replace("torch.", ""),
+                            "code_entry": f"{name}.raw", "nbytes": len(b), "sha256": sha(b)})
+            blobs[f"{name}.raw"] = b
+            nf += 1
+    return entries, blobs, nq, nf
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--out", default=str(ART / "stage2_package.pth"))
+    ap.add_argument("--skel-tags",
+                    default="astgcn_v1,imu_inv4,imu_world,skel_jvb_big,stgcn_v1",
+                    help="world25 archs to keep; the default set is 22.80 MB over 4 folds")
+    ap.add_argument("--merge", action="append",
+                    default=["skel_jvb_big=skel_jvb_big_s1,skel_jvb_big_s2,"
+                             "skel_jvb_big_s3,skel_jvb_big_s4",
+                             "stgcn_v1=stgcn_s1,stgcn_w96"],
+                    help="survivor=dropped,... — dropped tags' weight moves to the "
+                         "survivor of the same fold, so a seed collapse changes the seed "
+                         "count and nothing else")
+    ap.add_argument("--video", action="append",
+                    default=["student=distil_oracle_all", "wrist=k224_mvitwrist_all"],
+                    help="role=checkpoint-tag (file must be checkpoints/<tag>.pt)")
+    ap.add_argument("--bits", type=int, default=6)
+    a = ap.parse_args()
+
+    keep = {t for t in a.skel_tags.split(",") if t}
+    moved = {}
+    for spec in a.merge:
+        surv, _, src = spec.partition("=")
+        for t in src.split(","):
+            moved[t] = surv
+
+    src_zip = zipfile.ZipFile(WORLD25)
+    src_man = json.loads(src_zip.read("manifest.json"))
+    by_id = {m["id"]: m for m in src_man["members"]}
+    base_w = {m["id"]: float(m["weight"]) for m in src_man["members"]}
+    w = dict(base_w)
+    for mid, m in by_id.items():
+        if m["tag"] in moved:
+            surv = f"{moved[m['tag']]}_f{m['fold']}"
+            if surv in w:
+                w[surv] += base_w[mid]
+    kept = [mid for mid, m in by_id.items() if m["tag"] in keep]
+    tot = sum(w[i] for i in kept)
+
+    members, blobs = [], {}
+    for mid in sorted(kept):
+        m = by_id[mid]
+        tensors = []
+        for t in m["tensors"]:
+            b = src_zip.read(t["entry"])
+            assert sha(b) == t["sha256"], f"{mid}/{t['name']}: source blob is corrupt"
+            key = f"skel/{mid}/{t['name']}"
+            blobs[key] = b
+            tensors.append({**{k: v for k, v in t.items() if k != "entry"},
+                            "code_entry": key})
+        members.append({"id": mid, "role": m["role"], "tag": m["tag"], "fold": m["fold"],
+                        "model": m["model"], "weight": w[mid] / tot,
+                        "branch": "skeleton", "tensors": tensors,
+                        "source_checkpoint": m.get("source_checkpoint")})
+
+    for spec in a.video:
+        role, _, tag = spec.partition("=")
+        entries, vb, nq, nf = quantize_video(tag, a.bits)
+        for k, v in vb.items():
+            blobs[f"video/{role}/{k}"] = v
+        members.append({
+            "id": f"{role}_{tag}", "role": role, "tag": tag, "fold": None,
+            "branch": "video", "weight": None,
+            "model": {"builder": "kaggle/cuhkx_224_kaggle.py:build_model",
+                      "arch": "mvit_v2_s", "n_classes": 40, "in_channels": 4,
+                      "image_size": 224, "n_frames": 16,
+                      "cache": "crop_224" if role != "wrist" else "crop_wrist224"},
+            "tensors": [{**e, "code_entry": f"video/{role}/{e['code_entry']}",
+                         **({"scale_entry": f"video/{role}/{e['scale_entry']}"}
+                            if "scale_entry" in e else {})} for e in entries],
+            "source_checkpoint": f"checkpoints/{tag}.pt"})
+        print(f"  video {role:8s} <- {tag}: {nq} tensors at int{a.bits}, {nf} kept fp32")
+
+    manifest = {
+        "format": "cuhkx.stage2-package", "format_version": 2, "byte_order": "little",
+        "cap_bytes": CAP_BYTES,
+        "quantization": {"skeleton": "symmetric_int8_per_tensor (copied verbatim)",
+                         "video": f"symmetric_int{a.bits}_per_output_channel, "
+                                  "weight-only, codes stored in int8 containers"},
+        "skeleton_spec": {"keep_tags": sorted(keep), "merge": a.merge,
+                          "note": "declared here because w25_p4's invocation was never "
+                                  "recorded and its weights are not recoverable"},
+        "fusion": {"formula": "0.35*log(skel/prior) + 0.2925*log(video) + "
+                              "0.3575*log(student) + 0.25*log(prior)",
+                   "video_views": ["wrist"],
+                   "note": "the student occupies the slot the sklearn IMU member held; "
+                           "EXP-128 measured this configuration at 165/201"},
+        "loader": "code/unpack_stage2.py",
+        "members": members,
+    }
+    mb = json.dumps(manifest, indent=1, sort_keys=True).encode()
+
+    out = Path(a.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_STORED) as z:
+        z.writestr("manifest.json", mb)
+        for k, v in blobs.items():
+            z.writestr(k, v)
+
+    size = out.stat().st_size
+    payload = sum(len(v) for v in blobs.values())
+    by_branch = collections.Counter()
+    for m in members:
+        by_branch[m["branch"]] += sum(t["nbytes"] for t in m["tensors"])
+    print(f"\nwrote {out}")
+    for b, n in by_branch.items():
+        print(f"  {b:9s} {n/1e6:7.2f} MB")
+    print(f"  payload   {payload/1e6:7.2f} MB   manifest {len(mb)/1e6:.2f} MB")
+    print(f"  FILE ON DISK {size/1e6:.2f} MB / cap {CAP_BYTES/1e6:.0f} MB "
+          f"-> {'PASS' if size <= CAP_BYTES else 'FAIL'}")
+    if size > CAP_BYTES:
+        raise SystemExit("package exceeds the R-6 cap")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

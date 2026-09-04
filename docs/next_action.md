@@ -153,39 +153,46 @@ whether full-frame thermal changes the **fused** score — so the deliverable is
 `--stage infer` test probabilities on all four folds, not four more micro numbers.
 
 
-> # ⚠ RETRACTED 2026-09-01: THE PACKAGING PROBLEM IS **NOT** CLOSED.
+> # ✅ 2026-09-04: A STAGE-2 PACKAGE NOW EXISTS AS A FILE. EXP-129.
 >
-> This banner previously read "✅ THE PACKAGING PROBLEM IS CLOSED". **That was wrong.**
-> A code audit found that **no single-file package containing a video member has ever
-> been built**, and several of the numbers below are arithmetic, not files:
+> The 2026-09-01 retraction ("no single-file package containing a video member has ever
+> been built; every size figure is arithmetic") is **resolved**. A file exists:
 >
-> - The only real package artifacts on disk are `model_astgcn_world25_int8.pth`
->   (**85.22 MB**) and `model_astgcn_a20_int8.pth`, both **skeleton/IMU-only** and dated
->   2026-07-30 — a month before MViT existed. **83.82 MB is a spreadsheet total.**
-> - `code/quantize_checkpoint.py` is **fake quantization**: it round-trips to fp32
->   (`.to(v.dtype)`) and `torch.save`s a full-size file. No `*_q6.pt` of 26 MB exists or
->   ever did — that figure is a printed estimate.
-> - The 22.80 MB pruned `world25` **has no file**; `prune_world25.py` writes only
->   `testprobs_w25_p4.npz` (probabilities, not weights).
-> - `imu_stats` is a **scikit-learn ExtraTreesClassifier** and `package_ensemble.py`
->   cannot represent it at all. Dropping it costs **43 of 405 rows**.
-> - `package_ensemble.build_model` is a closed registry that cannot construct
->   `mvit_v2_s`; `infer_packaged.dataset_key` is a role whitelist with **no video path**.
+>     -rw-rw-r-- 1 atharv atharv 93367950 research/artifacts/stage2_package.pth
 >
-> **What is verified: a recipe whose parts sum to 83.82 MB scores 166. What is NOT
-> verified: that those parts serialize into one ≤100 MB file that loads and reproduces
-> that CSV.** At int8-per-tensor (the only codec the format decodes) the real total is
-> ~91.4 MB **without** the IMU branch. Top-15 → Stage-2 reproduction → failing it
-> forfeits everything. See the cluster plan, track **T-PKG**.
+> | branch | contents | MB |
+> |---|---|---|
+> | skeleton | 20 members, 5 archs × 4 folds, verbatim from `model_astgcn_world25_int8.pth` | 22.80 |
+> | video | `distil_oracle_all` + `k224_mvitwrist_all`, symmetric int8 per-output-channel | 69.61 |
+> | **file on disk** | | **93.37 / 100** |
 >
-> **`submissions/sub_r2.csv` = 0.82587 = 166/201 from an 83.82 MB package** — the same
-> score as the ~309 MB `sub_n8`, with 16.18 MB of headroom. R-6 (organiser, topic
-> 729056) caps every weight loaded at inference, ensemble members included, at 100 MB in
-> one file; we are comfortably inside it and lose nothing.
+> **Verified four ways** — size by `ls -la` not arithmetic; 1,598 tensors against manifest
+> SHA-256 with **0 mismatches**; dequantised weights **bit-identical** to
+> `quantize_checkpoint.py --bits 8`; and models rebuilt **from the package** re-run on the
+> test set. The fused, decoded output differs from the configuration that scored **165**
+> on **2 of 405 rows**.
 >
-> Still true and still load-bearing: the ">10% Kaggle-vs-package gap" allowance quoted in
-> older notes is **unsourced** — it is in neither `RULES_VERIFIED.md` nor `OBJECTIVE.md`.
-> Treat 100 MB as hard. We no longer need the slack anyway.
+> Build: `python3 code/pack_stage2.py --bits 8`
+> Verify: `python3 code/unpack_stage2.py --check integrity,weights,infer`
+> Reproduce the submission: `python3 code/fuse_from_package.py` → decode → `sub_pkg_v2.csv`
+>
+> **Two corrections this produced.**
+> 1. **int6 is strictly dominated and should stop being quoted.** EXP-107/108's int6
+>    operating point assumed bit-packing that was never implemented; 6-bit codes in int8
+>    containers cost the same bytes as int8 and carry more error (student 394/405 vs
+>    **403/405** against fp32; wrist 395 vs **404**). The package ships int8 at the
+>    identical 34.28 MB per view.
+> 2. **`w25_p4` cannot be regenerated** — `prune_world25.py`'s invocation was never
+>    recorded, and the closest reconstruction differs on 14 of 405 rows. The package
+>    therefore declares its own `skeleton_spec` in the manifest and
+>    `fuse_from_package.py` reads it back out, so the submission is regenerable from the
+>    shipped artifact alone. Stage 2 is a reproduction stage; do not create another
+>    artifact whose recipe lives only in a shell history.
+>
+> **Still open:** skeleton members are copied verbatim and were not re-run from the
+> package (their source manifest carries per-member argmax verification, so they are
+> trustworthy but not re-verified here), and the package's score is **predicted 165 ± 2,
+> not measured**, until `sub_pkg_v2.csv` is submitted.
 
 **Best score: `submissions/sub_r2.csv` = 0.82587 = 166/201.** Its *legality is unverified*
 — the package has never been built as a file (see the retraction above).

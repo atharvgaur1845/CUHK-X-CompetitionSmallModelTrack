@@ -13,6 +13,75 @@ results.
 
 ---
 
+## EXP-129 — ✅ THE STAGE-2 PACKAGE EXISTS. 93.37 MB on disk, verified by `ls -la`, reproducing the measured configuration to 2 of 405 rows.
+**Date:** 2026-09-04 · `code/pack_stage2.py`, `code/unpack_stage2.py`, `code/fuse_from_package.py` · **Tier:** exploit · **Purpose:** COMPLIANCE
+
+**This retires the highest-severity risk in the project.** Since EXP-117 the honest
+position has been *"no single-file package containing a video member has ever been
+built"*, and every size figure was arithmetic. A file now exists.
+
+    -rw-rw-r-- 1 atharv atharv 93367950 research/artifacts/stage2_package.pth
+
+| branch | contents | MB |
+|---|---|---|
+| skeleton | 20 members, 5 archs × 4 folds, copied verbatim from `model_astgcn_world25_int8.pth` | 22.80 |
+| video | `distil_oracle_all` + `k224_mvitwrist_all`, symmetric int8 per-output-channel | 69.61 |
+| manifest | fusion formula, skeleton spec, per-tensor SHA-256 | 0.65 |
+| **file on disk** | | **93.37 / 100** |
+
+### Verification, three independent levels
+
+| check | result |
+|---|---|
+| size, by `ls -la` not arithmetic | **93.37 MB ≤ 100 MB** |
+| integrity — 1,598 tensors vs manifest SHA-256 | **0 mismatches** |
+| weights — dequantised vs `quantize_checkpoint.py --bits 8` | **max abs diff 0.000e+00**, both video members |
+| inference — model rebuilt **from the package**, test set re-run | wrist reproduces its reference to **405/405 argmax, max\|dp\| 0.000e+00** at int6; at int8 it is 404/405 vs fp32 |
+| end-to-end — fused, decoded submission vs the configuration that scored 165 | **2 of 405 rows** |
+
+`sub_pkg_v2.csv` is the package's own output, regenerable from the shipped file plus
+`code/fuse_from_package.py`. Expected score **165 ± 2**, and because only 2 rows differ the
+delta is the exact net of those rows, not a noise draw.
+
+### ⚠ int6 was pointless, and the ledgers should stop quoting it
+
+EXP-107/108 measured int6 as the better operating point and the plan carried "26.01 MB at
+int6" for years of notes. **That analysis assumed bit-packing that was never implemented.**
+Six-bit codes stored in int8 containers occupy exactly the same bytes as int8 codes, so
+int6 is **strictly dominated**: identical file size, more error.
+
+| video member | vs fp32 at int6 | vs fp32 at int8 |
+|---|---|---|
+| student | 394/405 argmax | **403/405** |
+| wrist | 395/405 | **404/405** |
+
+Both at **34.28 MB**. The package ships int8. Bit-packing to 6/8 of a byte would save
+8.6 MB per view and is unnecessary at 93.37 MB — **not implemented, rather than
+implemented and unused**, which is the distinction EXP-117 caught the last packager
+failing.
+
+### ⚠ PROVENANCE DEFECT FOUND: `w25_p4` cannot be regenerated
+
+`prune_world25.py` takes `--drop`/`--merge` and **no invocation survives in any ledger**.
+The tag set is recoverable from the byte total (5 archs = **22.80 MB exactly**), but the
+weight redistribution is not — the closest reconstruction still differs on **14 of 405
+rows**. Stage 2 is a *reproduction* stage worth 10% of the grade, so a headline artifact
+that cannot be regenerated from recorded inputs is a defect, not a detail.
+
+**Fixed by construction:** the package declares its own `skeleton_spec` (keep-tags and
+merge rules) in the manifest, and `fuse_from_package.py` reads the fusion weights, the
+tag set and the merge rule **out of the shipped file**. The submission is regenerable from
+the artifact alone.
+
+### What is still open
+
+- The **skeleton members are copied verbatim and were not re-run** from the package. Their
+  source manifest carries per-member argmax verification against random inputs, so they
+  are trustworthy, but a full skeleton dataset path would close it properly.
+- The package's score is **predicted, not measured**, until `sub_pkg_v2.csv` is submitted.
+
+---
+
 ## EXP-128 — ✅ A LEGAL ≤100 MB PACKAGE SCORES 165, ABOVE THE TOP-15 CUT. And a 0.36-accuracy member beats a 0.73-accuracy one in the same slot.
 **Date:** 2026-09-04 · **Tier:** exploit · **Purpose:** COMPLIANCE + SCORE
 
