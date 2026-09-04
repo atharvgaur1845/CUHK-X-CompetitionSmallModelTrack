@@ -67,8 +67,13 @@ process alive and the GPU idle; a crash announces itself, a deadlock does not.**
 
 ## Conventions
 
+- **Adopt on the MEAN vs 2 SE, never on a fold sign count.** Visual seed σ = 1.16
+  (EXP-120a), so a paired delta carries σ√2 = 1.64: the bar is **3.28 on one fold** and
+  **1.64 on a 4-fold mean**. The older *"≥3 of 4 folds positive"* clause is **retired** —
+  3/4 has p = 0.31 under a 50/50 null and adopts noise a third of the time (EXP-120b).
 - **Measure changes by rowdiff, not by intuition.** The public noise floor is **±9–10
-  clips**. A candidate that changes fewer than ~20 of 405 rows cannot produce a readable
+  clips** — and it is *subject sampling*: between-subject sd is 5.26 points over 4 public
+  subjects, i.e. SE 2.63 (EXP-124). It cannot be reduced by more seeds or more members. A candidate that changes fewer than ~20 of 405 rows cannot produce a readable
   result — build it only if it is free.
 - **One change per submission.** This has cost real information at least twice (EXP-080
   carried five differences; `vis4_055` changed members *and* weight), and a confounded

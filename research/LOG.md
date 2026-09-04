@@ -13,6 +13,55 @@ results.
 
 ---
 
+## EXP-120b — CLOSED: full-frame thermal is +0.83 over 4 paired folds. NOT adopted. The crop was never the defect.
+**Date:** 2026-09-03/04 · `code/run_thermal_pairs.sh`, 8 runs, ~16 h laptop · **Tier:** explore · **Purpose:** SCORE
+
+Only fold 2 existed for *either* thermal arm, so folds 0/1/3 needed both — 6 new runs,
+ordered fold-major so an interrupted queue still left complete pairs. All 8 completed.
+
+| fold | full frame | cropped | delta |
+|---|---|---|---|
+| 0 | 0.58354 | 0.58231 | +0.12 |
+| 1 | 0.56511 | 0.57617 | **−1.11** |
+| 2 | 0.55828 | 0.54448 | +1.38 |
+| 3 | 0.56508 | 0.53599 | **+2.91** |
+| **mean** | | | **+0.83** (sd 1.72, SE 0.86, **0.96 SE**), 3/4 positive |
+
+**Verdict: NOT ADOPTED.** The mean is below the bar on both readings — 1.64 using the
+measured seed σ, and 1.72 using this experiment's own fold spread.
+
+**EXP-119's +1.38 on fold 2 was a draw, exactly as the design was built to detect.** Fold
+1 came back *negative* and fold 3 came back at +2.91; the spread across folds (sd 1.72) is
+twice the effect.
+
+### The two adoption criteria disagreed, and the weaker one is wrong
+
+`CLAUDE.md` and EXP-119 state the bar as *">2.80 on one fold, or **≥3 positive folds**"*.
+This result **passes the sign clause (3/4)** and fails the magnitude test. **A 3-of-4 sign
+test has p = 0.31 under a 50/50 null — it is not evidence at all**, and a criterion that
+adopts on it will adopt noise roughly a third of the time. The sign clause should be
+retired in favour of the mean-vs-2-SE test from EXP-120a; recorded here rather than
+quietly picking whichever criterion gave the answer I wanted.
+
+### What this closes and what it does not
+
+**Closes:** the person crop is not what cripples our thermal member — EXP-118's central
+hypothesis, from the notebook of a team tied with us. Five of the six differences from
+their recipe remain untested (112 px, 8 frames, tiny 2D from-scratch net with frame-logit
+averaging, 8 epochs, GroupKFold-5).
+
+**Does not close, and this is the point EXP-123 established:** the binding constraint on
+thermal is **accuracy, not preprocessing and not calibration**. Even the best arm here
+sits at ~0.565 against the IR+depth member's 0.715, and thermal brings 19 rescues against
+247 errors. Moving 0.544 → 0.565 does not change that arithmetic. **The dataset paper
+ranks thermal first of six sensors at 92.57 — the unexplained 17-point gap is still the
+largest open number in the project**, and it will not be closed by cropping decisions.
+
+**Cost:** ~16 laptop-hours, run entirely in parallel with the Kaggle work, so it consumed
+no compute the score path needed.
+
+---
+
 ## EXP-125 — ✅ ADOPTED. Soft distinctness scores **0.83084 = 167/201**, a new champion. B-022 CONFIRMED; the corrected forecast was exact.
 **Date:** 2026-09-03 · `sub_r2_dist.csv` · **Tier:** exploit · **Purpose:** SCORE
 

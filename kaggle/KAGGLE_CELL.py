@@ -127,82 +127,81 @@ assert (TEACHERS / "teacher_fused.npz").is_file(), \
     f"teacher targets missing from the dataset: {sorted(p.name for p in TEACHERS.iterdir())}"
 print(f"trainer OK (--seed, --teacher, --distill-alpha present): {K.__file__}")
 
-# ⚠ SET Persistence = "Files only" IN Session options BEFORE RUNNING.
-# EXP-120a's three checkpoints were lost because a draft session wipes /kaggle/working
-# at session end. The printed numbers survived and looked like the whole result; the
-# models did not. Better still: Save Version -> Save & Run All (Commit).
-
 # ============================================================================
-# T3 / EXP-122 — DISTIL THE FIVE-MEMBER ENSEMBLE INTO ONE STUDENT
+# T3 / EXP-126 — THE ALL-TRAIN DISTILLED STUDENT: the artifact that ships.
 #
-# The target. Over the five members, fused accuracy is 0.763 while oracle-any-member
-# is 0.877 -- 309 clips of 2,700. A global geometric weight must pick ONE compromise
-# for every clip; a soft target carries each member's full posterior on THAT clip, so
-# the student can learn a per-clip arbitration no scalar weight can express. Fitted
-# arbitration has failed 4/4 on public, but all four fit in PROBABILITY space on 2,700
-# rows; this fits in FEATURE space against dense 40-dim targets, which is B-028's
-# distinction and the reason it is not simply a fifth attempt at the same thing.
+# EXP-122 established the effect on fold 2 (Kaggle, seed 1):
+#     distil_ctrl  (alpha=0, leak-free) 0.71012      <- baseline seed mean 0.70501
+#     distil_fused (alpha=0.7)          0.74387      +3.38 vs ctrl
+#     distil_oracle(alpha=0.7, oracle)  0.75920      +4.91 vs ctrl,  +21 OBJECT clips
+# Both clear the 3.28 single-fold bar. The absolute numbers are optimistic (the teacher
+# saw fold-2's val users), but a student trained on ALL clips and run on TEST is NOT
+# leaked -- test subjects appear in no member's training set. So the honest read is a
+# submission, and that is what this cell produces.
 #
-# It is also the packaging fix. One student is one architecture, one modality, one
-# dataset path -- it retires the sklearn ExtraTrees IMU member that package_ensemble.py
-# cannot represent at all, and the closed model registry. T-PKG is the only failure
-# mode that costs the whole competition, and this is the cheapest route through it.
+# ⚠⚠ BEFORE RUNNING, TWO SETTINGS. The last two sessions lost every artifact to these.
 #
-# THREE RUNS, and the third is the control that makes the first two readable:
+#   1. Session options -> Persistence -> "Files only"  (or "Variables and Files")
+#      Without it /kaggle/working is DISCARDED when the session ends. Both previous
+#      runs completed successfully and lost their checkpoints this way. The printed
+#      numbers survive and look like the whole result; the models do not.
 #
-#   ctrl   alpha=0.0  -> teacher loaded (so the SAME 2,148 clips) but zero weight on it.
-#                        Isolates the cost of dropping 133 clips that lack a teacher
-#                        entry from the effect of distillation itself. Without this,
-#                        student-vs-baseline confounds objective with training-set size.
-#   fused  alpha=0.7  -> imitate the champion mix (target top-1 0.765)
-#   oracle alpha=0.7  -> imitate, per clip, only the members that were RIGHT there
-#                        (target top-1 0.880). This is the selection hypothesis stated
-#                        as sharply as it can be: if the inputs carry enough signal to
-#                        tell those cases apart, the oracle gap is reachable.
+#   2. Run it as  Save Version -> "Save & Run All (Commit)",  NOT in this draft session.
+#      A draft session is tied to the browser tab -- it stops shortly after you close
+#      or lose the tab, which is what kills a multi-hour run. A commit run executes
+#      headless on Kaggle's servers and snapshots /kaggle/working as version output.
 #
-# ⚠ HOW TO READ THE NUMBERS -- two limits, stated before the run, not after.
-#
-#  1. ABSOLUTE fold-2 numbers are OPTIMISTIC. The teacher targets for fold-2 TRAINING
-#     clips were produced by member models that trained on fold-2's VALIDATION users
-#     (each pooled OOF entry comes from the one fold model that held that clip out --
-#     and that model saw fold 2's users). So knowledge of the val users leaks through
-#     the teacher into the student. `ctrl` has alpha=0 and is therefore leak-free,
-#     which is a second reason it earns its 2.2 h.
-#  2. ONE FOLD IS UNDERPOWERED. Seed sigma is 1.16, a paired single-fold delta carries
-#     1.64, so the 2-SE bar here is 3.28 (EXP-120a). This run can only detect a LARGE
-#     effect. `oracle - fused` is the cleanest contrast on offer (identical clips,
-#     identical leak structure, one changed factor); anything under ~3 points is a lead
-#     to replicate on more folds, NOT a result.
+# This cell is RESUMABLE: any run whose oof_/testprobs_ file already exists is skipped.
+# With persistence on, a session that dies mid-way costs only the unfinished run.
 # ============================================================================
-RUNS = [
-    ("distil_ctrl",   "teacher_fused.npz",  0.0),
-    ("distil_fused",  "teacher_fused.npz",  0.7),
-    ("distil_oracle", "teacher_oracle.npz", 0.7),
-]
-BASELINE = 0.70501        # k224_mvit_f2 seed MEAN, n=3 (EXP-120a). NOT 0.71472, which
-                          # is the highest of five draws and biases every delta by -1.
+WORKOUT = Path("/kaggle/working")
+prior = sorted(p.name for p in WORKOUT.glob("*.npz")) + sorted(p.name for p in WORKOUT.glob("*.pt"))
+print(f"/kaggle/working already holds {len(prior)} artifact(s): {prior if prior else '(none)'}")
+if prior:
+    print("  -> persistence appears to be ON (files survived a previous session). Good.")
+else:
+    print("  -> EMPTY. If you have run this notebook before, persistence is OFF and the")
+    print("     previous outputs were discarded. Fix it now: Session options -> Persistence")
+    print("     -> 'Files only', then rerun. Otherwise this run's checkpoints are lost too.")
 
+TAG = "distil_oracle_all"
 import numpy as np
-got = {}
-for tag, teacher, alpha in RUNS:
-    print(f"\n=========== {tag}  (teacher={teacher}, alpha={alpha}) ===========", flush=True)
-    K.run(stage="train", fold=2, tag=tag, cache_dir=str(CROP224),
-          teacher=str(TEACHERS / teacher), distill_alpha=alpha, distill_temp=2.0,
-          seed=1, batch_size=8, accum=2, workers=2)
-    d = np.load(f"/kaggle/working/oof_{tag}.npz", allow_pickle=True)
-    got[tag] = float((d["probs"].argmax(1) == d["labels"]).mean())
-    print(f"  {tag}: micro={got[tag]:.5f}", flush=True)
 
-print("\n================ EXP-122 RESULT ================")
-for k, v in got.items():
-    print(f"  {k:16s} {v:.5f}   {100*(v-BASELINE):+.2f} vs baseline seed mean")
-if "distil_ctrl" in got:
-    c = got["distil_ctrl"]
-    print(f"\n  cost of dropping 133 clips : {100*(c-BASELINE):+.2f}  (ctrl vs baseline, leak-free)")
-    for k in ("distil_fused", "distil_oracle"):
-        if k in got:
-            print(f"  {k:16s} vs ctrl      : {100*(got[k]-c):+.2f}  (distillation effect, OPTIMISTIC)")
-if {"distil_fused", "distil_oracle"} <= set(got):
-    print(f"  oracle vs fused target     : {100*(got['distil_oracle']-got['distil_fused']):+.2f}"
-          "  <- the CLEAN contrast: same clips, same leak, one factor")
-print("\n  2-SE bar on one fold is 3.28 points. Under that = lead, not result.")
+# --- train the all-train student -------------------------------------------
+# --all-train uses all 18 users, so the printed fold-2 number is TRAIN-ON-TEST and is
+# meaningless as validation -- ignore it. EXP-122 already measured the honest fold-2
+# effect; this run exists to produce test probabilities.
+if (WORKOUT / f"{TAG}.pt").is_file():
+    print(f"\n{TAG}.pt exists -- skipping training")
+else:
+    print(f"\n=========== TRAIN {TAG} (oracle teacher, alpha=0.7, all 18 users) ===========",
+          flush=True)
+    K.run(stage="train", all_train=True, tag=TAG, cache_dir=str(CROP224),
+          teacher=str(TEACHERS / "teacher_oracle.npz"), distill_alpha=0.7,
+          distill_temp=2.0, seed=1, batch_size=8, accum=2, workers=2)
+
+# --- test inference ---------------------------------------------------------
+if (WORKOUT / f"testprobs_{TAG}.npz").is_file():
+    print(f"testprobs_{TAG}.npz exists -- skipping inference")
+else:
+    print(f"\n=========== INFER {TAG} ===========", flush=True)
+    K.run(stage="infer", all_train=True, tag=TAG, cache_dir=str(CROP224),
+          teacher=str(TEACHERS / "teacher_oracle.npz"), distill_alpha=0.7,
+          distill_temp=2.0, seed=1, batch_size=8, accum=2, workers=2)
+
+print("\n================ EXP-126 OUTPUT ================")
+for f in sorted(WORKOUT.iterdir()):
+    if f.suffix in (".npz", ".pt", ".csv"):
+        print(f"  {f.name:34s} {f.stat().st_size/1e6:8.2f} MB")
+print("""
+DOWNLOAD BEFORE THE SESSION ENDS -- from the notebook's Output panel, or the version
+output if this was a commit run. The two that matter:
+
+  testprobs_distil_oracle_all.npz   <- fuse this at home, then decode and submit
+  distil_oracle_all.pt              <- 137 MB; THE PACKAGING CANDIDATE (34.3 MB at int8)
+
+A single 34.3 MB student scoring 0.75920 on fold 2 is approaching the whole five-member
+fusion (0.7630). That is the T-PKG win as much as it is a score lead: one architecture,
+one modality, one dataset path, and it retires the sklearn ExtraTrees member that
+package_ensemble.py cannot represent at all.
+""")
