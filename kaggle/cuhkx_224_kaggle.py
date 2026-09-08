@@ -453,6 +453,10 @@ class ClipStore:
         self.meta = json.loads((cache / f"{split}_index.json").read_text())
         self.size = int(self.meta["image_size"])
         self.n_frames = int(self.meta.get("n_frames", N_FRAMES))
+        # A 3-channel cache (thermal) stores ONE RGB jpeg per frame slot; the 4-channel
+        # IR+depth cache stores two (Depth_Color RGB, then IR L). Default 4 keeps every
+        # existing cache byte-identical in behaviour.
+        self.channels = int(self.meta.get("channels", CHANNELS))
         self.sids = self.meta["sids"]
 
     def __len__(self):
@@ -463,17 +467,19 @@ class ClipStore:
         from PIL import Image
         s = self.size
         nf = self.n_frames
-        out = np.zeros((nf, CHANNELS, s, s), dtype=np.uint8)
+        c = self.channels
+        out = np.zeros((nf, c, s, s), dtype=np.uint8)
         rec = self.index[i]
         for slot in range(nf):
-            off, ln = rec[slot]                       # channels 0-2: Depth_Color
+            off, ln = rec[slot]                       # channels 0-2: Depth_Color / thermal
             if ln:
                 im = Image.open(io.BytesIO(self.blob[off:off + ln].tobytes()))
                 out[slot, :3] = np.asarray(im, dtype=np.uint8).transpose(2, 0, 1)
-            off, ln = rec[nf + slot]                  # channel 3: IR
-            if ln:
-                im = Image.open(io.BytesIO(self.blob[off:off + ln].tobytes()))
-                out[slot, 3] = np.asarray(im, dtype=np.uint8)
+            if c > 3:
+                off, ln = rec[nf + slot]              # channel 3: IR
+                if ln:
+                    im = Image.open(io.BytesIO(self.blob[off:off + ln].tobytes()))
+                    out[slot, 3] = np.asarray(im, dtype=np.uint8)
         return out
 
 
@@ -813,20 +819,25 @@ def make_dataset(store, rows, labels, train, phase=0, soft=None):
     return Clips()
 
 
-def norm_tensors(device):
+def norm_tensors(device, channels: int = CHANNELS):
+    """Kinetics statistics. The 4th entry is the IR channel; a 3-channel (thermal)
+    cache uses the RGB three, which is what the backbone was pretrained on."""
     import torch
-    mean = torch.tensor([0.43216, 0.394666, 0.37645, 0.401092]).view(1, 4, 1, 1, 1)
-    std = torch.tensor([0.22803, 0.22145, 0.216989, 0.222156]).view(1, 4, 1, 1, 1)
-    return mean.to(device), std.to(device)
+    mean = torch.tensor([0.43216, 0.394666, 0.37645, 0.401092])[:channels]
+    std = torch.tensor([0.22803, 0.22145, 0.216989, 0.222156])[:channels]
+    v = (1, channels, 1, 1, 1)
+    return mean.view(v).to(device), std.view(v).to(device)
 
 
 def predict(model, loader, device, flip_tta=True):
     import torch
-    mean, std = norm_tensors(device)
+    mean = std = None
     model.eval()
     probs, labels = [], []
     with torch.no_grad():
         for x, y in loader:
+            if mean is None:
+                mean, std = norm_tensors(device, x.shape[1])
             x = (x.to(device) - mean) / std
             with torch.autocast("cuda", dtype=torch.float16):
                 p = torch.softmax(model(x).float(), -1)
@@ -849,13 +860,15 @@ def apply_adabn(model, loader, device):
     if not bns:
         print("  AdaBN: no BatchNorm layers in this arch (transformers use LayerNorm) — skipped")
         return False
-    mean, std = norm_tensors(device)
+    mean = std = None
     for m in bns:
         m.reset_running_stats()
         m.momentum = None
         m.train()
     with torch.no_grad():
         for x, _ in loader:
+            if mean is None:
+                mean, std = norm_tensors(device, x.shape[1])
             x = (x.to(device) - mean) / std
             with torch.autocast("cuda", dtype=torch.float16):
                 model(x)
@@ -970,7 +983,8 @@ def stage_train(args, paths):
     vl = DataLoader(make_dataset(store, va_rows, va_lab, False), batch_size=args.batch_size,
                     shuffle=False, num_workers=args.workers, pin_memory=False)
 
-    model = build_model(args.arch, image_size=store.size).to(device)
+    model = build_model(args.arch, in_channels=store.channels,
+                        image_size=store.size).to(device)
     if args.grad_checkpoint:
         enable_grad_checkpointing(model)
         print('  gradient checkpointing ON (train only; eval path unchanged)', flush=True)
@@ -1007,7 +1021,7 @@ def stage_train(args, paths):
         else:
             print("  resume recipe differs; starting fresh", flush=True)
 
-    mean, std = norm_tensors(device)
+    mean, std = norm_tensors(device, store.channels)
     for epoch in range(start_epoch, args.epochs + 1):
         model.train()
         total, seen, t0 = 0.0, 0, time.time()
@@ -1101,7 +1115,8 @@ def stage_infer(args, paths):
     device = torch.device("cuda")
     store = ClipStore(cache, "test")
     pkg = torch.load(paths["out"] / f"{args.tag}.pt", map_location="cpu", weights_only=False)
-    model = build_model(pkg["args"]["arch"], image_size=store.size).to(device)
+    model = build_model(pkg["args"]["arch"], in_channels=store.channels,
+                        image_size=store.size).to(device)
     model.load_state_dict(pkg["state_dict"])
     model.eval()
     print(f"{args.tag}: fold-2 micro={pkg['micro']:.5f} object={pkg['object']:.5f}")
