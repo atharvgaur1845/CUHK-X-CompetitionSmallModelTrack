@@ -1,21 +1,39 @@
 #!/usr/bin/env bash
-# One-time environment bootstrap on the cluster login node.
+# Build the `cuhkx` conda env on sharanga. Idempotent; safe to re-run.
+#
+# LAYOUT (Atharv's instruction 2026-09-08): code in user space, data on scratch.
+#   /home/pabitra/cuhkx              code, docs, research/  (Lustre /home, 266 TB free)
+#   /scratch/pabitra/cuhkx/cache     caches                 (Lustre /scratch, 266 TB free)
+#   /scratch/pabitra/cuhkx/checkpoints, logs
+# The repo expects cache/ and checkpoints/ beside the code, so those are SYMLINKS from
+# the home tree into scratch -- the scripts stay unmodified and the bytes stay on scratch.
+#
+# Driver is 580.126.20 on the H100 nodes, so a cu124 wheel is safe; torch ships its own
+# CUDA runtime, which is why the spack cuda-11.8 module is irrelevant here.
 set -euo pipefail
-cd "$(dirname "$0")/.."
-ROOT="$(pwd)"
-python3 -m venv --system-site-packages .venv 2>/dev/null || python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -q --upgrade pip
-python -m pip install -q torch torchvision --index-url https://download.pytorch.org/whl/cu124 || \
-  python -m pip install -q torch torchvision
-python -m pip install -q transformers safetensors ultralytics scikit-learn joblib pillow numpy
-cat > "$ROOT/cluster/activate.sh" <<EOF
-export CUHKX_ROOT="$ROOT"
-export CUHKX_FOLD_FILE="\$CUHKX_ROOT/research/artifacts/cv_folds_all18.json"
-export HF_HOME="\$CUHKX_ROOT/.hf"
-export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-source "$ROOT/.venv/bin/activate"
-cd "\$CUHKX_ROOT"
-EOF
-echo "env ready. Jobs should 'source cluster/activate.sh'."
-python -c "import torch;print('torch',torch.__version__,'cuda',torch.cuda.is_available())"
+
+HOME_ROOT=/home/pabitra/cuhkx
+SCRATCH=/scratch/pabitra/cuhkx
+
+mkdir -p "$SCRATCH"/{cache,checkpoints,logs,submissions}
+cd "$HOME_ROOT"
+for d in cache checkpoints logs submissions; do
+  [ -e "$d" ] || ln -s "$SCRATCH/$d" "$d"
+done
+echo "layout:"; ls -la "$HOME_ROOT" | grep -E "^l|^d" | sed 's/^/  /'
+
+source "$(conda info --base)/etc/profile.d/conda.sh"
+if ! conda env list | grep -qE "^cuhkx\s"; then
+  conda create -y -n cuhkx python=3.11
+fi
+conda activate cuhkx
+pip install --upgrade pip -q
+pip install -q torch torchvision --index-url https://download.pytorch.org/whl/cu124
+pip install -q numpy scipy scikit-learn pillow
+
+python - <<'PY'
+import torch, torchvision, numpy, sklearn
+print(f"  torch {torch.__version__}  torchvision {torchvision.__version__}  cuda {torch.version.cuda}")
+print(f"  numpy {numpy.__version__}  sklearn {sklearn.__version__}")
+PY
+echo "ENV READY"

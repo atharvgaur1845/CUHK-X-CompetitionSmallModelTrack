@@ -881,13 +881,54 @@ def stage_train(args, paths):
     usr = idx["users"]
     row_of = {s: i for i, s in enumerate(sids)}
 
-    holdout = FOLDS[args.fold]
+    # EXP-136: --train-users / --eval-users override the 4-fold split so a THIRD group can
+    # exist. Measuring "do pseudo-labelled unseen subjects help?" needs train / pseudo /
+    # eval to be three DISJOINT user sets; with only train+eval the evaluation clips are
+    # the same ones being pseudo-labelled and the answer is circular.
+    holdout = tuple(args.eval_users.split(",")) if args.eval_users else FOLDS[args.fold]
     val_sids = [s for s in sids if usr[s] in holdout]
-    tr_sids = [s for s in sids if usr[s] not in holdout] if not args.all_train else list(sids)
+    if args.train_users:
+        keep = set(args.train_users.split(","))
+        tr_sids = [s for s in sids if usr[s] in keep]
+    elif args.all_train:
+        tr_sids = list(sids)
+    else:
+        tr_sids = [s for s in sids if usr[s] not in holdout]
     tr_rows = np.array([row_of[s] for s in tr_sids])
     va_rows = np.array([row_of[s] for s in val_sids])
     tr_lab = np.array([lab[s] for s in tr_sids])
     va_lab = np.array([lab[s] for s in val_sids])
+
+    # Append pseudo-labelled clips. R-4 permits self-training on unlabelled data; the point
+    # here is SUBJECT COUNT, not extra clips -- we train on 18 subjects and the unlabelled
+    # pool holds subjects we have never seen, and between-subject sd (5.26) is 4.5x seed
+    # sigma (EXP-124), so subject diversity is the dominant variance we can still buy.
+    if args.pseudo:
+        pp = Path(args.pseudo)
+        if not pp.is_file():
+            pp = Path(__file__).resolve().parents[1] / "research" / "artifacts" / args.pseudo
+        pd_ = np.load(pp, allow_pickle=True)
+        pmap = {str(k): v for k, v in zip(pd_["sids"], pd_["probs"])}
+        add_sids = [s for s in pmap if s in row_of and s not in set(tr_sids)]
+        if args.pseudo_users:
+            pu = set(args.pseudo_users.split(","))
+            add_sids = [s for s in add_sids if usr[s] in pu]
+        add_sids = [s for s in add_sids if s not in set(val_sids)]   # never train on eval
+        conf = np.array([float(pmap[s].max()) for s in add_sids])
+        if args.pseudo_top_frac < 1.0 and len(add_sids):
+            k = max(1, int(len(add_sids) * args.pseudo_top_frac))
+            sel = np.argsort(-conf)[:k]
+            add_sids = [add_sids[i] for i in sel]
+        add_rows = np.array([row_of[s] for s in add_sids], dtype=int)
+        add_lab = np.array([int(np.argmax(pmap[s])) for s in add_sids], dtype=int)
+        agree = float((add_lab == np.array([lab[s] for s in add_sids])).mean()) if add_sids else 0.0
+        print(f"  pseudo: +{len(add_sids)} clips from "
+              f"{len(set(usr[s] for s in add_sids))} users, top_frac={args.pseudo_top_frac}, "
+              f"pseudo-label accuracy vs the (unused) truth = {agree:.4f}", flush=True)
+        if len(add_rows):
+            tr_rows = np.concatenate([tr_rows, add_rows])
+            tr_lab = np.concatenate([tr_lab, add_lab])
+            tr_sids = tr_sids + add_sids
 
     device = torch.device("cuda")
     counts = np.bincount(tr_lab, minlength=N_CLASSES).astype(np.float64)
@@ -1152,6 +1193,21 @@ def main(argv=None) -> int:
                          "here is enough -- deliberately NOT adding a per-worker seed, "
                          "which would change augmentation semantics and make the "
                          "measured spread describe a pipeline we never ran.")
+    ap.add_argument("--train-users", default="",
+                    help="comma list of users to TRAIN on; overrides the fold split. Needed "
+                         "for the 3-way train/pseudo/eval design of EXP-136.")
+    ap.add_argument("--eval-users", default="",
+                    help="comma list of users to HOLD OUT; overrides FOLDS[--fold]")
+    ap.add_argument("--pseudo", default="",
+                    help="npz with sids+probs; matching cache clips are appended to the "
+                         "training set with argmax labels (R-4 self-training). Clips in the "
+                         "eval set are refused.")
+    ap.add_argument("--pseudo-users", default="",
+                    help="restrict --pseudo to these users (simulation only)")
+    ap.add_argument("--pseudo-top-frac", type=float, default=1.0,
+                    help="keep only the most confident fraction of pseudo clips. Rank "
+                         "selection, not a probability threshold: EXP-112 measured the fused "
+                         "output as median max-prob 0.306, so a 0.7 gate keeps 22 of 405.")
     ap.add_argument("--all-train", action="store_true",
                     help="train on all 18 users; the reported fold-2 number is then "
                          "TRAIN-ON-TEST and must never be compared with an honest OOF")
@@ -1163,7 +1219,7 @@ def main(argv=None) -> int:
     ap.add_argument("--jpeg-quality", type=int, default=90)
     ap.add_argument("--crop", default="person", choices=("person", "wrist"),
                     help="'wrist' crops to both wrists via yolo11n-pose (EXP-104), "
-                         "targeting the hand-object confusions that hold 57.7% of the "
+                         "targeting the hand-object confusions that hold 57.7%% of the "
                          "residual error. Writes a separate cache dir.")
     ap.add_argument("--limit", type=int, default=0,
                     help="cache only the first N clips of each split — a smoke test, "

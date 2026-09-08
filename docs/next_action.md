@@ -17,34 +17,122 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
-> # ⚡ STATE 2026-09-08 — cluster LIVE, Kaggle quota gone, 7 days, we are on the cut.
->
-> **Plan lives in [`docs/FABLE_BRIEF.md`](FABLE_BRIEF.md).** Fable plans, Opus 5 executes.
-> Read that brief before proposing anything; it carries the graveyard and the five measured
-> negatives that constrain the solution space.
+> # ⚡ STATE 2026-09-08 (evening) — the +20 plan was TESTED AND FALSIFIED IN ONE DAY. Read this before re-proposing any of it.
 >
 > | | |
 > |---|---|
-> | score | **167/201 = 0.83084** (`sub_r2_dist`) |
-> | rank | **14th, tied 15th.** 166 is one clip below us |
-> | target | **187–188 = 0.930–0.935 → +20/+21 clips** |
-> | Kaggle deadline | **2026-09-15 — 7 days** · code upload 09-22 |
-> | compute | **SLURM cluster `ssh sharanga` is UP** (8×H200, 2×4×H100, 8×A100, 6×RTX PRO 6000). **Kaggle's weekly GPU quota is exhausted.** |
-> | legal package | **93.37 MB, verified four ways** (EXP-129), scored **165** |
+> | score | **167/201 = 0.83084** (`sub_r2_dist`), unchanged |
+> | legal package | **93.37 MB, verified** (EXP-129), scores **165** |
+> | compute | cluster `ssh sharanga` **UP and usable** — see "Cluster" below |
+> | Kaggle deadline | **2026-09-15** · code upload 09-22 |
 >
-> **The target is demonstrated, not speculative.** Live board 2026-09-08: **0.93532 = 188**
-> at rank 5 (submitted that day), then 184/184/181/180/176/173 — **eight teams at 0.90+**.
-> And our own **top-2 is 0.86850 OOF**, which at this pipeline's +6.79 OOF→public offset
-> projects to **≈188/201 — the same number.** The rank-5 team is resolving the binary
-> rank-1-vs-rank-2 decision we surface and get wrong; **285 of our 640 errors sit at rank 2**.
+> ## ⛔ THE TARGET ARITHMETIC, AND IT IS THE MOST IMPORTANT LINE IN THIS FILE
 >
-> **⚠ EXP-131 (2026-09-08) narrows the route, not the destination.** A subject-grouped probe
-> over fused margin/entropy plus every member's vote on the contested pair scores **0.8759
-> against a 0.8785 base rate** — *below* trivial. **The rank-2 information is not in the
-> posteriors.** That is the fifth failure of probability-space arbitration. Any solution must
-> consume **raw input conditioned on the candidate pair**. Do not build another stacker,
-> gate, router or calibrator over member probabilities.
-
+> Anchored on measured, decoder-inclusive numbers (champion decoded OOF 0.81148, public
+> 0.83084, so the offset is **+1.94 points**; pre-decoder top-1 0.75630, top-2 **0.86370**):
+>
+> | capture of the rank-2 pool | decoded OOF | projected public |
+> |---|---|---|
+> | 0% (today) | 0.7949 | 164 |
+> | 30% | 0.8271 | **170** |
+> | 50% | 0.8486 | **174** |
+> | **100% — a PERFECT rank-2 oracle** | 0.9023 | **185** |
+>
+> **A perfect resolver of every rank-2 clip lands at ~185, not 188.** The brief's "+21 clips
+> from one binary decision" assumed capturing essentially all 285 of them. Realistic capture
+> is 20-30%, i.e. **170-175**. **187 is not reachable by re-ranking; it requires a stronger
+> MEMBER, which raises top-2 itself.** Do not spend another day on arbitration schemes.
+>
+> ## What was killed on 2026-09-08, each with a pre-registered bar (EXP-132..137)
+>
+> | route | measured | verdict |
+> |---|---|---|
+> | COCO detector on IR as an object channel | handheld AUC **0.502** on held-out subjects, **below** the station-only baseline 0.574 | **DEAD** (EXP-134) |
+> | frozen video foundation teacher (V-JEPA 2 ViT-L) | **0.419** pooled vs our MViT **0.712** | **DEAD** (EXP-135) |
+> | pseudo-label the test split for +12 subjects | subject learning curve **flat past 6 subjects** (6->14 buys +0.18) | **DEAD** (EXP-136) |
+> | per-group logit centering | +0.85 pre-decoder -> **+0.19 after the shipped decoder**, interior alpha | **not adopted** (EXP-137) |
+> | subject clustering on test (P0) | 18-cluster purity **0.339** | **FAIL** (EXP-132) |
+> | subject feature centering (2a) | +0.63 member pts, 4/4 folds, bar is 1.64 | below bar |
+> | within-subject prototype vote (2c) | **+7 clips of 2,700** | negligible |
+>
+> **The one solid new diagnosis (EXP-132), worth keeping:** 229 of 658 errors repeat the same
+> (true -> pred) confusion **inside a single subject**, 55 of 70 subject-pair cells are
+> strictly one-directional, and 242 of 290 rank-2 errors have a correctly-predicted clip of
+> the true class from the same subject. The error is a subject-constant offset. Every attempt
+> to exploit it failed for one measured reason: **the references used to correct the bias are
+> produced by the same biased model**, so they inherit it (2c: 17 rescued / 10 broken).
+>
+> ### ① DO THIS NEXT — T-PKG, the only high-probability value left
+>
+> The champion (167) is **not packageable**: `imu_stats` is an sklearn ExtraTrees and
+> `pack_stage2.py` cannot represent it; dropping it moves 43 of 405 rows, and the legal
+> package therefore scores **165**. Serialising the forest as tensors recovers those 2 clips
+> **and** closes the largest compliance risk (reproducibility is 10% of the grade).
+>
+> Budget: person 34.28 + wrist 34.28 + skel 22.80 + trees 9.00 = **100.36 MB — over by 0.36**.
+> Two measured ways under: `imu_stats` at 150 trees/depth 10 is **4.61 MB** (costs ~9 clips of
+> 2,700 ≈ 0.7 public), or drop one skeleton arch (~4.5 MB, ~2 rows). Bit-packing int6 to
+> 6/8 of a byte saves **8.6 MB per view** and is still "not implemented rather than
+> implemented and unused" (EXP-129).
+>
+> ### ② The last untested MEMBER lever — thermal at 224 px through the MViT recipe
+>
+> Thermal has only ever been run at **128 px through r2plus1d** (EXP-088 0.544, EXP-119
+> full-frame 0.558, EXP-120b null at 4 folds). That is the recipe the 224/MViT recipe beat by
+> **+7.5 points** on IR+depth (0.64 -> 0.715). Thermal is the dataset paper's **best** modality
+> (92.57) and is our most decorrelated view (54% agreement).
+> **Sober arithmetic before spending on it:** 0.544 + 7.5 = ~0.62, and EXP-123's accounting
+> (19 rescues against 247 errors) says thermal needs roughly **0.68** before any global weight
+> can harvest it. So P(pays) ~25%. Gate on **member accuracy first**, fusion only if >= 0.68.
+> Raw thermal is syncing to the cluster now.
+>
+> ### ③ Do NOT re-propose
+> Every row of the table above, plus the standing graveyard. In particular: no further
+> stacker / gate / router / calibrator over member probabilities (EXP-131 plus five earlier),
+> and no re-ranking scheme justified by "+21 clips are sitting at rank 2" — the arithmetic
+> above caps that route at 185 with a *perfect* oracle.
+>
+> ## Cluster — WORKING, and the two things that cost hours today
+>
+> `ssh sharanga`, user `pabitra`. Code `/home/pabitra/cuhkx`, data on
+> `/scratch/pabitra/cuhkx` via symlinks (`cache`, `checkpoints`, `logs`, `submissions`).
+>
+> - **Use `/home/pabitra/.conda/envs/physmon/bin/python`** — Python 3.11, torch 2.7.1+cu126,
+>   torchvision 0.22.1, numpy, sklearn, PIL. Verified against `ClipStore` and the synced
+>   cache. The `cuhkx` env in `cluster/env.sh` is **Python 3.8 with no pip**, and
+>   `conda env remove` refuses to delete it, so pip falls back to system python and fails.
+>   Do not spend time on it; use `physmon` or build a venv on top of it.
+> - **The link is 1.6 MB/s.** Measured, not estimated. crop_224 took 11.5 min, the whole
+>   priority set ~50 min, and the 11 GB of raw thermal + Testing takes ~2 hours. **Order the
+>   sync by what each byte unblocks** — `third_party/` (0.5 GB, IG-65M and MotionBERT, both
+>   dropped from the champion) cost 25 minutes before it was noticed.
+> - Synced and verified: `cache/crop_224`, `cache/crop_wrist224`, `cache/train`, `cache/test`,
+>   `meta_*.csv`, and the 10 MViT checkpoints. Raw thermal + Testing were still transferring.
+>
+> ## New tools committed today (all reusable, none score-positive by themselves)
+>
+> `code/exp132_subject_errors.py` · `code/exp133_subject_keys.py` · `code/dump_embeddings.py`
+> (768-d penultimate features, all folds honest + test, both views, ~9 min on the laptop) ·
+> `code/probe_p0_p2a.py` · `code/probe_2c_prototype.py` · `code/probe_object_channel2.py`
+> (the honest, subject-grouped version — `probe_object_channel.py` is the buggy first pass,
+> kept only as the worked example of a selection artifact) · `code/probe_subject_curve.py` ·
+> `code/teacher_features.py` + `code/teacher_probe.py`.
+> `kaggle/cuhkx_224_kaggle.py` gains `--train-users`, `--eval-users`, `--pseudo`,
+> `--pseudo-users`, `--pseudo-top-frac` (the 3-way train/pseudo/eval design EXP-136 made
+> unnecessary, but they are tested and harmless), and a **fix to `--help`, which was broken
+> for the whole campaign** by an unescaped `57.7%` in the `--crop` help string.
+>
+> ## Two process failures worth more than they cost
+>
+> 1. **`pkill -f <pattern>` matched my own shell three times** because the pattern appeared in
+>    the command line that was running it (exit 144, script never written, old job survived).
+>    This is EXP-106's "never let a waiter's predicate match the waiter" in a new costume.
+>    Kill by PID, or `pkill -x` on an exact process name, or put the kill in its own file.
+> 2. **A probe returned mean pair-AUC 1.000 and it was a selection artifact** (max over 30
+>    features on 24 points, plus a station confound). The tell was semantic — `tv` separating
+>    Read_documents from Turn_pages. Likewise V-JEPA 2 first scored **0.170**, which was a
+>    feature-scaling bug, not the model. **A number at either extreme is a bug until proven
+>    otherwise; bug-hunt before it earns a hypothesis.**
 
 > ### ⚠ COMPUTE, 2026-09-03: the cluster is DOWN for 15 days — i.e. past the deadline.
 >

@@ -1,5 +1,68 @@
 # Belief Ledger
 
+## B-036 — 187/201 is NOT reachable by re-ranking. The rank-2 pool caps at ~185 with a PERFECT oracle.
+- **Confidence:** 95% (new, 2026-09-08). This is arithmetic over measured quantities, not a model.
+- **Importance:** Highest — it decides what the remaining days are spent on.
+- **The calculation**, all inputs measured: champion decoded pooled OOF **0.81148** (EXP-125)
+  against public **0.83084**, so the OOF→public offset is **+1.94 points**. Pre-decoder
+  top-1 is **0.75630** and top-2 **0.86370** (EXP-132), so the decoder contributes +5.5
+  points on top of the argmax. Capturing a fraction f of the rank-2 pool and keeping 70% of
+  the decoder's contribution gives: f=0.3 → **170**, f=0.5 → **174**, **f=1.0 → 185**.
+- **Consequence:** the brief's framing — "285 errors sit at rank 2, fixing that is +21
+  clips" — requires capturing essentially *all* of them. No re-ranker does that. The route
+  to 187 is a **stronger member** (which raises top-2 itself), and every member axis is
+  measured flat except thermal-at-224.
+- **Falsification:** a member change that raises the pre-decoder top-2 above 0.90, or a
+  measured OOF→public offset materially larger than +1.94 on a new configuration.
+
+## B-035 — The residual error is a per-SUBJECT bias, and the references needed to correct it are produced by the same biased model
+- **Confidence:** 90% on the diagnosis (direct measurement); 85% on the obstruction.
+- **Importance:** High — it explains EXP-131 and closes the family that followed from it.
+- **Diagnosis (EXP-132):** 229 of 658 errors sit in (subject, true, pred) cells repeated ≥3×
+  **within one subject**; 55 of 70 subject-pair cells are **strictly one-directional**; 242
+  of 290 rank-2 errors have a correctly-predicted clip of the true class from the same
+  subject. A subject-constant offset is invisible to a per-clip model **by construction**,
+  which is a *mechanism* for EXP-131's below-base-rate probe rather than a restatement.
+- **The obstruction, measured (EXP-132 P0/2a/2c):** every correction needs a per-subject
+  reference, and the only references available are the model's own confident predictions,
+  which carry the same bias. Prototype arbitration nets **+7 clips of 2,700** (17 rescued,
+  10 broken). Unsupervised subject clustering fails outright (18-cluster purity **0.339**).
+  Feature centering is real but small (**+0.63** member points, 4/4 folds, bar 1.64).
+- **The one genuinely new sub-finding:** centering on the **300 s timestamp block** beats
+  centering on the **true user** (+0.63 vs +0.35), so the nuisance being removed is
+  **session-level** — lighting, clothing, camera drift — not body habitus.
+- **Falsification:** a reference source not derived from our own predictions (a label, a
+  calibration clip, or a genuinely independent member) that lifts prototype arbitration
+  above +50 clips of 2,700.
+
+## B-034b — Frozen natural-video features do not transfer to this sensor domain; fine-tuning is what carries the task
+- **Confidence:** 90% (new, 2026-09-08)
+- **Evidence:** V-JEPA 2 ViT-L frozen, subject-grouped probe: depth **0.396**, IR **0.382**,
+  concatenated **0.419**, against our fine-tuned MViTv2-S at **0.712** (EXP-135). EXP-015
+  measured the same shape with ImageNet features (frozen 0.26). EXP-115 measured the
+  converse bound: VideoMAE-B *fine-tuned* lost 0/4 folds to MViTv2-S because 86.7M
+  parameters cannot be fit on 2,281 clips.
+- **Operating rule:** the viable band here is a **~34M-parameter backbone, pretrained on
+  video, fully fine-tuned**. Bigger overfits; frozen underfits. Both walls are measured.
+- **Also recorded:** frozen ViT mean-pooled features have cosine **0.954** between all pairs
+  and MUST be standardised before a linear probe. Unstandardised they scored 0.170, which
+  looked like a result and was a bug.
+
+## B-034c — Training-subject count saturates at ~6; more subjects is not the binding constraint
+- **Confidence:** 75% (new, 2026-09-08) — a probe on a frozen representation, so it bounds
+  what subjects buy the *head*, not the *representation*.
+- **Evidence (EXP-136):** held-out accuracy by training-subject count: 2 → 0.6817,
+  4 → 0.6999, 6 → 0.7114, 8 → 0.7111, 10 → 0.7129, 12 → 0.7134, 14 → 0.7132. Going 6 → 14
+  subjects buys **+0.18 points**. Independently, EXP-107 measured the all-18-user single
+  model at **161** against the 4-fold bag's **166**.
+- **Consequence:** pseudo-labelling the test split to acquire its 12 unseen subjects (R-4
+  legal) cannot pay, and is closed without a training run. This does **not** contradict
+  EXP-124's between-subject sd of 5.26 — subject *variance* is large, but adding subjects
+  does not reduce it at this n.
+- **Falsification:** a full fine-tune (not a probe) trained on 6 vs 14 subjects showing a
+  gap materially larger than 0.18 points.
+
+
 ## B-027 — ~~Thermal fails to fuse because it is uncalibrated~~ DOWNGRADED (EXP-123): mechanism unproven
 - **Confidence:** 30% in the stated mechanism, down from ~85%. The *observation* it was
   built on (thermal adds exactly 0.00 at every weight 0.05-0.35, EXP-088) is unchanged.

@@ -13,6 +13,220 @@ results.
 
 ---
 
+## EXP-137 — Per-group logit centering: +0.85 before the decoder, +0.19 AFTER it. Not adopted.
+**Date:** 2026-09-08 · analysis only · **Tier:** explore · **Purpose:** SCORE
+
+If the residual error is a subject-constant offset (EXP-132), the cheapest possible fix is
+to subtract each group's mean fused logit. Measured on the 2,700 pooled OOF:
+
+| group | alpha | pre-decoder | rescued/broken |
+|---|---|---|---|
+| true user | 1.00 | **+0.85** | 55 / 32 |
+| 60 s block | 0.50 | **+0.85** | 40 / 17 |
+| 300 s block | 0.50 | +0.74 | 49 / 29 |
+
+Then through the **shipped decoder** (λ=0.5 conditional, unigram backoff, distinctness
+penalty 2.0), which is the only reading that counts:
+
+| arm | decoded OOF | vs base |
+|---|---|---|
+| base | 0.80889 (2184/2700) | — |
+| 60 s block, alpha 0.25 | **0.81074 (2189)** | **+5 clips = +0.19 pt** |
+| 60 s block, alpha 0.50 | 0.81037 (2188) | +4 clips |
+| 300 s block, alpha 0.50 | 0.80741 (2180) | **−4 clips** |
+
+**Not adopted, for two independent reasons.** (1) The decoder already collects the effect:
++0.85 pre-decoder becomes +0.19 after it, which is EXP-125's lesson repeating — *measure an
+add-on against the system you ship, not against argmax*. +5 of 2,700 is ~0.75 of 405 rows,
+i.e. under one public clip and unreadable. (2) The optimum in alpha is **interior**
+(0.25 > 0.50 > 1.00 at 60 s), which is the fitted-lever fingerprint that has failed six
+times on public. AdaBN was adopted precisely because its optimum sat at the **endpoint**
+(EXP-099), so there was no parameter to overfit. This one has one.
+
+---
+
+## EXP-136 — The subject learning curve is FLAT past 6 subjects. Pseudo-labelling the test split is dead before it costs a GPU-hour.
+**Date:** 2026-09-08 · `code/probe_subject_curve.py` · **Tier:** explore · **Purpose:** INFORMATION
+
+EXP-124 measured between-subject sd at 5.26 points, 4.5x the seed sigma, and we train on
+18 subjects while the test split holds 12 more that R-4 explicitly permits self-training
+on. That is the strongest available argument for pseudo-labelling: it does not buy clips,
+it buys **subjects**. So the deciding question is whether accuracy is still rising in the
+number of training subjects at n=18.
+
+Probe on frozen fold-2 MViT features, trained on k of the 14 non-fold-2 users, evaluated on
+the 4 held-out fold-2 users (whose clips that model never trained on), 6 random user draws
+per k:
+
+| k users | acc | delta vs k−2 |
+|---|---|---|
+| 2 | 0.6817 | — |
+| 4 | 0.6999 | +1.81 |
+| 6 | 0.7114 | +1.15 |
+| 8 | 0.7111 | −0.03 |
+| 10 | 0.7129 | +0.18 |
+| 12 | 0.7134 | +0.05 |
+| 14 | 0.7132 | −0.03 |
+
+**Saturated at six subjects.** Going 6 -> 14 subjects, a 133% increase, buys +0.18 points.
+Twelve more subjects carrying *noisy* labels cannot be worth more than that, so the whole
+self-training branch is closed on arithmetic rather than on a training run.
+
+**Honest limit:** this is a linear probe on a representation already learned from 14
+subjects, so it measures what more subjects buy the *head*, not what they would buy the
+*representation*. A full fine-tune could in principle benefit more. But EXP-107 measured
+the same thing from the other direction -- the all-18-user single model scored **161**
+against the 4-fold bag's **166** -- and neither result points at subject count as the
+binding constraint. Two independent readings, same verdict.
+
+**Cost:** 4 minutes of feature extraction plus seconds of probing, against the ~6 GPU-hours
+the pseudo-label simulation would have taken.
+
+---
+
+## EXP-135 — A frozen video foundation model is NOT a viable teacher here: V-JEPA 2 ViT-L scores 0.419 against our fine-tuned MViT's 0.712.
+**Date:** 2026-09-08 · `code/teacher_features.py`, `code/teacher_probe.py` · **Tier:** crazy · **Purpose:** SCORE
+
+R-3 permits distilling from larger models, EXP-122 measured the distillation machinery at
+**+4.91** on fold 2, and that teacher was capped at oracle-any-member 0.877 only because it
+was built from our own five members. A foundation model is the first teacher that is not.
+Frozen rather than fine-tuned, because EXP-115 measured VideoMAE-B **0/4 folds** against
+MViTv2-S -- 86.7M parameters cannot be fine-tuned on 2,281 clips.
+
+`facebook/vjepa2-vitl-fpc64-256`, frozen, over the existing 224 person-crop cache, 2,933
+clips in 4 minutes each pass. Subject-grouped 4-fold logistic probe:
+
+| features | pooled OOF |
+|---|---|
+| depth (Depth_Color RGB) | 0.39584 |
+| IR (channel 3 as gray-RGB) | 0.38220 |
+| **depth + IR concatenated** | **0.41868** |
+| **k224_mvit, our own member (EXP-103)** | **0.71156** |
+
+**Dead by 29 points.** The T1 gate was pooled >= 0.80; it is not close, and no pooling or
+probe refinement closes 29 points.
+
+**⚠ A BUG THAT ALMOST BECAME A RESULT.** The first probe returned **0.170**, near the
+majority-class baseline. That was not the model, it was me: V-JEPA 2's mean-pooled tokens
+have cosine similarity **0.954 between every pair of clips**, so a dominant constant
+direction swamps the signal -- within-class minus between-class cosine was **0.0073**
+against our MViT features' **0.2123**. Standardising the features lifts it 0.170 -> 0.396.
+**Report the 0.419, never the 0.170.** Frozen ViT features must be standardised before any
+linear probe, and a headline number near the majority baseline should be treated as a
+scaling bug until proven otherwise.
+
+**Why it fails, and it generalises:** EXP-015 already measured this in miniature -- frozen
+ImageNet features on IR/depth reached 0.26 while fine-tuning reached far more. Natural-video
+pretraining does not transfer to colormapped depth and IR of a fixed indoor scene as a
+*frozen* representation; domain fine-tuning is what carries this task. That is also why
+MViTv2-S at 34M beats VideoMAE-B at 86.7M here.
+
+---
+
+## EXP-134 — A COCO detector on IR cannot name the object in the hand. Handheld AUC 0.502, BELOW the station-only baseline.
+**Date:** 2026-09-08 · `code/probe_object_channel2.py` · **Tier:** explore · **Purpose:** SCORE
+
+EXP-067/068 localise the problem precisely: 75% of residual error is object-identity
+confusion inside an identical posture, and the visual branch is a motion model that learned
+essentially no appearance, although "the objects ARE in the pixels". A COCO-pretrained
+detector already names cup / bottle / book / laptop / cell phone, R-1 makes it legal, and
+YOLO11n is already in the pipeline for the person crop. Never run until today.
+
+**First pass reported mean pair-AUC 1.000 and was WRONG.** It took the max AUC over 30
+object features on 12+12 clips per pair; selection over 30 features on 24 points produces a
+near-perfect split from noise. The tell was semantic: `tv` separating Read_documents from
+Turn_pages, `cell phone` separating Sweep from Mop. The top detections are **furniture** --
+chair .42, couch .39, sink .38, bed .28 -- i.e. the detector names the **station**, and each
+activity happens at a fixed station.
+
+Honest version: subject-grouped logistic AUC on held-out users, 859 clips, with controls.
+
+| pair | all | handheld-only | furniture-only | permuted | station-only |
+|---|---|---|---|---|---|
+| 21 Read vs 22 Turn_pages | 0.454 | 0.464 | 0.428 | 0.487 | 0.526 |
+| 12 Sweep vs 13 Mop | 0.543 | 0.600 | 0.462 | 0.521 | 0.498 |
+| 6 Drink vs 7 Eat | 0.511 | 0.586 | 0.430 | 0.611 | 0.556 |
+| 24 Mobile vs 26 Games | 0.620 | 0.679 | 0.490 | 0.427 | 0.552 |
+| **mean over 8 real pairs** | **0.541** | **0.502** | 0.516 | — | **0.574** |
+| 28 Jog vs 30 Jacks (control) | 0.452 | 0.558 | 0.352 | 0.450 | 0.714 |
+
+**Handheld-only AUC 0.502 is chance, and the station baseline (0.574) beats every object
+feature.** The branch is dead: the detector reads the room, not the hand. Cost 40 minutes.
+
+**Transferable:** a perfect AUC obtained as a max over many features on few points is a
+selection artifact, and a semantically absurd winning feature is the cheapest tell.
+
+---
+
+## EXP-133 — Subject recovery on test: only the timestamp block works. Day, bone lengths and IMU MACs are all dead.
+**Date:** 2026-09-08 · `code/exp133_subject_keys.py` · **Tier:** explore · **Purpose:** INFORMATION
+
+Every lever built on EXP-132 needs test clips grouped by subject. R-4/R-7 make unlabelled
+grouping legal; the question is whether any key works. Validated against true user labels
+on train:
+
+| key | result | verdict |
+|---|---|---|
+| recording day | purity **0.311**; train days hold 4-8 users with interleaved sessions | **dead** |
+| blocks, gap > 60 s | purity **1.000**, 714 blocks, median **3** clips | pure but too small |
+| blocks, gap > 300 s | purity **0.944**, 142 blocks, median **16** clips | **the usable key** |
+| blocks, gap > 1800 s | purity 0.456 | dead |
+| skeleton bone lengths | within-user sd **0.0754** > nearest-other-user centroid **0.0648**; per-clip user id 0.178 | **dead — not separable** |
+| IMU device MACs | one device set shared by all 18 users (WTC/WTLA/WTRA 1 MAC each; the 2 leg MACs are the known early/late cohort) | **dead** |
+| block-mean video embedding | see P0 below | **dead unsupervised** |
+
+Purity alone is not the criterion: EXP-099 measured per-block AdaBN (100% pure, median 10
+clips) at 0.67945, **worse than pooled** 0.69172, while per-subject reached 0.70092. A group
+must be pure **and** large, which is why the 300 s block is the operating point.
+
+**Test-day structure, corrected.** Test spans 7 days; **5 of them (275 clips)** coincide with
+days on which training users were also recorded, and 130 clips fall on test-only days. An
+earlier draft of the plan said 195/210 — that was wrong, day 20241 is shared.
+
+---
+
+## EXP-132 — The rank-2 error is a per-SUBJECT bias, not a per-clip ambiguity. 229 of 658 errors repeat the same confusion inside one subject.
+**Date:** 2026-09-08 · `code/exp132_subject_errors.py` · **Tier:** explore · **Purpose:** INFORMATION
+
+EXP-131 closed per-clip arbitration from posteriors (0.8759 against a 0.8785 base rate).
+This asks a different question: are the errors *independent* across a subject's clips, or is
+one subject wrong the same way every time? Champion fusion recomputed from artifacts on
+disk, 2,700 pooled OOF clips, top-1 **0.75630**, top-2 **0.86370**, 658 errors, 290 at rank 2.
+
+| statistic | value |
+|---|---|
+| (subject, true, pred) error cells repeated >= 3x within one subject | **229 / 658 = 34.8%** |
+| share of a subject's errors inside a repeated cell | 0.33 - **0.82** (user3 .82, user16 .75, user20 .74, user19 .74) |
+| (subject, class-pair) cells with >= 3 errors | 70, of which **55 strictly one-directional** |
+| rank-2 errors whose subject has a correct clip of the TRUE class elsewhere | **242 / 290** |
+| ... and one of the WRONG (rank-1) class | 232 / 290 |
+| median top-2 margin: correct / rank-2 error / other error | 1.837 / 0.351 / 0.424 |
+| between-subject sd | **5.09 points**; worst-4 mean 0.6810 vs mean 0.7546 |
+
+user23 maps `Read_documents -> Turn_pages` every time and never the reverse. **A subject-
+constant offset is invisible to any per-clip model by construction**, which is a mechanism
+for EXP-131's failure rather than a restatement of it.
+
+**What it did NOT deliver.** The mechanism is real and the exploitation is small — see
+EXP-135/136/137 and the P0/2a/2c probes below. Recorded because the *diagnosis* is solid and
+the next session should not re-derive it, and because it correctly predicted where the
+attempts would fail: the prototypes in 2c inherit the very bias they are meant to correct.
+
+**P0 / 2a / 2c, measured the same day from `code/dump_embeddings.py` (768-d MViT penultimate
+features, both views, all folds honest + test):**
+
+| probe | result | verdict |
+|---|---|---|
+| **P0** unsupervised 18-clustering of 300 s blocks by block-mean embedding | clip-weighted purity **0.339** raw, **0.318** class-residual (nearest-centroid to *known* users is 0.82-0.88, but test subjects are unseen) | **FAIL** |
+| **2a** feature centering `f - mean_S(f) + mu_train`, re-apply the head | ORACLE (true user) **+0.35**, BLOCK (300 s) **+0.63**, 4/4 folds positive, sd 0.32 | below the 1.64 bar |
+| **2c** within-subject prototype vote on the fused top-2 | user pool: 36 rescued / 32 broken; block pool: **17 / 10 = +7 of 2,700** | negligible |
+
+**2a's BLOCK arm beats its ORACLE arm** (+0.63 vs +0.35), which says the nuisance being
+removed is **session-level**, not subject-level -- lighting, clothing and camera drift within
+one recording session, not body habitus. That is a genuinely new and testable statement.
+
+---
+
 ## EXP-131 — The rank-2 ceiling is REAL but is NOT reachable from probability space. A learned re-ranker on posteriors scores BELOW base rate.
 **Date:** 2026-09-08 · analysis only · **Tier:** explore · **Purpose:** INFORMATION
 
