@@ -13,6 +13,48 @@ results.
 
 ---
 
+## EXP-131 — The rank-2 ceiling is REAL but is NOT reachable from probability space. A learned re-ranker on posteriors scores BELOW base rate.
+**Date:** 2026-09-08 · analysis only · **Tier:** explore · **Purpose:** INFORMATION
+
+EXP-124 established the target: champion top-1 **0.76296**, top-2 **0.86850**, and 285 of
+640 errors sit at exactly rank 2. Resolving only that binary decision is **+10.55 points
+OOF ≈ +21 public clips** — the only lever in the project sized for the 0.93 goal.
+
+**So: is the decision learnable from what we already compute?** Subject-grouped 4-fold
+logistic probe over 16 cheap features — fused p1, p2, margin, log-ratio, entropy, max,
+and for each of the five members its log-odds and its vote on the contested pair —
+restricted to the 2,345 clips whose truth is in the top 2:
+
+| | |
+|---|---|
+| base rate (always keep rank-1) | **0.8785** |
+| learned probe | **0.8759** |
+| swaps proposed | 90 → **42 rescues, 48 broken, net −6 clips** |
+
+**The probe is BELOW base rate. The information is not in the posteriors.**
+
+**This is the fifth failure of probability-space arbitration** (GBDT stacker, structure
+decoder, cohort weights, learned gate, now this), and it is the sharpest: the previous
+four were fitted on public and failed there; this one fails on 2,700 honest OOF rows
+against a trivial baseline. **B-028 is the reading** — feature space transfers where
+probability-space fitting does not. Every member's posterior on the contested pair is
+already a compressed summary that has thrown the discriminating detail away.
+
+**What this does NOT say.** It does not say the 285 clips are unreachable. It says they
+are unreachable *from the five members' outputs*. The ceiling stands; the route to it must
+consume **raw input conditioned on the candidate pair**, not posteriors — a model that
+looks at the clip and answers "kettle or laptop?", not one that re-weights five opinions
+about it.
+
+**Consequences for planning:**
+- Do not build a stacker, gate, router, or calibrator over member probabilities. Measured
+  dead, five times, most recently against a base rate it could not beat.
+- The re-ranker must be a *vision* model with the pair as conditioning input.
+- 331 of 2,700 clips (12.3%) have **no** member correct; those are outside the top-2
+  ceiling entirely and cannot be recovered by re-ranking at all.
+
+---
+
 ## EXP-129 — ✅ THE STAGE-2 PACKAGE EXISTS. 93.37 MB on disk, verified by `ls -la`, reproducing the measured configuration to 2 of 405 rows.
 **Date:** 2026-09-04 · `code/pack_stage2.py`, `code/unpack_stage2.py`, `code/fuse_from_package.py` · **Tier:** exploit · **Purpose:** COMPLIANCE
 

@@ -10,10 +10,12 @@
 > `docs/next_action.md` in the *same commit*. A stale handover is worse than no handover —
 > it sends the next session confidently in the wrong direction.
 >
-> **Currently: 0.83084 = 167/201** (`sub_r2_dist`, verified 2026-09-03). Top-15 bar was
-> 164 at the 2026-09-01 snapshot, so margin is **+3**. Standing target 0.89 = 179/201 →
-> **+12 clips**. ⚠ The *package* for this recipe has never been built as a file — see the
-> retraction banner in `docs/next_action.md`.
+> **Currently: 0.83084 = 167/201** (`sub_r2_dist`). Live board 2026-09-08: **rank 14, tied
+> 15th**, with 166 one clip below. Target is now **187–188 = 0.930–0.935 (+20 clips)** —
+> demonstrated, not speculative: a legitimate team scored **188** on 2026-09-08 and eight
+> teams are at 0.90+. **Kaggle GPU quota is exhausted; the SLURM cluster `ssh sharanga` is
+> up.** A legal **93.37 MB** package now exists and is verified four ways (EXP-129).
+> **Plan: [`docs/FABLE_BRIEF.md`](docs/FABLE_BRIEF.md).**
 >
 > **The video branch is information-saturated.** Four person folds and one person + one
 > wrist both reach 166; adding members to the video slot is now a graveyard axis, as are
@@ -130,6 +132,8 @@ Read-first order: **`docs/next_action.md`** → `research/DIRECTIVE.md` →
 
 - `docs/next_action.md` — **the handover.** Default task; update in the same commit as any
   state change
+- `docs/FABLE_BRIEF.md` — **the 7-day brief.** Mission arithmetic, the graveyard, the five
+  measured negatives, cluster specs, and what a usable plan must contain. Read before planning
 - `docs/RESEARCH_PROGRAM.md` — **the mechanism map.** Why the errors are what they are, and
   the predicted sign/magnitude of each candidate change. Read it before proposing a lever
 - `research/DIRECTIVE.md` — the standing research directive (no premature ceilings;

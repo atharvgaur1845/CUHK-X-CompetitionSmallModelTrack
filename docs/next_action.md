@@ -17,6 +17,35 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
+> # ⚡ STATE 2026-09-08 — cluster LIVE, Kaggle quota gone, 7 days, we are on the cut.
+>
+> **Plan lives in [`docs/FABLE_BRIEF.md`](FABLE_BRIEF.md).** Fable plans, Opus 5 executes.
+> Read that brief before proposing anything; it carries the graveyard and the five measured
+> negatives that constrain the solution space.
+>
+> | | |
+> |---|---|
+> | score | **167/201 = 0.83084** (`sub_r2_dist`) |
+> | rank | **14th, tied 15th.** 166 is one clip below us |
+> | target | **187–188 = 0.930–0.935 → +20/+21 clips** |
+> | Kaggle deadline | **2026-09-15 — 7 days** · code upload 09-22 |
+> | compute | **SLURM cluster `ssh sharanga` is UP** (8×H200, 2×4×H100, 8×A100, 6×RTX PRO 6000). **Kaggle's weekly GPU quota is exhausted.** |
+> | legal package | **93.37 MB, verified four ways** (EXP-129), scored **165** |
+>
+> **The target is demonstrated, not speculative.** Live board 2026-09-08: **0.93532 = 188**
+> at rank 5 (submitted that day), then 184/184/181/180/176/173 — **eight teams at 0.90+**.
+> And our own **top-2 is 0.86850 OOF**, which at this pipeline's +6.79 OOF→public offset
+> projects to **≈188/201 — the same number.** The rank-5 team is resolving the binary
+> rank-1-vs-rank-2 decision we surface and get wrong; **285 of our 640 errors sit at rank 2**.
+>
+> **⚠ EXP-131 (2026-09-08) narrows the route, not the destination.** A subject-grouped probe
+> over fused margin/entropy plus every member's vote on the contested pair scores **0.8759
+> against a 0.8785 base rate** — *below* trivial. **The rank-2 information is not in the
+> posteriors.** That is the fifth failure of probability-space arbitration. Any solution must
+> consume **raw input conditioned on the candidate pair**. Do not build another stacker,
+> gate, router or calibrator over member probabilities.
+
+
 > ### ⚠ COMPUTE, 2026-09-03: the cluster is DOWN for 15 days — i.e. past the deadline.
 >
 > `ssh sharanga` is under storage maintenance until ~2026-09-17. The Kaggle deadline is

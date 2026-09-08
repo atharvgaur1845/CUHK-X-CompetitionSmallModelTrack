@@ -9,6 +9,38 @@ The public split contains 201 clips, so one correct clip is
 `1 / 201 = 0.00497512` (about 0.50 percentage points). Reported scores below
 map exactly to integer correct counts after Kaggle rounding.
 
+## 📊 LIVE SNAPSHOT 2026-09-08 (Kaggle API) — we are 14th, tied 15th, ~1 clip off the cut
+
+| rank | score | clips | team |
+|---:|---|---:|---|
+| 1 | 0.98507 | 198 | Knight of Favonius |
+| 2 | 0.98009 | 197 | USTC Sea Star Nebula |
+| 3 | 0.97512 | 196 | YE Mao1023 |
+| 4 | 0.95522 | 192 | Shuning Zhang |
+| **5** | **0.93532** | **188** | **z shuyang** — submitted 2026-09-08 |
+| 6 | 0.91542 | 184 | Jacobo Martin |
+| 7 | 0.91542 | 184 | 砸锅卖铁去比赛 |
+| 8 | 0.90049 | 181 | sjtu-zzh |
+| 9 | 0.89552 | 180 | yangzhouzju |
+| 10 | 0.87562 | 176 | Cuda out of memory |
+| 11 | 0.86069 | 173 | Timass |
+| 12–13 | 0.83582 | 168 | Diogenes's cask, skomuro |
+| **14–15** | **0.83084** | **167** | **AGX (us)**, Team Falcons |
+| 16 | 0.82587 | 166 | daulettoibazar |
+
+**Eight teams are at 0.90+ (181 clips or better).** The top four (192–198) remain the most
+likely L-1 leak signature, but **188 / 184 / 184 / 181 / 180 / 176 / 173 is a populated,
+legitimate tier** and it is still moving — ranks 5 and 11 both submitted within 48 hours.
+
+**The convergence that matters.** Our champion's own **top-2 accuracy is 0.86850 OOF**,
+and OOF has run **+6.79 points** below public on this pipeline (0.76296 → 0.83084). That
+projects our top-2 ceiling to **≈0.9364 = 188/201 — exactly the best legitimate score on
+the board.** The rank-5 team is not doing something unimaginable. They are resolving the
+binary rank-1-vs-rank-2 decision that EXP-124 measured and EXP-131 showed we cannot reach
+from posteriors. **The target is demonstrated, not speculative.**
+
+**Position is precarious:** 166 sits one clip below us and the field keeps growing.
+
 ## ✅ VERIFIED 2026-09-03 — NEW CHAMPION: `sub_r2_dist.csv` = **0.83084 = 167/201**
 
 Supplied by Atharv. `0.83084` maps exactly to `167/201`; the previous champion
