@@ -22,7 +22,7 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 > | | |
 > |---|---|
 > | score | **167/201 = 0.83084** (`sub_r2_dist`), unchanged |
-> | legal package | **93.37 MB, verified** (EXP-129), scores **165** |
+> | legal package | **94.95 MB, verified 4 ways, SCORED 0.83084 = 167/201** (EXP-138) — legality now costs **zero** clips |
 > | compute | cluster `ssh sharanga` **UP and usable** — see "Cluster" below |
 > | Kaggle deadline | **2026-09-15** · code upload 09-22 |
 >
@@ -75,10 +75,17 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 >       --out research/artifacts/stage2_champion.pth
 >     python3 code/unpack_stage2.py --package research/artifacts/stage2_champion.pth --check integrity
 >
+> **✅ SCORED:** `sub_pkgchamp.csv` = **0.83084 = 167/201** (2026-09-08). The package's score
+> is now measured, not predicted, and equals the champion's.
+>
 > **Remaining for T-PKG:** `unpack_stage2.py --check weights,infer` does not yet know about
 > the `imu` branch (integrity covers it; the round-trip was verified by hand in EXP-138).
-> Submit `submissions/sub_pkgchamp.csv` once to bind the package to a measured score — it is
-> rowdiff 0 against the champion, so it should score exactly 167.
+> Wire the `imu` branch into `--check infer` so one command reproduces the submission.
+>
+> **⚠ Two submissions were spent on BYTE-IDENTICAL CSVs** (`sub_verifyA`, `sub_pkgchamp`,
+> and `sub_r2_dist` all hash to `154cd713…f897`). rowdiff 0 already made 167 certain.
+> **Standing rule: never submit a candidate at rowdiff 0** — it cannot return new information,
+> and slots are ~5/day against a 09-15 deadline.
 >
 > ### ② The old ① — superseded, kept for the reasoning
 >

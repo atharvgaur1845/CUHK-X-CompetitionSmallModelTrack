@@ -9,6 +9,28 @@ The public split contains 201 clips, so one correct clip is
 `1 / 201 = 0.00497512` (about 0.50 percentage points). Reported scores below
 map exactly to integer correct counts after Kaggle rounding.
 
+## ✅ VERIFIED 2026-09-08 — the LEGAL package scores 167. T-PKG is closed on a measurement, not a prediction.
+
+| submission | score | clips | what it is |
+|---|---|---:|---|
+| `sub_pkgchamp.csv` | **0.83084** | **167** | IMU member rebuilt **from `stage2_champion.pth`** → fusion → decoder |
+| `sub_verifyA.csv` | **0.83084** | **167** | same recipe with the shipped sklearn IMU probs (reproduction control) |
+| `sub_r2_dist.csv` | 0.83084 | 167 | the champion |
+
+**All three are BYTE-IDENTICAL**, SHA-256
+`154cd713ffa083a1c9c0aa172c1ba09289221579d13297b6a65245312e5ef897`.
+
+**What this establishes:** EXP-129 left the package's score as *"predicted 165 ± 2, not
+measured"*, and EXP-128 measured the best *legal* configuration at **165**. A legal
+94.95 MB single file now scores a **measured 167** — the legality gap is **zero**, not two
+clips, and the champion and the shippable artifact are the same object.
+
+**What it does NOT establish, and this is the honest half:** the three CSVs are identical,
+so the two submissions carried **no independent accuracy information**. rowdiff had already
+shown 0 of 405 rows changed, which made 167 arithmetically certain. Two of ~35 remaining
+slots were spent confirming an engineering claim that a hash had already closed. **Rowdiff 0
+means do not submit** — the score cannot come back anything else.
+
 ## 📊 LIVE SNAPSHOT 2026-09-08 (Kaggle API) — we are 14th, tied 15th, ~1 clip off the cut
 
 | rank | score | clips | team |

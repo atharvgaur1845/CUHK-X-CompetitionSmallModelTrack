@@ -13,7 +13,7 @@ results.
 
 ---
 
-## EXP-138 — ✅ THE 167 CHAMPION IS NOW LEGAL. The sklearn forest ships as tensors; 94.95 MB, 0 of 405 rows changed.
+## EXP-138 — ✅ THE 167 CHAMPION IS NOW LEGAL, AND SCORED. 94.95 MB single file, verified four ways, **public 0.83084 = 167/201**.
 **Date:** 2026-09-08 · `code/imu_trees_to_tensors.py`, `code/pack_stage2.py` · **Tier:** exploit · **Purpose:** COMPLIANCE + SCORE
 
 **The blocker, since EXP-117:** the champion scores **167** and could not be shipped,
@@ -76,11 +76,24 @@ produced the two defaults **plus** the two requested members — four video bran
 with a smaller model it would have shipped a package containing members nobody intended.
 Fixed to `default=None`. **Any `action="append"` with a non-empty default is a latent bug.**
 
+### ✅ SCORED (Atharv, 2026-09-08): `sub_pkgchamp.csv` = **0.83084 = 167/201**
+
+The package-rebuilt IMU member, fused and decoded, scores **167** — and `sub_verifyA.csv`
+(the sklearn-IMU reproduction control) scores the same. EXP-129 had to record the package
+score as *"predicted 165 ± 2, not measured"*; it is now measured, and it is the champion's
+own number. **The legal package goes 165 → 167 and the cost of legality is zero.**
+
+**⚠ Both submissions were redundant, and the ledger should say so.** All three CSVs share
+SHA-256 `154cd713…f897` — they are byte-identical. rowdiff had already returned 0 of 405
+rows, which makes 167 arithmetically certain, so the two slots bought confirmation of an
+engineering fact rather than any accuracy information. **Standing rule: a candidate at
+rowdiff 0 must not be submitted.** The submission budget is for readable differences.
+
 ### What this is worth
 
-The legal package goes **165 → 167** (it now *is* the champion, bit-for-bit), and Stage 2
-reproducibility — 10% of the final grade — stops depending on a component the packer
-cannot represent. This is the one unambiguous gain of 2026-09-08.
+Stage 2 reproducibility — 10% of the final grade — stops depending on a component the
+packer cannot represent, and the shippable artifact is now bit-for-bit the champion. This
+is the one unambiguous gain of 2026-09-08.
 
 ---
 
