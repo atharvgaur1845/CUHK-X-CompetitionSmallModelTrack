@@ -62,7 +62,25 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 > to exploit it failed for one measured reason: **the references used to correct the bias are
 > produced by the same biased model**, so they inherit it (2c: 17 rescued / 10 broken).
 >
-> ### ① DO THIS NEXT — T-PKG, the only high-probability value left
+> ### ✅ ① T-PKG IS DONE (EXP-138). The 167 champion is now a legal 94.95 MB file.
+>
+> `research/artifacts/stage2_champion.pth` — **94.95 MB by `ls -la`**, integrity 1,604
+> tensors / 0 mismatches, and the IMU member rebuilt **from the package** reproduces
+> `sub_r2_dist.csv` (the 167) on **0 of 405 rows**. The sklearn ExtraTrees now ships as
+> tensors (7.63 MB: int16 tree-local children, uint8 leaves, leaf index recomputed at load,
+> tree blobs deflated 4.8x in the archive). The legal package goes **165 → 167**.
+>
+>     python3 code/pack_stage2.py --bits 6 --video person=k224_mvit_all \
+>       --video wrist=k224_mvitwrist_all --imu-trees imu_trees_t200_d12_int8.npz \
+>       --out research/artifacts/stage2_champion.pth
+>     python3 code/unpack_stage2.py --package research/artifacts/stage2_champion.pth --check integrity
+>
+> **Remaining for T-PKG:** `unpack_stage2.py --check weights,infer` does not yet know about
+> the `imu` branch (integrity covers it; the round-trip was verified by hand in EXP-138).
+> Submit `submissions/sub_pkgchamp.csv` once to bind the package to a measured score — it is
+> rowdiff 0 against the champion, so it should score exactly 167.
+>
+> ### ② The old ① — superseded, kept for the reasoning
 >
 > The champion (167) is **not packageable**: `imu_stats` is an sklearn ExtraTrees and
 > `pack_stage2.py` cannot represent it; dropping it moves 43 of 405 rows, and the legal

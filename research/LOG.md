@@ -13,6 +13,77 @@ results.
 
 ---
 
+## EXP-138 — ✅ THE 167 CHAMPION IS NOW LEGAL. The sklearn forest ships as tensors; 94.95 MB, 0 of 405 rows changed.
+**Date:** 2026-09-08 · `code/imu_trees_to_tensors.py`, `code/pack_stage2.py` · **Tier:** exploit · **Purpose:** COMPLIANCE + SCORE
+
+**The blocker, since EXP-117:** the champion scores **167** and could not be shipped,
+because `imu_stats` is an sklearn `ExtraTreesClassifier` and `pack_stage2.py` requires a
+torch `state_dict`. Dropping the member moves **43 of 405 rows** (EXP-105), so the legal
+package substituted a distilled student and scored **165** (EXP-128). Two clips and the
+whole reproducibility mark sat on a serialisation format.
+
+**A decision tree is already just arrays.** sklearn exposes `tree_.feature`,
+`tree_.threshold`, `tree_.children_left/right` and `tree_.value` directly, so the forest
+stores as flat tensors and evaluates with an iterative torch gather.
+
+### The shipping format, and where every byte went
+
+| | naive | shipped | why |
+|---|---|---|---|
+| feature | int16 0.508 | int16 0.508 | |
+| threshold | float32 1.017 | float32 1.017 | float16 would risk flipping a comparison |
+| children | int32 **2.034** | int16 **1.017** | stored TREE-LOCAL; no tree exceeds 32,767 nodes |
+| leaf_idx | int32 **1.017** | **not stored** | a node is a leaf iff `feature < 0`, so the row is `cumsum(is_leaf)-1` |
+| leaf_value | float16 **10.174** | uint8 **5.087** | distributions quantised to 1/255 and renormalised at eval |
+| **total** | **14.75 MB** | **7.63 MB** | budget was 8.64 MB |
+
+### Verification, four levels, every one exact
+
+| check | result |
+|---|---|
+| torch evaluator vs `predict_proba`, 2,933 train clips | argmax **1.00000**, max abs diff 4.96e-03 |
+| packed vs sklearn on the 405 **test** clips | argmax **1.00000**, zero cells **0** |
+| packed vs the **shipped** `testprobs_imu_stats_t200_d12.npz` | **0 of 405 rows** |
+| rebuilt **from the package file** → fusion → decoder vs `sub_r2_dist.csv` (167) | **0 of 405 rows** |
+
+    -rw-rw-r-- 1 atharv atharv 94953347 research/artifacts/stage2_champion.pth
+
+**94.95 MB by `ls -la`, not arithmetic** (B-033), integrity 1,604 tensors / **0 mismatches**.
+Build: `python3 code/pack_stage2.py --bits 6 --video person=k224_mvit_all
+--video wrist=k224_mvitwrist_all --imu-trees imu_trees_t200_d12_int8.npz
+--out research/artifacts/stage2_champion.pth`
+
+### Two things that made it fit
+
+**The forest did not have to be pruned at all.** A size/accuracy sweep showed 200 trees at
+depth 12 is the *only* configuration that costs nothing (150/12 −0.34, 200/10 −1.16,
+150/10 −1.02, 200/8 −3.31 points of pooled OOF), and the int8-leaf format brings exactly
+that forest inside the budget. The obvious move — shrink the forest — was measurably the
+wrong one.
+
+**Tree blobs are deflated in the archive, weight blobs are not.** int8 weight codes are
+near-maximal entropy and do not compress; leaf distributions are repetitive and deflate
+**4.8x** (7.63 MB → 1.59 MB). Per-entry compression is transparent to readers and the
+manifest SHA is over the raw bytes, so verification is unaffected. That is what turns a
+99.6 MB squeeze into 94.95 MB with real margin.
+
+### ⚠ A packer bug that produced a 130 MB file and would have produced a wrong one
+
+`--video` used `action="append"` with a **default list**, and argparse *appends to* a
+default rather than replacing it. Passing `--video person=... --video wrist=...` silently
+produced the two defaults **plus** the two requested members — four video branches,
+139 MB of video, a 130 MB package. It failed loudly only because the cap check caught it;
+with a smaller model it would have shipped a package containing members nobody intended.
+Fixed to `default=None`. **Any `action="append"` with a non-empty default is a latent bug.**
+
+### What this is worth
+
+The legal package goes **165 → 167** (it now *is* the champion, bit-for-bit), and Stage 2
+reproducibility — 10% of the final grade — stops depending on a component the packer
+cannot represent. This is the one unambiguous gain of 2026-09-08.
+
+---
+
 ## EXP-137 — Per-group logit centering: +0.85 before the decoder, +0.19 AFTER it. Not adopted.
 **Date:** 2026-09-08 · analysis only · **Tier:** explore · **Purpose:** SCORE
 

@@ -106,12 +106,28 @@ def main() -> int:
                     help="survivor=dropped,... — dropped tags' weight moves to the "
                          "survivor of the same fold, so a seed collapse changes the seed "
                          "count and nothing else")
-    ap.add_argument("--video", action="append",
-                    default=["student=distil_oracle_all", "wrist=k224_mvitwrist_all"],
-                    help="role=checkpoint-tag (file must be checkpoints/<tag>.pt)")
+    # NOTE: default is None, not a list. argparse "append" APPENDS to a default list
+    # rather than replacing it, so a --video on the command line silently produced the
+    # defaults PLUS the requested members -- 4 video branches and a 130 MB package.
+    ap.add_argument("--video", action="append", default=None,
+                    help="role=checkpoint-tag (file must be checkpoints/<tag>.pt). "
+                         "Defaults to student+wrist when omitted.")
     ap.add_argument("--bits", type=int, default=6)
+    ap.add_argument("--imu-trees", default="",
+                    help="npz from code/imu_trees_to_tensors.py (pack_int8). Embeds the "
+                         "ExtraTrees IMU member as TENSORS. Without it the sklearn member "
+                         "cannot be represented at all and must be dropped, which moves 43 "
+                         "of 405 rows (EXP-105) and costs the 2 clips between the 167 "
+                         "champion and the 165 legal package (EXP-128).")
+    ap.add_argument("--imu-smooth", type=float, default=1e-3,
+                    help="Laplace smoothing applied after tree averaging. MANDATORY: the "
+                         "raw forest emits exact zeros (2,382 cells over 392/405 rows) and "
+                         "a zero in a geometric-mean fusion vetoes that class for the whole "
+                         "ensemble -- the mechanism behind an earlier 0.29 submission.")
     a = ap.parse_args()
 
+    if a.video is None:
+        a.video = ["student=distil_oracle_all", "wrist=k224_mvitwrist_all"]
     keep = {t for t in a.skel_tags.split(",") if t}
     moved = {}
     for spec in a.merge:
@@ -166,6 +182,32 @@ def main() -> int:
             "source_checkpoint": f"checkpoints/{tag}.pt"})
         print(f"  video {role:8s} <- {tag}: {nq} tensors at int{a.bits}, {nf} kept fp32")
 
+    if a.imu_trees:
+        tp = Path(a.imu_trees)
+        if not tp.is_file():
+            tp = ART / a.imu_trees
+        td = np.load(tp)
+        tensors = []
+        for name in ("feature", "threshold", "left", "right", "leaf_value", "tree_offset"):
+            arr = np.ascontiguousarray(td[name])
+            b = arr.tobytes()
+            key = f"imu_trees/{name}"
+            blobs[key] = b
+            tensors.append({"name": name, "shape": list(arr.shape),
+                            "encoding": f"raw_{arr.dtype}", "dtype": str(arr.dtype),
+                            "code_entry": key, "nbytes": len(b), "sha256": sha(b)})
+        members.append({
+            "id": "imu_trees", "role": "imu", "tag": "imu_stats_t200_d12", "fold": None,
+            "branch": "imu", "weight": None,
+            "model": {"builder": "code/imu_trees_to_tensors.py:torch_predict_int8",
+                      "kind": "extra_trees_int8_leaves", "n_classes": 40,
+                      "features": "code/imu_stats_member.py:clip_features (545-d)",
+                      "laplace_smooth": a.imu_smooth},
+            "tensors": tensors, "source_checkpoint": str(tp.name)})
+        mb_ = sum(t["nbytes"] for t in tensors) / 1e6
+        print(f"  imu       <- {tp.name}: {len(tensors)} tensors, {mb_:.2f} MB "
+              f"(deflated in the archive)")
+
     manifest = {
         "format": "cuhkx.stage2-package", "format_version": 2, "byte_order": "little",
         "cap_bytes": CAP_BYTES,
@@ -187,10 +229,16 @@ def main() -> int:
 
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
+    # Weight blobs are int8 codes with near-maximal entropy, so STORED is right for them.
+    # The tree arrays are the exception: leaf distributions are highly repetitive and
+    # deflate ~4.8x (7.63 MB -> 1.59 MB), which is what buys the headroom for the champion
+    # configuration. Readers decompress transparently; the manifest SHA is over the RAW
+    # bytes either way, so verification is unaffected.
     with zipfile.ZipFile(out, "w", zipfile.ZIP_STORED) as z:
         z.writestr("manifest.json", mb)
         for k, v in blobs.items():
-            z.writestr(k, v)
+            ct = zipfile.ZIP_DEFLATED if k.startswith("imu_trees/") else zipfile.ZIP_STORED
+            z.writestr(zipfile.ZipInfo(k), v, compress_type=ct)
 
     size = out.stat().st_size
     payload = sum(len(v) for v in blobs.values())
