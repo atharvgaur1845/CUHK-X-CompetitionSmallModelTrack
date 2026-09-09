@@ -17,7 +17,38 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
-> # ⚡ STATE 2026-09-09 (evening) — thermal is in at **172/201**, and the new composition **SHIPS at 94.94 MB**.
+> # ⚡ STATE 2026-09-10 — full-frame IR+Depth is DEAD. The remaining 2 clips are a SERIALIZATION problem.
+>
+> | | |
+> |---|---|
+> | best public | **172/201** (`sub_r2th20`, person+wrist+thermal) — **129 MB, does not ship** |
+> | best shippable | **170/201** (`sub_pkgshipv2`) = `stage2_shipv2.pth`, **94.94 MB, verified 4 ways** |
+> | the gap | **2 clips, and it is bytes, not modelling** |
+> | running | wrist LOSO 337926 (13/18 done); thermal LOSO complete (18/18) |
+>
+> **EXP-143 killed full-frame IR+Depth.** Member 0.66178, fusion +8/2700 at the LOW endpoint
+> with rescues tracking broken (30/22, 46/43, 66/65), and nested CV says adding it to the
+> shipping pair makes it *worse* (2062 → 2045). Cause: it agrees with the person crop on
+> **0.7648** of clips, the highest of any pair we own. **Decorrelation came from the
+> MODALITY, not the framing** — do not re-frame another modality expecting thermal's result.
+>
+> **Nested CV over all 10 video combinations puts `person+wrist+thermal` first at 2074**,
+> and that is exactly the 172 config. To ship it: true int6 bit-packing (−25% of video
+> bytes, still "not implemented" per EXP-129) puts 3 views at ~103.6 MB; one pruned skeleton
+> arch (−4.56) lands ~99.1. That is the only identified route to +2, and it is a
+> serialization change — verifiable by rowdiff, not an accuracy gamble.
+>
+> **Do next:** (1) finish the wrist LOSO and build the ensemble per-subject table
+> (thermal + wrist + IMU are done; **a skeleton LOSO is still missing**); (2) decide on
+> int6 bit-packing; (3) `sub_pkgshipv2` is the current final unless (2) lands.
+>
+> **Do NOT** swap thermal for the wrist (−104 clips, EXP-140), re-frame a modality hoping
+> for thermal's gain (EXP-143), or add a video view without updating `VIEW_SPEC` in
+> `pack_stage2.py`.
+>
+> ---
+>
+> # STATE 2026-09-09 (evening) — thermal is in at **172/201**, and the new composition **SHIPS at 94.94 MB**.
 >
 > | | |
 > |---|---|

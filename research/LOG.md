@@ -13,6 +13,113 @@ results.
 
 ---
 
+## EXP-143 — ❌ FULL-FRAME IR+DEPTH AT 224 px ADDS NOTHING. The full-frame lesson does NOT transfer from thermal; it makes a correlated duplicate of the person crop.
+**Date:** 2026-09-10 · `code/make_fullframe_windows.py`, `cluster/full224.sbatch`, array 337928 · **Tier:** explore · **Purpose:** SCORE
+
+**The hypothesis, and it was a good one.** Thermal's gain (EXP-139) arrived at 224 px on
+FULL FRAMES, and EXP-140's leave-one-out then found the person CROP the most droppable
+member of the ensemble. Both point the same way: cropping to the person deletes scene and
+object context, 75% of residual error is OBJECT classes, and EXP-068 measured that the
+objects are in the pixels. IR+Depth is our strongest modality (0.71156 cropped) and had
+never been seen uncropped at 224 px.
+
+### Member: 0.66178 pooled — below both crops, above thermal
+
+| fold | full-frame IR+Depth |
+|---|---|
+| 0 | 0.67936 |
+| 1 | 0.62899 |
+| 2 | 0.67025 |
+| 3 | 0.67228 |
+| **pooled** | **0.66178** |
+
+against person crop **0.71156**, wrist crop **0.71565**, thermal **0.63370**. So cropping
+IS worth ~5 points on IR+Depth — the opposite of the thermal case, where full-frame was
+the better framing. Member strength alone did not kill it: thermal is *weaker* at 0.634
+and delivered +5 public clips on decorrelation.
+
+### Fusion: +8 clips of 2,700 at the LOW endpoint, then monotone decline
+
+Added on top of the shipping config (wrist + thermal + skeleton + IMU, 2062/2700):
+
+| w | n | Δ | rescued | broken |
+|---|---|---|---|---|
+| 0.10 | 2070 | **+8** | 30 | 22 |
+| 0.15 | 2068 | +6 | 36 | 30 |
+| 0.20 | 2065 | +3 | 46 | 43 |
+| 0.30 | 2063 | +1 | 66 | 65 |
+| 0.40 | 2044 | −18 | 71 | 89 |
+
++8 of 2,700 is **+0.30 points against a 1.64 two-SE bar** — a fail. And the shape is the
+tell: the optimum sits at the **low endpoint** with monotone decay, and rescues track
+broken almost exactly (30/22, 46/43, 66/65). Thermal's signature was the opposite — a flat
+plateau across w ∈ [0.10, 0.30] with harms *falling* 90 → 66. **B-027 and EXP-125 both
+hold: this is what a member that brings nothing new looks like.**
+
+### The mechanism, and it is visible in one number
+
+| pair | argmax agreement |
+|---|---|
+| **full-frame vs person crop** | **0.7648 — the highest of any pair we own** |
+| person crop vs wrist crop | 0.7574 |
+| wrist crop vs full-frame | 0.7048 |
+| person crop vs thermal | 0.6381 |
+| wrist crop vs thermal | 0.6363 |
+| thermal vs full-frame | 0.6130 |
+
+Full-frame IR+Depth is a **slightly worse, more correlated copy of the person crop**. It
+fixes 102 of the 638 shipping-config errors, about the same count as thermal's 103 — but
+they are not the same errors, and the ones it fixes are largely ones the person view
+already fixes. **Decorrelation came from the MODALITY, not the framing.** The thermal win
+was thermal, and re-framing IR+Depth does not reproduce it.
+
+### Nested CV over every video-view combination — the decisive table
+
+Weight search inside the fold loop, so all ten combinations are compared under one
+selection procedure:
+
+| video views | nested-CV | fitted |
+|---|---|---|
+| **person + wrist + thermal** | **2074** | 2086 |
+| wrist + thermal *(shipping today)* | 2062 | 2074 |
+| wrist + full-frame | 2060 | 2060 |
+| person + wrist + full-frame | 2047 | 2061 |
+| **wrist + thermal + full-frame** | **2045** | 2073 |
+| person + wrist *(the old champion)* | 2042 | 2065 |
+| person + thermal | 2024 | 2039 |
+| thermal + full-frame | 2010 | 2016 |
+| person + full-frame | 2007 | 2018 |
+
+**Adding full-frame to the shipping pair makes it WORSE under nested CV (2062 → 2045)**
+while making it better fitted (2074 → 2073 ≈ flat). That gap is the selection bias doing
+exactly what it is supposed to reveal. **Verdict: full-frame IR+Depth is dead.** Not a
+weight question, not a recipe question — the information is already in the bag.
+
+### What the same table says about where the 2 clips went
+
+`person + wrist + thermal` is the best combination at **2074**, and it is the 129 MB
+configuration that scored **172** while `wrist + thermal` scored **170**. Nested CV puts
+them 12 OOF clips apart and public puts them 2 clips apart — consistent. **The remaining
+recoverable gain is a SERIALIZATION problem, not a modelling one:** fitting three views
+under the cap needs true int6 bit-packing (−25% of video bytes, "not implemented" per
+EXP-129) plus roughly one pruned skeleton arch. Budget: 3 views bit-packed 78.3 + skeleton
+22.80 + trees 7.63 → ~103.6 MB on disk, still 3.6 over; dropping one skeleton arch
+(−4.56) lands at ~99.1.
+
+### Method note worth keeping
+
+The cache was built without touching the trainer. `vars(args)` is the resume fingerprint,
+so adding a `--crop full` choice would have invalidated `--resume` for the two LOSO arrays
+in flight. `code/make_fullframe_windows.py` writes a `windows.json` mapping every sid to
+`[]`, which `_render` reads as "no box" (full frame) and `compute_windows` reads as
+"already computed" (skip YOLO). Built in a scratch cwd because `find_paths` derives the
+cache path from the cwd and would otherwise have aimed at `cache/crop_224` itself.
+Verified 4 ch / 224 px with **sid order identical to `crop_224`**, which is what keeps
+every submission row aligned. Whole build: 2,933 + 405 clips in under 3 minutes at
+34–44 clip/s, versus the hour budgeted — YOLO was the entire cost of the crop caches.
+
+---
+
 ## EXP-142 — ✅ THE THERMAL PACKAGE FITS: 94.94 MB, verified four ways, reproduces its own submission on 404/405 rows.
 **Date:** 2026-09-09 · `code/pack_stage2.py`, `code/unpack_stage2.py` · **Tier:** exploit · **Purpose:** SHIP
 
