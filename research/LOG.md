@@ -13,6 +13,78 @@ results.
 
 ---
 
+## EXP-139 — ✅ THERMAL COMES BACK FROM THE GRAVEYARD. At 224 px it is +5.6 member points and, for the first time ever, POSITIVE in fusion: +46 clips of 2,700 through the decoder.
+**Date:** 2026-09-09 · `code/build_thermal224_cache.py`, cluster 4-fold array · **Tier:** explore · **Purpose:** SCORE
+
+**The axis this reopens.** EXP-088 and EXP-113 measured thermal contributing **exactly
+0.00** at every fusion weight 0.05–0.35, monotonically negative from 0.20 up, and
+`CLAUDE.md` lists "thermal late fusion" in the graveyard. EXP-120b then closed the crop
+question (full-frame vs cropped: +0.83, 0.96 SE, not adopted). EXP-123 identified the real
+binding constraint: **accuracy**, not calibration — thermal brought 19 rescues against 247
+errors, so any weight that harvests the 19 imports from a pool 13× larger.
+
+**Every one of those runs was 128 px through r2plus1d_18** — the exact recipe the
+224 px/MViTv2-S recipe beat by **+7.5 points** on IR+depth (0.640 → 0.715, EXP-102/103).
+The modality had never been tried through the recipe that works. Thermal frames are
+320×240, so 224 px is near-native and nothing is upsampled.
+
+### Member result: +5.62 points, 4/4 folds
+
+| fold | thermal-224 | 128 px full-frame (EXP-120b) | Δ |
+|---|---|---|---|
+| 0 | **0.66216** | 0.58354 | **+7.86** |
+| 1 | **0.63759** | 0.56511 | **+7.25** |
+| 2 | **0.60583** | 0.55828 | **+4.75** |
+| 3 | **0.59112** | 0.56508 | **+2.60** |
+| **pooled** | **0.62700** | 0.56800 | **+5.62** |
+
+**The pre-registered member gate was pooled ≥ 0.66 and it FAILED at 0.627.** Recorded as a
+failure, not softened. What follows is a *direct* measurement of the quantity that gate was
+a proxy for, which costs zero GPU because every OOF file already exists — replacing an
+estimated threshold with a measurement, not moving it.
+
+### Fusion: positive for the first time in the campaign
+
+Added as a log term at weight w on the 2,700 pooled OOF (the EXP-088/113 form):
+
+| | pre-decoder | **through the SHIPPED decoder** | rescues/harms |
+|---|---|---|---|
+| base champion | 0.75630 | 0.80889 (2184/2700) | 232 / 90 |
+| + 0.10·thermal | 0.76667 | 0.82407 (2225) | 227 / **72** |
+| + 0.15·thermal | 0.76778 | 0.82444 (2226) | 225 / **72** |
+| **+ 0.20·thermal** | 0.76704 | **0.82593 (2230)** | 225 / **66** |
+| + 0.30·thermal | — | 0.82556 (2229) | 226 / **63** |
+| + 0.40·thermal | — | 0.82148 (2218) | 237 / 60 |
+
+**+46 clips of 2,700 = +1.70 points at w=0.20**, on a broad flat plateau (2225–2230 across
+w ∈ [0.10, 0.30], a 3× range) rather than a knife-edge. **It grows through the decoder**
+(+1.15 pre-decoder → +1.70 after), which is the opposite of EXP-137's centering, and the
+gain comes from **harms falling 90 → 66** while rescues hold — the same signature EXP-125
+identified as the one to trust.
+
+Thermal is correct on **176 of the 658 champion errors**, and its test argmax agrees with
+the champion on only **0.6716** — still the most decorrelated view we own.
+
+### Candidate, and the prediction recorded BEFORE scoring
+
+`sub_r2th20.csv` — champion ⊗ 4-fold thermal bag at w=0.20, decoder unchanged. **Single
+change. rowdiff 21 of 405** against `sub_r2_dist` (167), above the ~20-row readability bar,
+so this is measurable rather than noise-limited.
+
+**Predicted 169–170, range 163–174.** The OOF delta is +1.70 points ≈ +3.4 public clips,
+but I discount it: the closest structural precedent is EXP-109's *"wrist view added to a
+4-fold slot"*, which pooled OOF predicted at **+3.3** and public delivered **0**, and
+B-032 warns that a new member is the class of change pooled OOF has been 0-for-2 on.
+Centre **+2**, and a negative outcome would be entirely consistent with B-032.
+
+**What this does NOT claim.** Thermal at 0.627 is still well below the IR+depth member's
+0.712, and this is one member added at one weight — it does not reopen "add more
+decorrelated modalities" as a general strategy (EXP-088's lesson stands). What changed is
+narrower and mechanical: the member crossed enough accuracy for its 176 unique-correct
+clips to outweigh what it imports.
+
+---
+
 ## EXP-138 — ✅ THE 167 CHAMPION IS NOW LEGAL, AND SCORED. 94.95 MB single file, verified four ways, **public 0.83084 = 167/201**.
 **Date:** 2026-09-08 · `code/imu_trees_to_tensors.py`, `code/pack_stage2.py` · **Tier:** exploit · **Purpose:** COMPLIANCE + SCORE
 
