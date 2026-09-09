@@ -56,6 +56,17 @@ def sha(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest()
 
 
+# role -> (cache directory, input channels). Hardcoding these to the IR+Depth values was
+# safe only while every packaged view WAS IR+Depth. Thermal is 3-channel ironbow and reads
+# cache/thermal_224; a wrong in_channels builds a model the weights cannot load into.
+VIEW_SPEC = {
+    "student": ("crop_224", 4),
+    "person":  ("crop_224", 4),
+    "wrist":   ("crop_wrist224", 4),
+    "thermal": ("thermal_224", 3),
+}
+
+
 def quantize_video(tag: str, bits: int):
     """Reproduce quantize_checkpoint.py exactly, but keep the CODES instead of
     round-tripping them to fp32. Returns (entries, blobs, n_quant, n_fp32)."""
@@ -113,6 +124,11 @@ def main() -> int:
                     help="role=checkpoint-tag (file must be checkpoints/<tag>.pt). "
                          "Defaults to student+wrist when omitted.")
     ap.add_argument("--bits", type=int, default=6)
+    ap.add_argument("--weight", action="append", default=None,
+                    help="role=weight in the log-linear pool, e.g. thermal=0.20. "
+                         "Roles are the video roles plus skel, imu and prior. Declared "
+                         "in the manifest so the package is self-describing; the loader "
+                         "must not re-derive them.")
     ap.add_argument("--imu-trees", default="",
                     help="npz from code/imu_trees_to_tensors.py (pack_int8). Embeds the "
                          "ExtraTrees IMU member as TENSORS. Without it the sklearn member "
@@ -128,6 +144,21 @@ def main() -> int:
 
     if a.video is None:
         a.video = ["student=distil_oracle_all", "wrist=k224_mvitwrist_all"]
+    for spec in a.video:
+        role = spec.partition("=")[0]
+        if role not in VIEW_SPEC:
+            raise SystemExit(f"unknown video role {role!r}; add it to VIEW_SPEC "
+                             f"(known: {sorted(VIEW_SPEC)})")
+    fusion_w = {"skel": 0.35, "imu": 0.3575, "prior": 0.25}
+    for spec in a.video:
+        fusion_w[spec.partition("=")[0]] = 0.2925 / len(a.video)
+    for spec in (a.weight or []):
+        k, _, v = spec.partition("=")
+        fusion_w[k] = float(v)
+    a.fusion = " + ".join(
+        f"{fusion_w[k]}*log({'skel/prior' if k == 'skel' else k})"
+        for k in sorted(fusion_w))
+    print(f"  fusion    {a.fusion}")
     keep = {t for t in a.skel_tags.split(",") if t}
     moved = {}
     for spec in a.merge:
@@ -173,9 +204,10 @@ def main() -> int:
             "id": f"{role}_{tag}", "role": role, "tag": tag, "fold": None,
             "branch": "video", "weight": None,
             "model": {"builder": "kaggle/cuhkx_224_kaggle.py:build_model",
-                      "arch": "mvit_v2_s", "n_classes": 40, "in_channels": 4,
+                      "arch": "mvit_v2_s", "n_classes": 40,
+                      "in_channels": VIEW_SPEC[role][1],
                       "image_size": 224, "n_frames": 16,
-                      "cache": "crop_224" if role != "wrist" else "crop_wrist224"},
+                      "cache": VIEW_SPEC[role][0]},
             "tensors": [{**e, "code_entry": f"video/{role}/{e['code_entry']}",
                          **({"scale_entry": f"video/{role}/{e['scale_entry']}"}
                             if "scale_entry" in e else {})} for e in entries],
@@ -217,11 +249,11 @@ def main() -> int:
         "skeleton_spec": {"keep_tags": sorted(keep), "merge": a.merge,
                           "note": "declared here because w25_p4's invocation was never "
                                   "recorded and its weights are not recoverable"},
-        "fusion": {"formula": "0.35*log(skel/prior) + 0.2925*log(video) + "
-                              "0.3575*log(student) + 0.25*log(prior)",
-                   "video_views": ["wrist"],
-                   "note": "the student occupies the slot the sklearn IMU member held; "
-                           "EXP-128 measured this configuration at 165/201"},
+        "fusion": {"formula": a.fusion,
+                   "weights": dict(fusion_w),
+                   "video_views": [spec.partition("=")[0] for spec in a.video],
+                   "note": "weights are declared here, not inferred by the loader; "
+                           "code/fuse_test_views.py reproduces them from members"},
         "loader": "code/unpack_stage2.py",
         "members": members,
     }

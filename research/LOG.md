@@ -13,6 +13,122 @@ results.
 
 ---
 
+## EXP-142 — ✅ THE THERMAL PACKAGE FITS: 94.94 MB, verified four ways, reproduces its own submission on 404/405 rows.
+**Date:** 2026-09-09 · `code/pack_stage2.py`, `code/unpack_stage2.py` · **Tier:** exploit · **Purpose:** SHIP
+
+EXP-140 said the 172 configuration was ~129 MB and that dropping the person crop was the
+cheapest way to pay for thermal. This builds that package and proves it.
+
+| branch | MB |
+|---|---|
+| skeleton `w25_p4`, 5 archs × 4 folds | 22.80 |
+| video: `k224_mvitwrist_all` + `k224_mvit_th_all`, int6 codes | 69.60 |
+| IMU ExtraTrees as tensors (deflates 7.63 → 1.59 in-archive) | 7.63 |
+| **file on disk** | **94.94 / 100 → PASS** |
+
+**Verification, all four levels:**
+
+* integrity — 1604 tensors, **0 SHA-256 mismatches**
+* weights — both video views **bit-identical** (max abs diff 0.000e+00) to what
+  `quantize_checkpoint.py --bits 6` produces from the source checkpoints
+* infer — wrist reproduces its reference on **405/405** argmaxes, max|Δp| 0.000e+00
+* end-to-end — the submission rebuilt **from the package's own outputs**
+  (`sub_pkgshipv2.csv`) differs from `sub_shipv2.csv` on **1 of 405 rows**
+
+**The one row, and why it is not a defect.** Thermal has no `_q6` reference to compare
+against, so it was compared to its fp32 source directly: int6 quantisation moves **8 of
+405 argmaxes at the member level** (max|Δp| 0.111). After fusion at w=0.20 and decoding,
+**one** row survives. That is the quantisation noise floor for a new view, measured rather
+than assumed, and it is inside the plan's own rowdiff ≤ 2 eligibility rule.
+
+### Two hardcoded constants that only a 3-channel view could expose
+
+Both packer and unpacker assumed **every video view is 4-channel IR+Depth reading
+`crop_224`**, because until today every packaged view was. Thermal is 3-channel ironbow
+from `cache/thermal_224`.
+
+* `pack_stage2.py` wrote `"in_channels": 4` and `"cache": "crop_224" if role != "wrist"`
+  into the manifest — a package that **describes itself incorrectly**, which integrity and
+  weight checks both pass because neither reads those fields. Replaced with a `VIEW_SPEC`
+  table, and an unknown role is now a hard error rather than a silent mis-declaration.
+* `unpack_stage2.py` built the model with the default channel count and **ignored the
+  manifest**, so it died with `size mismatch for conv_proj.weight: [96,3,3,7,7] vs
+  [96,4,3,7,7]`. It now reads `in_channels` from the manifest and *asserts it against the
+  cache*, so a manifest that disagrees with the data fails loudly.
+
+`--check infer` is the only check that could catch either. **Both failures were latent the
+moment a non-IR view was considered, and neither would have appeared on any accuracy
+number** — B-033 exactly: a score closes accuracy questions and never serialization ones.
+
+### The fusion is now declared, not inferred
+
+The manifest's fusion string was a hardcoded literal describing a composition two changes
+old. `--weight role=w` now writes the actual shipped weights into the manifest
+(`0.2925 wrist + 0.20 thermal + 0.35 skel/prior + 0.3575 imu + 0.25 prior`), so the
+package is self-describing and the loader has nothing to re-derive. The old literal would
+have shipped the *wrong formula* next to correct weights.
+
+---
+
+## EXP-141 — ✅ 18-SUBJECT LOSO. Between-subject sd is 6.89 points with 17 df, not 5.26 with 3 — the public noise floor is BIGGER than the ledger says, and the subject spread is 28 points.
+**Date:** 2026-09-09 · `code/exp141_loso_table.py`, `code/exp141_imu_loso.py`, cluster array 337249 · **Tier:** infrastructure · **Purpose:** SELECT
+
+All 18 leave-one-subject-out runs completed (7 of the first attempt died of truncated
+`torch.save` writes against the 40 GB /home quota; outputs moved to scratch). Each model
+trains on 17 subjects, which is also closer to the deployed all-18 model than the 4-fold
+models' 13–14.
+
+| subject | clips | acc | | subject | clips | acc |
+|---|---|---|---|---|---|---|
+| user21 | 133 | **0.60150** | | user24 | 159 | 0.74843 |
+| user3 | 161 | 0.65217 | | user16 | 186 | 0.75269 |
+| user6 | 201 | 0.65672 | | user18 | 178 | 0.75281 |
+| user23 | 132 | 0.65909 | | user2 | 167 | 0.75449 |
+| user8 | 165 | 0.66061 | | user9 | 181 | 0.76796 |
+| user1 | 149 | 0.69128 | | user5 | 100 | 0.78000 |
+| user20 | 159 | 0.69182 | | user17 | 166 | 0.79518 |
+| user22 | 192 | 0.69792 | | user4 | 134 | 0.80597 |
+| user7 | 184 | 0.71196 | | user19 | 186 | **0.88172** |
+
+    mean 0.72568 · sd 0.06890 (17 df) · worst-to-best spread 28.0 points
+    LOWER QUARTILE (worst 5) 0.64602   <- the selection statistic
+    upper quartile (best 5)  0.80617
+
+### What this corrects
+
+EXP-124 estimated between-subject sd at **5.26 points from n = 4** (CI [0.60, 7.30]).
+The 18-subject estimate is **6.89**, inside that CI and with 17 df instead of 3. Consequences:
+
+| draw | SE | in clips |
+|---|---|---|
+| 4 subjects (**the public leaderboard**) | 3.45 pts | **±6.9 clips at 1 SE, ±13.9 at 2** |
+| 8 subjects (private, and on-site) | 2.44 pts | ±5.0 clips at 1 SE |
+
+`CLAUDE.md` says the public noise floor is ±9–10 clips; the better estimate is **±14 at
+2 SE**. **The distinction that matters:** this is the uncertainty in generalising from the
+public 4 to the population. Two submissions scored on the *same* 4 subjects share that
+draw and it largely cancels — which is exactly why rowdiff, not the raw score, is the
+readable quantity. Do not use ±14 to dismiss a paired comparison, and do not use a public
+delta to claim a population gain.
+
+**Applied to today: 167 → 172 is +2.5 points, well inside one SE of the population
+uncertainty.** Thermal's adoption rests on the paired evidence (4/4 folds, +46 OOF clips,
+harms falling 90 → 66), not on the public delta alone.
+
+### IMU member, 18 LOSO fits (CPU)
+
+Pooled **0.39107** against the 4-fold OOF's 0.4067 — the 4-fold number is 1.6 points
+optimistic. Range user6 0.27861 to user2 0.50898, a 23-point spread on a 0.39 member.
+
+### Still open
+
+The lower quartile above is the **person view alone**, and the person view is the member
+EXP-140 drops. LOSO arrays for the two views that actually ship (`losowrist` 337758,
+`losoth` 337759, 36 tasks) are queued on `gpu_a100_8`; the ensemble lower quartile needs
+them plus the skeleton, and only then does the final-selection rule have its statistic.
+
+---
+
 ## EXP-140 — ✅ THERMAL SCORED 172/201 (+5, above the predicted centre). And the PERSON view is now redundant: dropping it costs nothing and frees the exact 34.28 MB thermal needs.
 **Date:** 2026-09-09 · `code/exp140_view_ablation.py`, `code/fuse_test_views.py` · **Tier:** exploit · **Purpose:** SCORE + SHIP
 

@@ -46,8 +46,8 @@ def main() -> int:
 
     SRC = {
         "person":  (["k224_mvit_all"], "uniform"),
-        "wrist":   (["k224_mvitwrist_all"], "uniform"),
-        "thermal": (["th224_bag"], "uniform"),
+        "wrist":   (["pkg_wrist"], "uniform"),
+        "thermal": (["pkg_thermal"], "uniform"),
         "skel":    (["astgcn_world25"], "train"),
         "imu":     (["imu_stats_t200_d12"], "uniform"),
     }

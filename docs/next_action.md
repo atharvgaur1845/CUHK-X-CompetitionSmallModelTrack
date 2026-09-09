@@ -17,7 +17,33 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
-> # ⚡ STATE 2026-09-09 — THERMAL IS IN. 167 → **172/201**, and the package composition changed.
+> # ⚡ STATE 2026-09-09 (evening) — thermal is in at **172/201**, and the new composition **SHIPS at 94.94 MB**.
+>
+> | | |
+> |---|---|
+> | scored | **172/201 = 0.85572** (`sub_r2th20`) — champion was 167 |
+> | shipping package | **`stage2_shipv2.pth`, 94.94 MB, verified 4 ways** (EXP-142) — wrist + thermal + skeleton + IMU trees. The person crop is **out** |
+> | submit next | **`submissions/sub_pkgshipv2.csv`** — built from the package's own outputs. Predicted **170–173**; **≤167 falsifies** the EXP-140 leave-one-out |
+> | running | LOSO for the two shipping views: `losowrist` 337758, `losoth` 337759, 36 tasks, `PD (Priority)` |
+>
+> **Selection statistic (EXP-141).** Between-subject sd is **6.89 points, 17 df** — the
+> public 4-subject draw carries **±14 clips at 2 SE**, larger than the ±9–10 in `CLAUDE.md`.
+> That is population uncertainty; two submissions on the *same* 4 subjects share the draw,
+> so **rowdiff stays the readable quantity**. Subject spread is 28 points (user21 0.602 →
+> user19 0.882). Lower quartile of the *person* view is 0.646; the ensemble lower quartile
+> needs 337758/337759 plus a skeleton LOSO.
+>
+> **Do next:** (1) score `sub_pkgshipv2.csv`; (2) when the LOSO arrays land, build the
+> ensemble per-subject table and apply the lower-quartile rule; (3) a skeleton LOSO is the
+> remaining gap in that statistic.
+>
+> **Do NOT** swap thermal in for the *wrist* — measured trap, −104 clips (EXP-140).
+> **Do NOT** add a video view without checking `VIEW_SPEC` in `pack_stage2.py`: a new
+> modality's channel count and cache are declared there and asserted by the unpacker.
+>
+> ---
+>
+> # STATE 2026-09-09 (midday) — THERMAL IS IN. 167 → **172/201**, and the package composition changed.
 >
 > | | |
 > |---|---|
