@@ -27,6 +27,8 @@ from pathlib import Path
 
 import numpy as np
 
+import bitpack
+
 ROOT = Path(__file__).resolve().parents[1]
 CAP_BYTES = 100 * 10 ** 6
 
@@ -46,7 +48,12 @@ def load_member(z, m):
             arr = np.frombuffer(raw, dtype=np.float32).reshape(t["shape"]).copy()
             sd[t["name"]] = torch.from_numpy(arr)
         elif enc.startswith("symmetric_int") and "per_output_channel" in enc:
-            code = np.frombuffer(raw, dtype=np.int8).astype(np.float32)
+            cont = t.get("container", "int8")
+            if cont.startswith("bitpacked"):
+                code = bitpack.unpack_codes(raw, int(t["n_codes"]),
+                                            int(cont[len("bitpacked"):])).astype(np.float32)
+            else:
+                code = np.frombuffer(raw, dtype=np.int8).astype(np.float32)
             scale = np.frombuffer(z.read(t["scale_entry"]), dtype=np.float32)
             out = t["shape"][0]
             sd[t["name"]] = torch.from_numpy(

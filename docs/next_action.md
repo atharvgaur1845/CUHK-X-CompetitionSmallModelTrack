@@ -17,7 +17,28 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
-> # ⚡ STATE 2026-09-10 — full-frame IR+Depth is DEAD. The remaining 2 clips are a SERIALIZATION problem.
+> # ⚡ STATE 2026-09-10 (later) — the 172 configuration NOW SHIPS: 3 views in **96.47 MB**.
+>
+> | | |
+> |---|---|
+> | submit next | **`submissions/sub_pkgship3.csv`** — rowdiff **6/405** vs the 172-scoring `sub_r2th20`. Predicted **171-173** |
+> | package | **`stage2_ship3.pth`, 96.47 MB**, 2001 tensors / 0 mismatches, all 3 views bit-exact, 405/405 infer |
+> | how | int6 **bit-packing** (`code/bitpack.py`, −25% of video) + **deflating the archive** (the "int8 is near-maximal entropy" claim was false; the skeleton alone gave 3.87 MB) |
+> | cost | **zero** — no member dropped, no arch pruned, no weight changed |
+> | running | wrist LOSO 337926, 14/18 done |
+>
+> **Legality costs zero clips again**, with 3.53 MB of headroom instead of 0.06.
+>
+> **Do next:** (1) score `sub_pkgship3.csv`; (2) finish the wrist LOSO and build the
+> ensemble per-subject table (**a skeleton LOSO is still missing**); (3) the headroom now
+> makes a 4th view arithmetically possible — but EXP-143 says re-framing is not the way.
+>
+> **Do NOT** swap thermal for the wrist (−104 clips, EXP-140), re-frame a modality hoping
+> for thermal's gain (EXP-143), or assume a blob is incompressible without measuring it.
+>
+> ---
+>
+> # STATE 2026-09-10 — full-frame IR+Depth is DEAD. The remaining 2 clips are a SERIALIZATION problem.
 >
 > | | |
 > |---|---|

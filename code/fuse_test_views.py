@@ -45,7 +45,7 @@ def main() -> int:
     prior = counts / counts.sum()
 
     SRC = {
-        "person":  (["k224_mvit_all"], "uniform"),
+        "person":  (["pkg_person"], "uniform"),
         "wrist":   (["pkg_wrist"], "uniform"),
         "thermal": (["pkg_thermal"], "uniform"),
         "skel":    (["astgcn_world25"], "train"),

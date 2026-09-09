@@ -13,6 +13,69 @@ results.
 
 ---
 
+## EXP-144 — ✅ ALL THREE VIDEO VIEWS FIT IN 96.47 MB. Bit-packing + one wrong assumption about compressibility, and the 172 configuration is now shippable at zero accuracy cost.
+**Date:** 2026-09-10 · `code/bitpack.py`, `code/pack_stage2.py`, `code/unpack_stage2.py` · **Tier:** exploit · **Purpose:** SHIP
+
+EXP-143's nested CV put `person + wrist + thermal` first at 2074/2700 — the 129 MB
+configuration that scored **172** against the shippable pair's **170**. This makes it fit,
+**without dropping a member, pruning a skeleton arch, or changing a single weight.**
+
+### Two changes, both pure storage
+
+**1. True sub-byte bit-packing** (`code/bitpack.py`). `--bits 6` produces codes in
+[−32, 31] and the package stored each in a full int8 byte, wasting exactly 25% of the
+video branch. EXP-129 recorded that as "not implemented rather than implemented and
+unused" — correct at the time, load-bearing now. Codes pack into a dense bitstream:
+**34.5 MB → 25.9 MB per view.** Self-tested exhaustively over every representable value at
+every bit width 1–8 and every phase alignment, because `--check weights` compares at
+bit-level equality and one flipped code fails it.
+
+**2. The archive stored weight blobs uncompressed**, on this reasoning, written into the
+file: *"Weight blobs are int8 codes with near-maximal entropy, so STORED is right for
+them."* Plausible, never measured, and **false**:
+
+| branch | raw | deflated | saved |
+|---|---|---|---|
+| **skeleton** (int8 per-tensor) | 22.80 | **18.93** | **17.0%** |
+| video (bit-packed int6) | 78.77 | 75.43 | 4.2% |
+| manifest (JSON) | 0.83 | 0.14 | 83.0% |
+| trees | 7.63 | 1.54 | 79.8% |
+
+The skeleton's **3.87 MB** is the difference between a 3-view package that fits and one
+that does not, and it cost one flag. Quantised weights are *not* near-maximal entropy: a
+symmetric quantiser maps a roughly Gaussian tensor onto codes whose distribution is
+strongly peaked at zero, so ~1 bit per code is recoverable. **The claim was reasoned, not
+measured, and it sat in the file as a justification for two months.**
+
+### Result
+
+    payload 109.20 MB  (skeleton 22.80 + video 78.77 + imu 7.63)
+    FILE ON DISK 96.47 MB / cap 100 MB -> PASS      (was 104.39 before deflate)
+
+| check | result |
+|---|---|
+| integrity | **2001 tensors, 0 mismatches** |
+| weights, all 3 views | **max abs diff 0.000e+00** vs `quantize_checkpoint --bits 6` |
+| infer, person | **405/405** argmaxes, max\|Δp\| 0.000e+00 |
+| infer, wrist | **405/405** argmaxes, max\|Δp\| 0.000e+00 |
+| end-to-end | `sub_pkgship3.csv`, **rowdiff 6/405** vs the 172-scoring `sub_r2th20` |
+
+Bit-packing is exactly invertible in practice as well as in the self-test: the dequantised
+tensors are bit-identical and the reproduced probabilities differ by exactly zero.
+
+### Candidate
+
+`sub_pkgship3.csv` — person 0.14625 + wrist 0.14625 + thermal 0.20 + skeleton 0.35 +
+IMU 0.3575 + prior 0.25, built **from the package's own outputs**. Rowdiff 6 vs
+`sub_r2th20` (172), 15 vs `sub_pkgshipv2` (170), 22 vs the champion (167). **Predicted
+171–173.** The only difference from the scored 172 is the all-train thermal model in place
+of the 4-fold bag, which EXP-142 measured at 5 rows.
+
+**Legality is back to costing zero clips**, as it was after T-PKG and before thermal
+arrived. There is now **3.53 MB of headroom** rather than 0.06.
+
+---
+
 ## EXP-143 — ❌ FULL-FRAME IR+DEPTH AT 224 px ADDS NOTHING. The full-frame lesson does NOT transfer from thermal; it makes a correlated duplicate of the person crop.
 **Date:** 2026-09-10 · `code/make_fullframe_windows.py`, `cluster/full224.sbatch`, array 337928 · **Tier:** explore · **Purpose:** SCORE
 

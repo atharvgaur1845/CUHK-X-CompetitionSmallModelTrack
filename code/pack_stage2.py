@@ -46,6 +46,8 @@ from pathlib import Path
 
 import numpy as np
 
+import bitpack
+
 ROOT = Path(__file__).resolve().parents[1]
 ART = ROOT / "research" / "artifacts"
 WORLD25 = ART / "model_astgcn_world25_int8.pth"
@@ -67,7 +69,7 @@ VIEW_SPEC = {
 }
 
 
-def quantize_video(tag: str, bits: int):
+def quantize_video(tag: str, bits: int, packed: bool = False):
     """Reproduce quantize_checkpoint.py exactly, but keep the CODES instead of
     round-tripping them to fp32. Returns (entries, blobs, n_quant, n_fp32)."""
     import torch
@@ -81,11 +83,15 @@ def quantize_video(tag: str, bits: int):
             w = v.reshape(v.shape[0], -1).float()
             scale = w.abs().amax(1, keepdim=True).clamp_min(1e-12) / qmax
             code = (w / scale).round().clamp(-qmax - 1, qmax).to(torch.int8)
-            cb = code.numpy().tobytes()
+            cnp = code.numpy()
+            # Sub-byte packing is a pure storage change: the CODES are identical, so
+            # `--check weights` stays bit-exact. See code/bitpack.py.
+            cb = bitpack.pack_codes(cnp, bits) if packed else cnp.tobytes()
             sb = scale.reshape(-1).numpy().astype(np.float32).tobytes()
             entries.append({"name": name, "shape": list(v.shape),
                             "encoding": f"symmetric_int{bits}_per_output_channel",
-                            "container": "int8", "qmax": qmax,
+                            "container": f"bitpacked{bits}" if packed else "int8",
+                            "n_codes": int(cnp.size), "qmax": qmax,
                             "dtype": str(v.dtype).replace("torch.", ""),
                             "code_entry": f"{name}.code", "scale_entry": f"{name}.scale",
                             "nbytes": len(cb) + len(sb),
@@ -124,6 +130,12 @@ def main() -> int:
                     help="role=checkpoint-tag (file must be checkpoints/<tag>.pt). "
                          "Defaults to student+wrist when omitted.")
     ap.add_argument("--bits", type=int, default=6)
+    ap.add_argument("--pack-bits", action="store_true",
+                    help="store int6 codes as a dense bitstream instead of one code per "
+                         "int8 byte: -25%% of the video branch (8.6 MB per MViT view), "
+                         "which is what makes a THIRD video view fit under the cap. "
+                         "Lossless -- the codes are unchanged, so --check weights stays "
+                         "bit-exact.")
     ap.add_argument("--weight", action="append", default=None,
                     help="role=weight in the log-linear pool, e.g. thermal=0.20. "
                          "Roles are the video roles plus skel, imu and prior. Declared "
@@ -197,7 +209,7 @@ def main() -> int:
 
     for spec in a.video:
         role, _, tag = spec.partition("=")
-        entries, vb, nq, nf = quantize_video(tag, a.bits)
+        entries, vb, nq, nf = quantize_video(tag, a.bits, a.pack_bits)
         for k, v in vb.items():
             blobs[f"video/{role}/{k}"] = v
         members.append({
@@ -212,7 +224,8 @@ def main() -> int:
                          **({"scale_entry": f"video/{role}/{e['scale_entry']}"}
                             if "scale_entry" in e else {})} for e in entries],
             "source_checkpoint": f"checkpoints/{tag}.pt"})
-        print(f"  video {role:8s} <- {tag}: {nq} tensors at int{a.bits}, {nf} kept fp32")
+        print(f"  video {role:8s} <- {tag}: {nq} tensors at int{a.bits}"
+              f"{' BITPACKED' if a.pack_bits else ''}, {nf} kept fp32")
 
     if a.imu_trees:
         tp = Path(a.imu_trees)
@@ -244,8 +257,9 @@ def main() -> int:
         "format": "cuhkx.stage2-package", "format_version": 2, "byte_order": "little",
         "cap_bytes": CAP_BYTES,
         "quantization": {"skeleton": "symmetric_int8_per_tensor (copied verbatim)",
-                         "video": f"symmetric_int{a.bits}_per_output_channel, "
-                                  "weight-only, codes stored in int8 containers"},
+                         "video": f"symmetric_int{a.bits}_per_output_channel, weight-only, "
+                                  + ("codes bit-packed" if a.pack_bits
+                                     else "codes stored in int8 containers")},
         "skeleton_spec": {"keep_tags": sorted(keep), "merge": a.merge,
                           "note": "declared here because w25_p4's invocation was never "
                                   "recorded and its weights are not recoverable"},
@@ -261,16 +275,23 @@ def main() -> int:
 
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    # Weight blobs are int8 codes with near-maximal entropy, so STORED is right for them.
-    # The tree arrays are the exception: leaf distributions are highly repetitive and
-    # deflate ~4.8x (7.63 MB -> 1.59 MB), which is what buys the headroom for the champion
-    # configuration. Readers decompress transparently; the manifest SHA is over the RAW
-    # bytes either way, so verification is unaffected.
-    with zipfile.ZipFile(out, "w", zipfile.ZIP_STORED) as z:
+    # DEFLATE EVERYTHING. This file used to store weight blobs uncompressed on the
+    # reasoning that "int8 codes have near-maximal entropy, so STORED is right" -- a
+    # plausible claim that is simply false when measured (EXP-144):
+    #
+    #     skeleton  22.80 -> 18.93 MB  (17.0%)   int8 per-tensor codes
+    #     video     78.77 -> 75.43 MB  ( 4.2%)   bit-packed int6 codes
+    #     manifest   0.83 ->  0.14 MB  (83.0%)   JSON
+    #     trees      7.63 ->  1.54 MB  (79.8%)   repetitive leaf distributions
+    #
+    # The skeleton's 3.87 MB is the difference between a 3-view package that fits and one
+    # that does not, and it cost nothing but a flag. Deflate is lossless, readers
+    # decompress transparently, and the manifest SHA is over the RAW bytes either way, so
+    # verification is unaffected.
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
         z.writestr("manifest.json", mb)
         for k, v in blobs.items():
-            ct = zipfile.ZIP_DEFLATED if k.startswith("imu_trees/") else zipfile.ZIP_STORED
-            z.writestr(zipfile.ZipInfo(k), v, compress_type=ct)
+            z.writestr(zipfile.ZipInfo(k), v, compress_type=zipfile.ZIP_DEFLATED)
 
     size = out.stat().st_size
     payload = sum(len(v) for v in blobs.values())
