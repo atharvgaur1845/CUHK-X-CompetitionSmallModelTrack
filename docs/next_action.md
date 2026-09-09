@@ -17,7 +17,27 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
-> # ⚡ STATE 2026-09-08 (evening) — the +20 plan was TESTED AND FALSIFIED IN ONE DAY. Read this before re-proposing any of it.
+> # ⚡ STATE 2026-09-09 — THERMAL IS IN. 167 → **172/201**, and the package composition changed.
+>
+> | | |
+> |---|---|
+> | score | **172/201 = 0.85572** (`sub_r2th20`) — champion `sub_r2_dist` was 167 |
+> | what changed | thermal at 224 px / MViT, fused at w=0.20 (EXP-139, EXP-140) |
+> | the catch | that configuration is **~129 MB** and does **not** ship |
+> | the fix | **drop the person crop.** Leave-one-out says it is the cheapest member per MB (−17 clips for 34.28 MB); nested CV says wrist+thermal beats person+wrist (2061 vs 2047). Candidate `sub_shipv1.csv`, **92.95 MB**, awaiting a public read |
+> | running | `k224_mvit_th_all` (job 337319, package needs it) · LOSO array 337249 — both `PD`, blocked on `QOSMaxCpuPerUserLimit` behind `deca-e1` |
+>
+> **Do next:** (1) score `sub_shipv1.csv` — prediction **170–173**, and ≤167 falsifies the
+> leave-one-out; (2) when 337319 lands, rebuild the package with wrist + thermal + skeleton
+> + IMU trees and re-run `unpack_stage2.py --check integrity,weights,infer`; (3) collect
+> LOSO for the per-subject lower quartile, which is the final-selection statistic.
+>
+> **Do NOT** swap thermal in for the *wrist* — measured trap, −104 clips (EXP-140). EXP-109's
+> "wrist adds +0" described *adding* it to a 4-fold slot and does not license removing it.
+>
+> ---
+>
+> # STATE 2026-09-08 (evening) — the +20 plan was TESTED AND FALSIFIED IN ONE DAY. Read this before re-proposing any of it.
 >
 > | | |
 > |---|---|

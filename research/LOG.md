@@ -13,6 +13,105 @@ results.
 
 ---
 
+## EXP-140 — ✅ THERMAL SCORED 172/201 (+5, above the predicted centre). And the PERSON view is now redundant: dropping it costs nothing and frees the exact 34.28 MB thermal needs.
+**Date:** 2026-09-09 · `code/exp140_view_ablation.py`, `code/fuse_test_views.py` · **Tier:** exploit · **Purpose:** SCORE + SHIP
+
+### The score, against a pre-registered prediction
+
+`sub_r2th20.csv` → **0.85572 = 172/201**, `sub_r2th15.csv` → 0.85074 = 171/201, against the
+champion `sub_r2_dist` at 0.83084 = 167/201. EXP-139 predicted **169–170, range 163–174**;
+the outcome is **+5, above the stated centre and inside the range**. The w=0.20 > w=0.15
+ordering matches the OOF plateau's shape.
+
+**This is the first member-strength change of the campaign that pooled OOF called
+correctly.** B-032 (pooled OOF predicts combination/inference changes 2-for-2 and
+member-strength changes 0-for-2) now stands at **1-for-3** on the member-strength arm, and
+the one hit UNDER-predicted rather than over-predicted. B-032 is downgraded, not retracted:
+n = 3 is not a base rate. The distinguishing feature of this case, and the thing to carry
+forward, is that the OOF gain **grew** through the decoder (+1.15 → +1.70) and came from
+*harms falling* (90 → 66) rather than rescues rising — the EXP-125 signature.
+
+### The result that decides the package: the person view is redundant
+
+The 172 configuration **does not fit in 100 MB** (R-6): person 34.28 + wrist 34.28 +
+thermal 34.28 + skeleton 22.80 + trees 1.59 (deflated) ≈ **129 MB**. Leave-one-out on the
+2,700 pooled OOF, at fixed weights with thermal at 0.15:
+
+| member dropped | top-1 | Δ clips | MB freed | clips per MB |
+|---|---|---|---|---|
+| **`k224_mvit_pooled` (person crop)** | 0.76148 | **−17** | **34.28** | **−0.50** |
+| `astgcn_world25` (skeleton) | 0.76185 | −16 | 22.80 | −0.70 |
+| `th224_pooled` (thermal) | 0.75630 | −31 | 34.28 | −0.90 |
+| `imu_stats_t200_d12` | 0.76704 | −2 | 1.59 | −1.26 |
+| `k224_mvitwrist_pooled` (wrist crop) | 0.74815 | **−53** | 34.28 | −1.55 |
+
+Every member is load-bearing, but **the person crop is the cheapest thing on the shelf and
+the wrist crop is the most expensive** — the reverse of the campaign's working assumption.
+The reading: thermal is full-frame and carries the scene/object context the person crop was
+supplying, while the wrist crop carries hand-object detail neither of the other two has.
+
+**A byte-neutral swap of thermal for the WRIST is dead** — that variant loses 104 clips
+pre-decoder and never recovers (best 2026 vs 2073). It was the obvious move because EXP-109
+measured wrist adding **+0** on public; that number described *adding* wrist to a 4-fold
+slot, and does not license *removing* it from today's fusion. **Recorded as a trap.**
+
+### Which pair of video views, chosen by nested CV so the weight search is not free
+
+Weight selection was run INSIDE the fold loop (choose on 3 subject folds, score the 4th),
+so the three pairs are compared under an identical selection procedure. The fitted-minus-
+nested gap is ~13 clips and near-constant across pairs, which is the selection bias made
+visible:
+
+| video pair | **nested-CV** | fitted | fits 100 MB? |
+|---|---|---|---|
+| **wrist + thermal** | **2061** | 2074 | **yes — 92.95 MB** |
+| person + wrist (the champion) | 2047 | 2065 | yes |
+| person + thermal | 2025 | 2039 | yes |
+
+champion at its own fixed weights, no selection: 2042/2700.
+
+**The best configuration is also the only interesting one that fits.** That is a coincidence
+worth naming rather than relying on.
+
+### The shipped candidate, and why its weights are the minimal ones
+
+`sub_shipv1.csv` = wrist 0.2925 + thermal 0.20 + skeleton 0.35 + IMU 0.3575 + prior 0.25.
+Dropping the person view *forces* one reallocation; the whole video slot (0.2925) goes to
+the wrist, and nothing else moves. Thermal's 0.20 is not fitted here either — it is the
+weight that **already scored 172 on public**. The nested-CV argmax (skeleton 0.30, IMU
+0.45) is 12 OOF clips better at 2074, and is **not** being shipped: it moves two weights on
+a plateau where the top ten settings span 4 clips, which is fitting noise on a graveyard
+axis.
+
+| configuration | pooled OOF | MB | public |
+|---|---|---|---|
+| champion (person + wrist) | 2042 | 94.95 | **167** |
+| keep-4 + thermal | 2071 | ~129 ✗ | **172** |
+| **ship-v1: wrist + thermal (minimal weights)** | 2062 | **92.95 ✓** | ? |
+| ship-v1 with nested-CV argmax weights | 2074 | 92.95 ✓ | not shipped |
+
+**Rowdiff: 13/405 vs `sub_r2th20`, 28/405 vs the champion.** 13 is *below* the ±20
+readability bar, and that is deliberate and stated in advance: this submission is not
+asking "is it better than 172", it is asking **"does removing the person view cost anything
+on test"**. The prediction is **170–173, i.e. within noise of 172**; a result at or below
+167 falsifies the leave-one-out and sends the package back to quantisation.
+
+### Method note: the test-side fusion is now reproducible from members
+
+`code/fuse_test_views.py` rebuilds any view combination from member artifacts and was
+validated by reconstructing the champion first: **rowdiff 2/405** against `sub_r2_dist`
+(the plan's own eligibility tolerance), and only with the **all-train** video members —
+the 4-fold bags give 16. Recorded because the champion's test-side provenance had never
+been written down and had to be recovered by search.
+
+### Open
+
+* `k224_mvit_th_all` (all-train thermal) does not exist; the package needs it. Job 337319
+  queued, blocked on `QOSMaxCpuPerUserLimit`.
+* LOSO array 337249 (10 tasks) still `PD (Priority)`.
+
+---
+
 ## EXP-139 — ✅ THERMAL COMES BACK FROM THE GRAVEYARD. At 224 px it is +5.6 member points and, for the first time ever, POSITIVE in fusion: +46 clips of 2,700 through the decoder.
 **Date:** 2026-09-09 · `code/build_thermal224_cache.py`, cluster 4-fold array · **Tier:** explore · **Purpose:** SCORE
 
