@@ -13,6 +13,63 @@ results.
 
 ---
 
+## EXP-148 — ❌ SEED SOUP IS DECISIVELY NEGATIVE: −2.39 points, 4/4 folds, and it weakens the case for the thermal soup I already shipped.
+**Date:** 2026-09-11 · `code/soup_weights.py`, `code/quant_probe.py` · **Tier:** exploit · **Purpose:** SCORE
+
+This is the **fold-safe** soup test the fold-soup could not be: three seeds share the same
+training subjects, so averaging them and scoring on that fold's held-out subjects involves
+no contamination at all. It is also the textbook case for model soups — same data, same
+init, different seed — so it is where weight averaging should look *best*.
+
+### Every soup loses to every ingredient, on every fold
+
+| fold | seed 1 | seed 2 | seed 3 | 3-seed mean | **SEED SOUP** | soup − best |
+|---|---|---|---|---|---|---|
+| 0 | 0.70516 | 0.70762 | 0.70147 | 0.70475 | **0.67322** | **−3.44** |
+| 1 | 0.69287 | 0.68059 | 0.68796 | 0.68714 | **0.66953** | −2.33 |
+| 2 | 0.71472 | 0.70706 | 0.69018 | 0.70399 | **0.67485** | −3.99 |
+| 3 | 0.73966 | 0.73201 | 0.73047 | 0.73405 | **0.71669** | −2.30 |
+
+    soup minus 3-seed mean: -3.15, -1.76, -2.91, -1.74
+    mean -2.39, SE 0.37, bar +1.64 -> FAIL, and the sign is 4/4 NEGATIVE
+
+**Weight averaging is destructive for these models, not merely useless.** Model soups
+assume the fine-tuned models stay in one loss basin; a 34M-parameter MViTv2-S fine-tuned on
+2,281 clips for 30 epochs evidently does not — different seeds change data order and
+augmentation enough that the runs land in different basins, and averaging attention weights
+across them produces a point that is worse than any of its ingredients.
+
+### What this does to EXP-153, and I need to be honest about it
+
+I shipped a **thermal fold-soup** in `stage2_ship5.pth` and reported it as +1 public clip
+(171 vs 170). Its evidence was:
+
+* **+5.63 on a contaminated fold-2 screen** — three of the four ingredients had trained on
+  fold 2, so that number proves nothing on its own, and I said so.
+* **+1 public clip**, which is **well inside the ±4.4-clip binomial SE**.
+
+I also offered a mechanism — "weight averaging is a variance reducer, so it pays on the
+high-variance member". **EXP-148 refutes that mechanism in its strongest form:** if variance
+reduction were the operative effect, the *seed* soup should have shown it most clearly, and
+it is the case that fails hardest. **The thermal soup's +1 clip is most likely noise.**
+
+**It stays in the package anyway**, for a narrow reason that does not depend on the soup
+working: with int5 forced by the detector compliance requirement, the measured options for
+the thermal slot are all-train at **170** and soup at **171**, and 171 is the higher of two
+public measurements. That is a selection between two measured candidates, not a claim that
+souping helps.
+
+### Consequence for the queued thermal seed-soup tasks
+
+I reprioritised the array to run thermal seeds first on the argument that thermal is "where
+the clips are". **That argument is now much weaker.** The tasks are left running because
+the cluster time is otherwise idle and a thermal result either confirms weight averaging is
+dead here or identifies a genuine exception — but the expectation should be failure, and
+the seeds themselves remain useful as **bagging** ingredients (averaging *probabilities*,
+which is a different and safer operation than averaging *weights*).
+
+---
+
 ## EXP-153 — ✅ `sub_pkgsoup5` = 171/201: the soup RECOVERED the clip int5 cost. And souping helps ONLY the high-variance member — it makes person and wrist worse.
 **Date:** 2026-09-11 · `code/soup_weights.py` · **Tier:** exploit · **Purpose:** SCORE
 
