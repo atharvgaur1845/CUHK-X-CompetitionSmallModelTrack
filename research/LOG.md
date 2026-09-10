@@ -78,7 +78,7 @@ mean of −0.25.
 **Rule corrected: the lower quartile must be computed on a FIXED subject set** — the worst
 four under the incumbent — and read alongside the paired per-subject delta. Never re-rank
 per candidate. This is the same error class as EXP-120b's retired "3 of 4 folds positive"
-clause: a statistic that looks robust while quietly选 selecting on the thing it measures.
+clause: a statistic that looks robust while quietly selecting on the thing it measures.
 
 **Decision: keep the IMU member.** `ship3` stands as the final configuration.
 
