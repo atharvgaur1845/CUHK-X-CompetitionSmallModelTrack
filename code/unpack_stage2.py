@@ -44,7 +44,10 @@ def load_member(z, m):
     for t in m["tensors"]:
         raw = z.read(t["code_entry"])
         enc = t["encoding"]
-        if enc == "float32":
+        if enc.startswith("raw_"):
+            arr = np.frombuffer(raw, dtype=np.dtype(enc[4:])).reshape(t["shape"]).copy()
+            sd[t["name"]] = torch.from_numpy(arr)
+        elif enc == "float32":
             arr = np.frombuffer(raw, dtype=np.float32).reshape(t["shape"]).copy()
             sd[t["name"]] = torch.from_numpy(arr)
         elif enc.startswith("symmetric_int") and "per_output_channel" in enc:
@@ -72,7 +75,10 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--package", default="research/artifacts/stage2_package.pth")
     ap.add_argument("--check", default="integrity,weights",
-                    help="comma list of integrity,weights,infer")
+                    help="comma list of integrity,weights,infer,detector")
+    ap.add_argument("--detector-clips", type=int, default=0,
+                    help="limit the detector window check to the first N test clips "
+                         "(0 = all 405)")
     ap.add_argument("--cache-root", default="cache")
     a = ap.parse_args()
     checks = {c for c in a.check.split(",") if c}
@@ -168,6 +174,53 @@ def main() -> int:
             del model
             if dev.type == "cuda":
                 torch.cuda.empty_cache()
+
+    if "detector" in checks:
+        # The compliance check. A package that cannot rebuild its detector cannot crop,
+        # and the on-site stage runs on a brand-new dataset where no cached windows exist.
+        # Gate is window IDENTITY against the source .pt, on every clip -- EXP-149 showed
+        # a detector's output is an argmax over frames, so "close weights" is not "same
+        # window".
+        import sys, shutil, torch
+        sys.path.insert(0, str(ROOT / "kaggle"))
+        import cuhkx_224_kaggle as K
+        from ultralytics import YOLO
+        paths = K.find_paths(str(ROOT), "crop_224", str(ROOT / a.cache_root / "crop_224"))
+        _tr, te = K.build_jobs(paths)
+        jobs = te[: a.detector_clips] if a.detector_clips else te
+        for m in man["members"]:
+            if m["branch"] != "detector":
+                continue
+            src = m["source_checkpoint"]
+            sd_pkg = load_member(z, m)
+            y = YOLO(src)
+            ref_sd = y.model.state_dict()
+            miss = [k for k in ref_sd if k not in sd_pkg]
+            bad = [k for k in ref_sd
+                   if k in sd_pkg and not torch.equal(
+                       ref_sd[k].float(), sd_pkg[k].to(ref_sd[k].dtype).float())]
+            print(f"  detector {m['role']:16s} tensors {len(sd_pkg)}, missing {len(miss)}, "
+                  f"differing {len(bad)} -> {'PASS' if not miss and not bad else 'FAIL'}")
+            fail |= bool(miss or bad)
+            crop = "wrist" if "wrist" in m["role"] else "person"
+            _orig = YOLO.__init__
+            def patched(self, *args, **kw):
+                _orig(self, *args, **kw)
+                if Path(str(args[0])).stem == m["tag"]:
+                    self.model.load_state_dict({k: v.to(dict(self.model.state_dict())[k].dtype)
+                                                for k, v in sd_pkg.items()})
+            def wins(tag, init):
+                YOLO.__init__ = init
+                d = Path(f"/tmp/pkgwin_{tag}"); shutil.rmtree(d, ignore_errors=True)
+                d.mkdir(parents=True)
+                r = K.compute_windows(jobs, d, "cpu", crop)
+                YOLO.__init__ = _orig
+                return r
+            base = wins("base", _orig); got = wins("pkg", patched)
+            ident = sum(1 for k in base if base[k] == got.get(k))
+            print(f"    windows from the PACKAGE vs {src}: {ident}/{len(base)} identical"
+                  f" -> {'PASS' if ident == len(base) else 'FAIL'}")
+            fail |= ident != len(base)
 
     print("\nRESULT:", "FAIL" if fail else "PASS")
     return 1 if fail else 0

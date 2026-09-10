@@ -69,6 +69,41 @@ VIEW_SPEC = {
 }
 
 
+def load_detector(path: str):
+    """YOLO weights as raw fp16 tensors.
+
+    NOT quantised. EXP-149 measured what quantising a detector costs: the person window is
+    the max-confidence box over 8 frames -- an ARGMAX OVER FRAMES, which is discontinuous --
+    so a quantisation nudge flips which frame wins and the box changes completely. int8
+    reproduced only 150 of 405 windows, int6 68, int5 53, against a deterministic fp16
+    null control of 120/120. Every member was TRAINED on the fp16 windows, so shipping a
+    quantised detector is a train/test mismatch. The bytes are paid out of the video
+    branch (int6 -> int5, accuracy-identical on micro, EXP-108/150) instead.
+    """
+    import torch
+    from ultralytics import YOLO
+    sd = YOLO(path).model.state_dict()
+    entries, blobs = [], {}
+    for name, v in sd.items():
+        if not torch.is_tensor(v):
+            continue
+        # ultralytics UPCASTS the released fp16 weights to fp32 on load, doubling the
+        # branch to 22.12 MB. Every float32 tensor in both detectors round-trips through
+        # fp16 exactly (measured: 0 of 418 and 0 of 454 lose a bit), because fp16 is where
+        # they came from -- so storing fp16 is lossless, not a second quantisation.
+        if v.dtype == torch.float32:
+            assert torch.equal(v.half().float(), v), f"{name} is not fp16-representable"
+            v = v.half()
+        arr = v.cpu().numpy()
+        b = arr.tobytes()
+        key = f"{name}.raw"
+        blobs[key] = b
+        entries.append({"name": name, "shape": list(arr.shape),
+                        "encoding": f"raw_{arr.dtype}", "dtype": str(arr.dtype),
+                        "code_entry": key, "nbytes": len(b), "sha256": sha(b)})
+    return entries, blobs
+
+
 def quantize_video(tag: str, bits: int, packed: bool = False):
     """Reproduce quantize_checkpoint.py exactly, but keep the CODES instead of
     round-tripping them to fp32. Returns (entries, blobs, n_quant, n_fp32)."""
@@ -136,6 +171,12 @@ def main() -> int:
                          "which is what makes a THIRD video view fit under the cap. "
                          "Lossless -- the codes are unchanged, so --check weights stays "
                          "bit-exact.")
+    ap.add_argument("--detector", action="append", default=None,
+                    help="role=path.pt for a YOLO detector used in inference-time "
+                         "preprocessing. REQUIRED for compliance: the organisers ruled "
+                         "(topic 738333, 2026-09-07) that person cropping is allowed "
+                         "'with the detector weights included in your <100 MB checkpoint "
+                         "package'. Stored fp16 -- see load_detector.")
     ap.add_argument("--weight", action="append", default=None,
                     help="role=weight in the log-linear pool, e.g. thermal=0.20. "
                          "Roles are the video roles plus skel, imu and prior. Declared "
@@ -226,6 +267,23 @@ def main() -> int:
             "source_checkpoint": f"checkpoints/{tag}.pt"})
         print(f"  video {role:8s} <- {tag}: {nq} tensors at int{a.bits}"
               f"{' BITPACKED' if a.pack_bits else ''}, {nf} kept fp32")
+
+    for spec in (a.detector or []):
+        role, _, path = spec.partition("=")
+        entries, db = load_detector(path)
+        for k, v in db.items():
+            blobs[f"detector/{role}/{k}"] = v
+        members.append({
+            "id": f"detector_{role}", "role": f"detector_{role}", "tag": Path(path).stem,
+            "fold": None, "branch": "detector", "weight": None,
+            "model": {"builder": "ultralytics.YOLO", "arch": Path(path).stem,
+                      "purpose": "deterministic label-free crop window at inference",
+                      "precision": "float16"},
+            "tensors": [{**e, "code_entry": f"detector/{role}/{e['code_entry']}"}
+                        for e in entries],
+            "source_checkpoint": path})
+        mb_ = sum(e["nbytes"] for e in entries) / 1e6
+        print(f"  detector {role:8s} <- {path}: {len(entries)} tensors, {mb_:.2f} MB fp16")
 
     if a.imu_trees:
         tp = Path(a.imu_trees)

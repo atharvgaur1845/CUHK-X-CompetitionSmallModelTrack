@@ -13,6 +13,71 @@ results.
 
 ---
 
+## EXP-150 — ✅ THE PACKAGE IS COMPLIANT: 96.31 MB with BOTH YOLO detectors inside, paid for by int5 video, at a cost of 5 rows of 405.
+**Date:** 2026-09-10 · `code/pack_stage2.py`, `code/unpack_stage2.py` · **Tier:** exploit · **Purpose:** COMPLY
+
+The gap the research note opened is closed. `stage2_ship4.pth` carries the person and
+wrist detectors the organisers require (topic 738333) and still fits.
+
+### Where the 6.77 MB came from — and where it did NOT
+
+**Not from the detectors.** EXP-149 measured that quantising them destroys the crop
+windows (int8 reproduces 150/405). They ship **fp16**.
+
+**Not from the skeleton.** Pruning archs was the fallback and was not needed.
+
+**From the video branch: int6 → int5.** Re-running EXP-108's own probe on fold 2 person,
+which reproduces its published fp32/int6 numbers exactly, so the harness is sound:
+
+| bits | MB/model | micro | object | agree fp32 |
+|---|---|---|---|---|
+| 32 | 137.10 | 0.71472 | 0.64927 | 1.0000 |
+| 6 | 26.01 | 0.71319 | 0.64509 | 0.9724 |
+| **5** | **21.73** | **0.71319** | 0.64092 | 0.9632 |
+
+**int5 is micro-identical to int6** and −0.42 on OBJECT, and saves **4.28 MB per view =
+12.84 MB across three**. EXP-108 had bracketed int5 between "free" (int6) and "a cliff"
+(int4, −7 clips of 652); it sits at the free end.
+
+**And a free 11.06 MB from a dtype bug.** `ultralytics` **upcasts the released fp16
+weights to fp32 on load**, so the first detector branch came out at 22.12 MB. Every float32
+tensor round-trips through fp16 exactly — measured **0 of 418 and 0 of 454** losing a bit,
+because fp16 is where they came from. Storing fp16 is lossless recovery, not a second
+quantisation, and it halves the branch to 11.06 MB.
+
+### The package
+
+    skeleton 22.80 + video 65.95 + detector 11.06 + imu 7.63 = payload 107.44 MB
+    FILE ON DISK 96.31 MB / cap 100 MB -> PASS   (3.69 MB margin)
+
+| check | result |
+|---|---|
+| integrity | **3041 tensors, 0 mismatches**, 26 members |
+| weights, all 3 views | **0.000e+00** vs `quantize_checkpoint --bits 5` |
+| infer, person / wrist | 385/405 argmax vs the int6 reference — the measured cost of int5 |
+| **detector, person** | **499 tensors, 0 missing, 0 differing; 405/405 identical windows from the PACKAGE** |
+| detector, wrist | 541 tensors, 0 missing, 0 differing |
+
+### The new check, and why it had to exist
+
+`--check detector` rebuilds each detector **from the package** and recomputes every test
+window against the source `.pt`. Nothing else could catch a broken detector: `integrity`
+only hashes blobs, and `weights`/`infer` iterate `branch == "video"`. EXP-149 is the reason
+the gate is **window identity** rather than a weight tolerance — a detector's output is an
+argmax over frames, so "close weights" does not imply "same window".
+
+`load_member` also learned the `raw_<dtype>` encoding, which the detector and IMU-tree
+branches both use and which previously would have raised `unknown encoding`.
+
+### Candidate
+
+`sub_pkgship4.csv`, built from the package's own outputs. **Rowdiff 5/405 vs
+`sub_pkgship3` (171) and 7/405 vs `sub_r2th20` (172).** Expected within ±2 clips of 171;
+int5 is micro-identical, so this is a compliance change, not an accuracy one. **It is now
+the only candidate that is both scoreable and reproducible under the rules.**
+
+---
+
 ## EXP-149 — ❌ DETECTOR QUANTISATION IS NOT FREE (unlike classifier quantisation), and my first measurement of it was WRONG.
 **Date:** 2026-09-10 · `code/quantize_detector.py`, `code/verify_detector_quant.py` · **Tier:** infrastructure · **Purpose:** COMPLY
 

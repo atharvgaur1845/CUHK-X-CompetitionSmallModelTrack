@@ -17,7 +17,27 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
-> # ⚡ STATE 2026-09-10 (night) — **MODELLING IS OVER.** L4 failed its gate; all five levers are resolved. **171/201 ships.**
+> # ⚡ STATE 2026-09-10 (late) — **the package is now RULES-COMPLIANT at 96.31 MB with both detectors inside.**
+>
+> | | |
+> |---|---|
+> | **submit** | **`submissions/sub_pkgship4.csv`** — the only candidate both scoreable AND reproducible. Rowdiff 5/405 vs the 171, 7/405 vs the 172 |
+> | package | **`stage2_ship4.pth` 96.31 MB**: 3041 tensors / 0 mismatches, 3 views bit-exact at int5, **405/405 identical crop windows rebuilt from the package** |
+> | how it fits | detectors **fp16** (quantising them destroys windows, EXP-149) · video **int6 → int5** (micro-identical, EXP-150) · ultralytics fp32-upcast bug worth 11.06 MB |
+> | **private-cut risk** | **P(top 15) ≈ 0.70**; +3 clips → 0.85. Neighbours are 1–4 clips away against a 4.4-clip binomial floor |
+> | running | seed-soup array 339427/8/9 (30 tasks), all `PD` — cluster congested |
+>
+> **Modelling is NOT over after all.** It was closed against the wrong target: 187 is dead,
+> but advancement is a **step function at private rank 15**, where +3 clips buys 15 points
+> of survival. Levers rightly rejected against a 1.64-point "is this an improvement" bar are
+> a different question against a step function.
+>
+> **Do next:** (1) score `sub_pkgship4.csv`; (2) seed soup when GPUs free (zero bytes);
+> (3) `inference.sh` + clean-room rerun — Stage 2 gives **48 hours** after 09-15.
+>
+> ---
+>
+> # STATE 2026-09-10 (night) — **MODELLING IS OVER.** L4 failed its gate; all five levers are resolved. **171/201 ships.**
 >
 > | lever | outcome |
 > |---|---|
