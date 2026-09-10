@@ -56,7 +56,10 @@ quantisation, and it halves the branch to 11.06 MB.
 | weights, all 3 views | **0.000e+00** vs `quantize_checkpoint --bits 5` |
 | infer, person / wrist | 385/405 argmax vs the int6 reference — the measured cost of int5 |
 | **detector, person** | **499 tensors, 0 missing, 0 differing; 405/405 identical windows from the PACKAGE** |
-| detector, wrist | 541 tensors, 0 missing, 0 differing |
+| **detector, wrist** | **541 tensors, 0 missing, 0 differing; 405/405 identical windows from the PACKAGE** |
+
+**Both detectors reproduce every one of the 405 test crop windows from the package alone.**
+`--check integrity,weights,infer,detector` returns **PASS**.
 
 ### The new check, and why it had to exist
 
