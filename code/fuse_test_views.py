@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse, csv, os
 import numpy as np
 
+SRC_OVERRIDE = {}
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 ART = os.path.join(ROOT, "research", "artifacts")
 L = lambda a: np.log(np.maximum(a, 1e-12))
@@ -36,6 +37,9 @@ def main() -> int:
     ap.add_argument("--skel", type=float, default=0.35)
     ap.add_argument("--imu", type=float, default=0.3575)
     ap.add_argument("--prior", type=float, default=0.25)
+    ap.add_argument("--src", action="append", default=None,
+                    help="role=tag[+tag...] to override which testprobs feed a role, "
+                         "e.g. thermal=k224_mvit_th_soup")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
@@ -44,6 +48,11 @@ def main() -> int:
         counts[int(r["class_id"])] += 1
     prior = counts / counts.sum()
 
+    # tags may be overridden so a soup / bag / all-train variant of any view can be
+    # fused without editing the file (EXP-151)
+    for spec in (args.src or []):
+        role, _, tags = spec.partition("=")
+        SRC_OVERRIDE[role] = ([t for t in tags.split("+") if t], "uniform")
     SRC = {
         "person":  (["pkg_person"], "uniform"),
         "wrist":   (["pkg_wrist"], "uniform"),
@@ -51,6 +60,7 @@ def main() -> int:
         "skel":    (["astgcn_world25"], "train"),
         "imu":     (["imu_stats_t200_d12"], "uniform"),
     }
+    SRC.update(SRC_OVERRIDE)
     sids, z = None, None
     for name, (tags, space) in SRC.items():
         w = getattr(args, name)

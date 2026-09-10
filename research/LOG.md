@@ -13,6 +13,64 @@ results.
 
 ---
 
+## EXP-151/152 — ✅ A WEIGHT SOUP makes the 172 configuration shippable · ❌ the decoder's distinctness ladder has CONVERGED, not kept climbing.
+**Date:** 2026-09-10 · `code/soup_weights.py`, `code/fuse_test_views.py --src` · **Tier:** exploit · **Purpose:** SCORE / SHIP
+
+`sub_pkgship4` scored **0.84577 = 170/201**, so int5 cost **1 clip** against `sub_pkgship3`'s
+171 — compliance is not free after all, but it is cheap.
+
+### EXP-151 — the soup: 2 clips were trapped in an unshippable configuration
+
+`sub_r2th20` scored **172** using a 4-fold thermal **BAG** — four models, ~104 MB of thermal
+alone. It cannot ship, and Stage 2 verifies reproduction from the ≤100 MB checkpoint, so
+those 2 clips were unbankable. A weight soup collects a bag into one set of weights; all
+our fold models fine-tune from the same Kinetics-400 MViTv2-S, which is the precondition
+for averaging to land in the same basin.
+
+| thermal member | argmax agreement with the BAG (405 test clips) |
+|---|---|
+| **soup of the 4 fold models** | **0.8938 (362/405)** |
+| all-train model (what we ship today) | 0.8444 (342/405) |
+
+The soup is **20 clips closer to the bag** than the all-train model. It is also coherent
+rather than broken — 40 distinct classes, comparable confidence (0.5999 vs the bag's
+0.6095) — which was the real risk, since these four models were fine-tuned on *different*
+subject splits rather than differing only by seed.
+
+**Honest limit on this evidence.** A soup of the four fold models has collectively seen
+every training clip, so no held-out set remains to score it on; the only models that never
+saw subject *u* are `fold_f(u)` and `loso_u`. Agreement-with-the-bag is a **proxy**, and
+the bag's own 172 is the anchor. The fold-safe, directly measurable version is the seed
+soup (EXP-148), still queued.
+
+**`stage2_ship5.pth`** — soup thermal, int5 video, both fp16 detectors — builds at
+**96.31 MB**, PASSES integrity/weights/infer, and yields `sub_pkgsoup5.csv` at **rowdiff 9
+vs the 172, 8 vs the 170**. It is the first candidate that is simultaneously compliant,
+reproducible, and built on the configuration that actually scored 172.
+
+### EXP-152 — distinctness: the ladder converged
+
+B-022 is confirmed and monotone (−1 @112, 0 @121, +1 @166), and EXP-052 found *hard*
+distinctness ordered with base accuracy: +6 and +5 on the two highest-base folds, −9 and −3
+on the two lowest. The standing prediction was that hard becomes positive as base rises.
+Our base is now far higher (0.784 ensemble LOSO). Swept on the ship3 fusion, 2,700 pooled
+OOF, through the shipped decoder:
+
+| distinctness | decoded |
+|---|---|
+| none | 2191 |
+| penalty 1.0 | 2221 |
+| **penalty 2.0 (shipped)** | **2230** |
+| penalty 3.0 / 4.0 / 6.0 / **hard** | 2229 (all identical) |
+
+**Penalty 2.0 is already the optimum, and everything stronger saturates to the same
+2229** — 3.0, 4.0, 6.0 and hard are byte-identical in outcome, i.e. the penalty is large
+enough that the constraint is effectively binding at 3.0. So B-022's ladder **converged**
+rather than continuing upward: hard is no longer *harmful* (it was −9 on a 0.591 fold), but
+it is not better either. **No change. The decoder axis is closed.**
+
+---
+
 ## EXP-150 — ✅ THE PACKAGE IS COMPLIANT: 96.31 MB with BOTH YOLO detectors inside, paid for by int5 video, at a cost of 5 rows of 405.
 **Date:** 2026-09-10 · `code/pack_stage2.py`, `code/unpack_stage2.py` · **Tier:** exploit · **Purpose:** COMPLY
 
