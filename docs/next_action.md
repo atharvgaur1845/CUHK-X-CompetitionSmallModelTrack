@@ -17,7 +17,21 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
-> # ⚡ STATE 2026-09-10 (evening) — **171/201 shipping**, package verified, selection statistic built.
+> # ⚡ STATE 2026-09-10 (night) — temporal TTA REFUTED in fusion; **171/201 stands**.
+>
+> **EXP-146.** EXP-110's standing recommendation ("+9 clips, keep it on, free") was a
+> projection that had never been measured in fusion, and it had never been switched on.
+> Measured: the members do gain (+0.52 person, +0.93 wrist) but the ensemble does **not** —
+> +9 is the SINGLE-view number; both views give +3 on the old champion and **−4 on ship3**.
+> Mechanism: temporal averaging raises person-vs-wrist agreement 0.7574 → **0.7744**, so it
+> **buys member accuracy with diversity**. Best variant +0.19 pts against a 1.64 bar. **Not
+> adopted**; `thermal_224_t32` is not needed. Cost: zero GPU-hours.
+>
+> **"Free" is not a reason to ship.** A zero-byte change still has to clear the bar.
+>
+> ---
+>
+> # STATE 2026-09-10 (evening) — **171/201 shipping**, package verified, selection statistic built.
 >
 > | | |
 > |---|---|

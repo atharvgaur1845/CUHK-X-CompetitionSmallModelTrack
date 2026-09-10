@@ -13,6 +13,71 @@ results.
 
 ---
 
+## EXP-146 — ❌ TEMPORAL TTA DOES NOT SURVIVE INTO THE 3-VIEW ENSEMBLE. It buys member accuracy with CORRELATION, and EXP-110's "+9, keep it on" was a projection that was never measured in fusion.
+**Date:** 2026-09-10 · artifacts only, no GPU · **Tier:** exploit · **Purpose:** SCORE
+
+EXP-110 measured two interleaved 16-frame views on existing checkpoints, found all 8
+fold-view pairs positive (+23 person, +24 wrist clips of 2,933), and concluded: *"Through
+a 0.2925-weight video slot it dilutes to +9 clips/2,700 = +0.7 public … **Keep it on
+(free), never spend a submission proving it.**"* It was never actually switched on, and
+the +9 was **arithmetic, not a measurement**. Measuring it costs nothing — every artifact
+was already on disk.
+
+### The members do improve. The fusion does not.
+
+| member | 16-frame | t32 2-view | Δ |
+|---|---|---|---|
+| person | 0.71444 | 0.71963 | **+0.52** |
+| wrist | 0.72000 | 0.72926 | **+0.93** |
+
+| configuration | 16-frame | t32 person | t32 wrist | t32 both |
+|---|---|---|---|---|
+| champion (person+wrist) | 2042 | **2051 (+9)** | 2050 (+8) | 2045 (**+3**) |
+| **ship3 (person+wrist+thermal)** | 2071 | 2076 (+5) | 2070 (−1) | 2067 (**−4**) |
+
+**EXP-110's +9 is reproduced exactly — but it is the SINGLE-view number.** "Keep it on"
+means both views, which is +3 on the champion and **−4 on what we actually ship.**
+
+### The mechanism, measured
+
+| | person-vs-wrist argmax agreement |
+|---|---|
+| 16-frame | 0.7574 |
+| t32 2-view | **0.7744 (+1.70 pts)** |
+
+Averaging two temporal views smooths each member toward the same consensus, so the two
+video members become **more alike**. t32 changes 160 person argmaxes and 145 wrist
+argmaxes, and the net effect on the pair is convergence. **Temporal TTA buys member
+accuracy with diversity** — and diversity is what the fusion was harvesting. This is
+B-027/EXP-123 again in a new place: *member accuracy is not the binding quantity.* It also
+explains why the damage grows as the ensemble improves: the champion had slack for a
+correlated member, `ship3` does not.
+
+### Against the adoption bar (per-fold Δ, points; bar = 1.64 = 2 SE on a 4-fold mean)
+
+| variant | folds | mean | SE | verdict |
+|---|---|---|---|---|
+| t32 person | +0.30, +0.14, +0.31, +0.00 | **+0.19** | 0.07 | **FAIL** |
+| t32 wrist | +0.00, −0.57, +0.31, +0.15 | −0.03 | 0.19 | **FAIL** |
+| t32 person+wrist | −0.45, −0.29, −0.15, +0.29 | −0.15 | 0.16 | **FAIL** |
+
+The best variant is an order of magnitude below the bar, and it is *selected as best of
+three*, so its true expectation is lower still.
+
+### Verdict
+
+**Not adopted. `ship3` stands unchanged at 16 frames.** Two consequences worth recording:
+
+* The `thermal_224_t32` cache that this work would have required **does not need to be
+  built**. The cost of this experiment was zero GPU-hours because the negative arrived
+  before the infrastructure.
+* **"Free" is not a reason to ship something.** EXP-110 filed a projection as a standing
+  recommendation, and it sat unexecuted for 18 days. Had it been executed as written, it
+  would have cost 4 clips of 2,700 in the current ensemble. A change that costs no bytes
+  still has to clear the bar.
+
+---
+
 ## EXP-145 — ✅ THE ENSEMBLE LOSO TABLE, and a METHOD BUG IN THE SELECTION RULE: a lower quartile re-ranked per configuration compares different subjects and rewards shuffling.
 **Date:** 2026-09-10 · `code/exp145_ensemble_loso.py`, arrays 337249/337923/337926 · **Tier:** infrastructure · **Purpose:** SELECT
 
