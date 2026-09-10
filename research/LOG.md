@@ -13,6 +13,54 @@ results.
 
 ---
 
+## EXP-153 — ✅ `sub_pkgsoup5` = 171/201: the soup RECOVERED the clip int5 cost. And souping helps ONLY the high-variance member — it makes person and wrist worse.
+**Date:** 2026-09-11 · `code/soup_weights.py` · **Tier:** exploit · **Purpose:** SCORE
+
+`sub_pkgsoup5.csv` → **0.85074 = 171/201**, against `sub_pkgship4`'s 170 with the identical
+package except for the thermal weights. **The soup is worth +1 public clip and it is
+reproducible**, so the compliant package now sits 1 clip behind the unshippable 172 instead
+of 2. EXP-151's proxy (soup agrees with the bag on 362/405 vs all-train's 342) predicted
+exactly this.
+
+### Applying the same trick to the other two views — it fails, and the pattern is clean
+
+The fold-2 number for a 4-fold soup is **contaminated**: three of its four ingredients
+trained on fold 2. That biases it **upward**, which makes it a useful one-sided screen —
+any view where the soup still *loses* is genuinely worse.
+
+| view | honest fold-2 (own fold model) | contaminated soup | Δ |
+|---|---|---|---|
+| person | **0.71472** | 0.70516 | **−0.96** |
+| wrist | **0.71166** | 0.68182 | **−2.98** |
+| **thermal** | 0.60583 | **0.66216** | **+5.63** |
+
+Person and wrist lose *despite* the bias in the soup's favour. **Souping is not a general
+free lunch here; it helped exactly one member.**
+
+### Why, and it is predictable from a number we already had
+
+Cross-fold spread of each member:
+
+| view | f0 | f1 | f2 | f3 | spread | pooled |
+|---|---|---|---|---|---|---|
+| **thermal** | 0.662 | 0.638 | 0.606 | 0.591 | **7.1 pts** | 0.627 |
+| person / wrist | — | — | — | — | small | 0.712 / 0.716 |
+
+Thermal is the **weakest and highest-variance** member. Weight averaging is a variance
+reducer, so it pays most where variance dominates and the model is under-fit. Person and
+wrist are stronger and more consistent, and averaging across *different subject splits*
+blurs solutions that had specialised usefully — these are not seed replicas of one another,
+they are models fitted to different data.
+
+**Adopted: soup for thermal only.** `stage2_ship5.pth` stands as the shipping package.
+
+**This also sharpens the prediction for EXP-148 (the seed soup, now running).** Seed
+replicas share their training data, so souping them carries none of the split-blurring
+penalty seen here — and by the same variance argument the gain should again be largest on
+thermal.
+
+---
+
 ## EXP-151/152 — ✅ A WEIGHT SOUP makes the 172 configuration shippable · ❌ the decoder's distinctness ladder has CONVERGED, not kept climbing.
 **Date:** 2026-09-10 · `code/soup_weights.py`, `code/fuse_test_views.py --src` · **Tier:** exploit · **Purpose:** SCORE / SHIP
 

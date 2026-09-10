@@ -17,7 +17,33 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
-> # ⚡ STATE 2026-09-10 (late) — **the package is now RULES-COMPLIANT at 96.31 MB with both detectors inside.**
+> # ⚡ STATE 2026-09-11 — **compliant, reproducible, 171/201.** `stage2_ship5.pth` + `sub_pkgsoup5.csv`.
+>
+> | | |
+> |---|---|
+> | **FINAL so far** | **`sub_pkgsoup5.csv` = 0.85074 = 171/201**, from **`stage2_ship5.pth` 96.31 MB** |
+> | contents | person + wrist (all-train) + **thermal SOUP**, int5 video, **both YOLO detectors fp16**, skeleton, IMU trees |
+> | verified | integrity 3041 tensors / 0 mismatches · weights bit-exact at int5 · **405/405 crop windows rebuilt from the package** |
+> | gap to best-ever | 1 clip (the 172 used a 4-model thermal bag that cannot ship) |
+> | **private-cut risk** | **P(top 15) ≈ 0.70** |
+> | running | seed-soup array 339427/8/9 — started |
+>
+> **Weight soup helps ONLY thermal** (EXP-153): person −0.96 and wrist −2.98 on a screen
+> biased in the soup's favour, thermal +5.63. Thermal is the weakest, highest-variance
+> member (7.1-pt fold spread) and averaging is a variance reducer. **Do not soup person or
+> wrist.**
+>
+> **Closed axes:** decoder distinctness converged (EXP-152) · temporal TTA (EXP-146) ·
+> full-frame IR+Depth (EXP-143) · pair verifier (EXP-147) · teacher, subject alignment,
+> object channel.
+>
+> **Do next:** (1) **`inference.sh` does not exist** and Stage 2 gives 48 h after 09-15;
+> (2) seed-soup results; (3) transductive self-training on test (R-4 legal, untested at
+> this base accuracy) is the largest untried lever.
+>
+> ---
+>
+> # STATE 2026-09-10 (late) — **the package is now RULES-COMPLIANT at 96.31 MB with both detectors inside.**
 >
 > | | |
 > |---|---|
