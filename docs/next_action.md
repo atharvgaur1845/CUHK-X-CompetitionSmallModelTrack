@@ -17,7 +17,32 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
-> # ⚡ STATE 2026-09-10 (night) — temporal TTA REFUTED in fusion; **171/201 stands**.
+> # ⚡ STATE 2026-09-10 (night) — **MODELLING IS OVER.** L4 failed its gate; all five levers are resolved. **171/201 ships.**
+>
+> | lever | outcome |
+> |---|---|
+> | L1 privileged teacher | FAILED gate (0.419 vs 0.712) |
+> | L2 subject alignment | FAILED (P0 0.339; 2a +0.63 vs 1.64) |
+> | **L3a thermal at 224 px** | ✅ **+5 clips, 167 → 172** |
+> | L3b object channel | FAILED (0.502 vs 0.574 control) |
+> | **L4 pair verifier (EXP-147)** | **FAILED gate (0.87563 vs 0.893)** |
+>
+> **EXP-147 closes the brief's central question in the negative.** EXP-131 showed the top-2
+> decision is unrecoverable from member posteriors; EXP-147 shows it is unrecoverable from
+> the 768-d trunk features too. Where the fused margin is smallest — the quartile holding
+> the rank-2 pool — verifier **AUC is 0.5883 against a 0.5 null**. Its global 0.784 is
+> redundant with the margin (r = 0.63) and adding it out-of-fold *lowers* joint AUC. See
+> **B-037**.
+>
+> **FINAL: `sub_pkgship3.csv` = 171/201, package `stage2_ship3.pth` 96.47 MB, verified 4 ways.**
+>
+> **Do next — no more modelling.** Reproducibility (`inference.sh`, clean-room rerun on the
+> cluster, 10%) and the report (20%) + presentation (10%) are 40% of the grade and are
+> untouched. Code upload closes 2026-09-22.
+>
+> ---
+>
+> # STATE 2026-09-10 (night) — temporal TTA REFUTED in fusion; **171/201 stands**.
 >
 > **EXP-146.** EXP-110's standing recommendation ("+9 clips, keep it on, free") was a
 > projection that had never been measured in fusion, and it had never been switched on.

@@ -13,6 +13,97 @@ results.
 
 ---
 
+## EXP-147 / L4 — ❌ THE PAIR VERIFIER FAILS ITS GATE. Trunk features carry AUC 0.588 exactly where the decision is hard, and the plan's last lever is closed.
+**Date:** 2026-09-10 · `code/exp147_pair_verifier.py` · **Tier:** explore · **Purpose:** SCORE
+
+The plan's fallback, and its own decision rule made it live: L1 failed its gate (0.419 vs
+0.712) and L2's P0 failed (purity 0.339), so "if T1 fails and L2 fails P0, build it" fired.
+Built, measured, failed. **Pre-registered gate: > 0.893 on the decidable top-2 clips.**
+
+### Setup
+
+Fused `ship3` OOF over 2,700 clips; **2,372 are decidable** (truth is in the top-2); base
+rate for keeping rank-1 is **0.87310**. Antisymmetry is structural rather than penalised:
+we learn a score s(x, c) over (clip, candidate class) and take the argmax of two
+candidates, so g(x,a,b) = −g(x,b,a) exactly. Prototypes are rebuilt from each split's
+training subjects, subject-grouped, so a held-out subject's own clips never define the
+class centres it is scored against.
+
+### Standalone: both scorers land BELOW the base rate
+
+| scorer | acc on decidable | vs base | flips (right/wrong) |
+|---|---|---|---|
+| proto — similarity features + logistic | 0.86467 | **−0.84** | 178 (79 / 99) |
+| metric — low-rank bilinear, pairwise loss | 0.79511 | **−7.80** | 447 (131 / 316) |
+
+The bilinear model reached training loss 0.025 — it memorised 2,372 examples, which is the
+EXP-115 lesson (2,281 clips cannot fit 86M parameters) at a smaller scale.
+
+### Under the plan's actual inference rule, `argmax log p_fused(c) + w·log p_ver(c)`
+
+| w | acc | Δ vs base | flips | right | wrong |
+|---|---|---|---|---|---|
+| 0.00 | 0.87310 | — | 0 | 0 | 0 |
+| 0.10 | 0.87563 | **+0.25** | 22 | 14 | 8 |
+| 0.20 | 0.87563 | +0.25 | 38 | 22 | 16 |
+| 0.50 | 0.87352 | +0.04 | 73 | 37 | 36 |
+| 2.00 | 0.87268 | −0.04 | 119 | 59 | 60 |
+
+Best is **0.87563 against a gate of 0.893** — it needed +2.0 points and delivered **+0.25**,
+worth about **+6 clips of 2,700** against a 1.64-point bar. **FAIL.**
+
+### Why, and this is sharper than EXP-131
+
+The verifier is not signal-free — its standalone AUC for "the fused rank-1 is correct" is
+**0.78379**. It is *redundant*:
+
+| score | AUC on the decidable clips |
+|---|---|
+| **fused margin alone** | **0.86377** |
+| verifier alone (embeddings) | 0.78379 |
+| margin + verifier jointly (out-of-fold) | **0.85191 — worse than the margin alone** |
+
+correlation(verifier, fused margin) = **0.6295**. Adding it out-of-fold *loses* AUC: the
+extra parameters cost more variance than the features add signal.
+
+**The decisive table is by margin quartile — a verifier only has to work where the margin
+is small, because that is where the rank-2 pool lives:**
+
+| quartile | fused margin | n | base rate | **verifier AUC** |
+|---|---|---|---|---|
+| **Q1** | [0.00, 1.04) | 593 | **0.6138** | **0.5883** |
+| Q2 | [1.04, 2.25) | 593 | 0.9022 | 0.6127 |
+| Q3 | [2.25, 3.30) | 593 | 0.9831 | 0.5515 |
+| Q4 | [3.30, ∞) | 593 | 0.9933 | 0.6541 |
+
+The global 0.784 is almost entirely *easy clips being easy* — it re-derives the margin.
+**Where the decision is actually hard, AUC is 0.5883 against a 0.5 null.**
+
+**EXP-131 said the pair decision is not recoverable from the five members' POSTERIORS
+(0.8759 vs 0.8785). EXP-147 extends it: it is not recoverable from the 768-d TRUNK
+FEATURES either.** The head's rank-40 projection was not throwing away the answer. That is
+a materially stronger claim, and it closes the brief's central question in the negative.
+
+**Honest limitation.** This is L4-*lite*: a genuinely "raw input" verifier would fine-tune
+the trunk conditioned on the pair, and EXP-115 measured that 2,281 clips cannot do that.
+So what is refuted is *"the frozen trunk's pooled feature contains the pair decision"*, not
+*"no possible model could"*. Given 2,933 training clips, the distinction has no practical
+consequence in this campaign.
+
+### The lever list is now exhausted
+
+| lever | plan ceiling | outcome |
+|---|---|---|
+| L1 privileged teacher → distilled student | +15 | **FAILED** gate (0.419 vs 0.712) |
+| L2 per-subject transductive alignment | +8.5 | **FAILED** (P0 0.339; 2a +0.63 vs 1.64; 2c +7/2700) |
+| **L3a thermal at 224 px** | +6 | ✅ **DELIVERED +5 public clips (167 → 172)** |
+| L3b COCO object channel | +6 | **FAILED** (0.502 vs 0.574 station control) |
+| L4 pair verifier | +10.5 | **FAILED** gate (0.87563 vs 0.893) |
+
+One of five delivered, four killed against pre-registered bars. **Modelling is over.**
+
+---
+
 ## EXP-146 — ❌ TEMPORAL TTA DOES NOT SURVIVE INTO THE 3-VIEW ENSEMBLE. It buys member accuracy with CORRELATION, and EXP-110's "+9, keep it on" was a projection that was never measured in fusion.
 **Date:** 2026-09-10 · artifacts only, no GPU · **Tier:** exploit · **Purpose:** SCORE
 

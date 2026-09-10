@@ -1,3 +1,27 @@
+## B-037 — The fused top-2 decision is not recoverable from any frozen representation we own.
+
+**Confidence: high.** EXP-131 measured it unrecoverable from the five members' posteriors
+(0.8759 vs a 0.8785 base rate). EXP-147 extended it to the 768-d MViT trunk features: a
+subject-grouped pair verifier reaches 0.87563 against a 0.87310 base rate and a 0.893 gate,
+and **where the fused margin is smallest — the quartile that holds the rank-2 pool — its
+AUC is 0.5883 against a 0.5 null.** Its global AUC of 0.784 is redundant with the margin
+(correlation 0.6295) and adding it out-of-fold *lowers* joint AUC to 0.85191 from the
+margin's own 0.86377.
+
+**Why it matters:** the campaign spent five separate attempts on probability-space
+arbitration and one on feature-space. The rank-2 pool is real (2,372 of 2,700 clips are
+decidable) but it is not a *decidable* pool — the information that would separate the pair
+is not present in any representation the ensemble produces.
+
+**Falsification:** a verifier that fine-tunes the trunk conditioned on the candidate pair
+and beats 0.893 on subject-grouped CV. EXP-115 says 2,281 clips cannot fine-tune 86M
+parameters, so this needs either far more data or a much smaller conditioned module.
+
+**Consequence:** re-ranking cannot close the gap; only a stronger MEMBER raises top-1, and
+that is what thermal did (EXP-139/140).
+
+---
+
 # Belief Ledger
 
 ## B-036 — 187/201 is NOT reachable by re-ranking. The rank-2 pool caps at ~185 with a PERFECT oracle.
