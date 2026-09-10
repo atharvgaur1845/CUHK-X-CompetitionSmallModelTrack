@@ -13,6 +13,76 @@ results.
 
 ---
 
+## EXP-149 — ❌ DETECTOR QUANTISATION IS NOT FREE (unlike classifier quantisation), and my first measurement of it was WRONG.
+**Date:** 2026-09-10 · `code/quantize_detector.py`, `code/verify_detector_quant.py` · **Tier:** infrastructure · **Purpose:** COMPLY
+
+Driven by the compliance gap: the organisers require the YOLO weights inside the 100 MB
+package (research note 2026-09-10) and we are 8.34 MB short. Quantising the detectors is
+the obvious way to pay for them.
+
+### The bug, first, because it produced a clean false positive
+
+The first probe reported **60/60 identical windows at every bit width down to int4**, with
+IoU 1.00000 and zero pixel shift. It was wrong. `run()` did
+`y.model.load_state_dict(quantised)` on the outer `YOLO` object, but `compute_windows`
+constructs **its own** `YOLO("yolo11n.pt")` internally — so both passes ran the pristine
+model and the comparison was a model against itself.
+
+I had even flagged the suspicion ("this is the pattern that fooled me earlier") and then
+verified **the wrong link**: I checked that the *weights had changed* (88 tensors, up to 7%
+relative error) rather than that the *changed weights were used*. **Verifying the input to a
+measurement is not the same as verifying the measurement.** Same failure class as the
+object-channel probe that reported pair-AUC 1.000 (EXP-135).
+
+### The corrected gate, at full scale on all 405 test clips
+
+`code/verify_detector_quant.py` patches `YOLO.__init__` so the constructed model carries the
+quantised weights, and compares every window against the fp16 baseline.
+
+| detector precision | identical person windows |
+|---|---|
+| **fp16 vs fp16 (null control)** | **120/120 — the computation IS deterministic** |
+| int8 | **150 / 405** |
+| int6 | 68 / 405 |
+| int5 | 53 / 405 |
+
+Monotone in bit width, on a deterministic harness. **The effect is real and large.**
+
+### Why detectors behave so differently from classifiers
+
+EXP-108 measured int6 on MViTv2-S as **accuracy-identical** to fp32, and EXP-144 confirmed
+int6 video weights reproduce 405/405 argmaxes. A detector is not that kind of function.
+The person window is the **max-confidence box over 8 frames** — an *argmax over frames*,
+which is discontinuous. A quantisation nudge to per-frame confidence flips which frame
+wins, and the winning box changes completely rather than slightly. Small weight
+perturbation, large output change.
+
+**Rule: quantisation tolerance must be measured on the QUANTITY THE PIPELINE CONSUMES.**
+For a classifier that is the argmax over classes; for a detector it is the crop window,
+and the classifier-side checks in `unpack_stage2.py` would never have caught this.
+
+**Caveat, stated:** a *different* window is not automatically a *worse* one — another
+frame's person box may be equally good. But every existing member was **trained** on the
+fp16 windows, so changing them at inference creates a train/test mismatch, and with 5 days
+left that is not a risk worth taking to save bytes.
+
+### Where this leaves the byte budget
+
+Detectors must ship at **fp16: 10.30 MB deflated** (person 4.92 + pose 5.38) against
+**3.53 MB** of headroom. The remaining **6.77 MB** has to come from somewhere:
+
+| option | frees | cost |
+|---|---|---|
+| prune 2 skeleton archs (of 5) | 7.58 MB | unmeasured; whole skeleton is −16 clips/2700 |
+| **video int6 → int5** | **~12 MB** | unmeasured; EXP-108 has int6 identical, int4 = −7/652 |
+| drop the person view | ~24.8 MB | measured **−2 public clips** (172 → 170) |
+
+**`video int6 → int5` is the one to measure first** — it is the only option whose cost
+might be exactly zero, and EXP-108 already bracketed it between "free" (int6) and "a cliff"
+(int4).
+
+---
+
 ## RESEARCH-2026-09-10 — ⚠ THE PACKAGE IS NOT RULES-COMPLIANT: the organisers require the YOLO detector weights INSIDE the 100 MB file, and we are 8.34 MB short. Plus: the top 3 are leak-derived, advancement is on the PRIVATE board, and our backbone is explicitly legal.
 **Date:** 2026-09-10 · Kaggle discussion API + official challenge site · **Tier:** infrastructure · **Purpose:** COMPLY / SELECT
 
