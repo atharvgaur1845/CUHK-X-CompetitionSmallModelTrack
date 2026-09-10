@@ -13,6 +13,92 @@ results.
 
 ---
 
+## EXP-145 — ✅ THE ENSEMBLE LOSO TABLE, and a METHOD BUG IN THE SELECTION RULE: a lower quartile re-ranked per configuration compares different subjects and rewards shuffling.
+**Date:** 2026-09-10 · `code/exp145_ensemble_loso.py`, arrays 337249/337923/337926 · **Tier:** infrastructure · **Purpose:** SELECT
+
+54 leave-one-subject-out runs (person, wrist, thermal × 18) plus 18 CPU fits for the IMU.
+Each model trains on 17 subjects — closer to the deployed all-18 model than the 4-fold
+models' 13–14, and it yields 18 per-subject numbers instead of 4.
+
+### The shipped ensemble, per subject
+
+| subject | acc | | subject | acc |
+|---|---|---|---|---|
+| user23 | **0.66667** | | user4 | 0.79104 |
+| user3 | 0.72050 | | user22 | 0.80208 |
+| user6 | 0.72139 | | user16 | 0.82258 |
+| user1 | 0.74497 | | user24 | 0.83019 |
+| user8 | 0.74545 | | user2 | 0.83234 |
+| user7 | 0.77174 | | user17 | 0.84940 |
+| user9 | 0.77901 | | user19 | **0.87634** |
+| user20 | 0.77987 | | | |
+| user18 | 0.78090 | | | |
+
+    pooled 0.78407 (2117/2700) · subject mean 0.78215 · sd 0.05417 (15 df)
+    lower quartile 0.71338 · spread 20.97 points · 8-subject draw SE 1.92 points
+
+### Fusion FLATTENS the subject distribution, it does not only raise it
+
+| | person view alone (EXP-141) | shipped ensemble |
+|---|---|---|
+| mean | 0.72568 | **0.78215** |
+| between-subject sd | 0.06890 | **0.05417** |
+| spread worst→best | 28.0 pts | **21.0 pts** |
+| SE of an 8-subject draw | 2.44 pts | **1.92 pts** |
+
+That is the argument for the ensemble on the *private and on-site* stages specifically,
+which are 8-subject draws and together carry 2.5× the public leaderboard's weight.
+
+### Configurations under the rule
+
+| configuration | pooled | lower Q | sd | public |
+|---|---|---|---|---|
+| champion — person+wrist | 0.77519 | 0.69694 | 0.0570 | 167 |
+| shipv2 — wrist+thermal | 0.78556 | 0.70928 | 0.0555 | 170 |
+| **ship3 — person+wrist+thermal** | 0.78407 | 0.71338 | 0.0542 | **171** |
+| ship3 without the IMU member | 0.78074 | **0.72211** | **0.0511** | — |
+
+### ⚠ The last row is a TRAP, and it caught me
+
+Dropping the IMU appeared to *raise* the lower quartile by 0.87 points and cut the spread
+from 21.0 to 16.6 — a tidy story about a body-worn sensor with per-subject idiosyncrasy
+generalising badly. **The paired test says the opposite:**
+
+    per-subject delta (no IMU minus with IMU): mean -0.00251, SE 0.00485, t = -0.52
+    4 of 16 subjects improve · pooled -9 clips
+
+**The bug is in the statistic, not the member.** A lower quartile computed independently
+for each configuration takes *the worst four subjects of that configuration* — so the two
+configurations are scored on **different subject sets**, and any change that reshuffles
+which subjects are worst is rewarded for free. Here the whole effect was two subjects
+(user16 +3.8, user23 +3.8) moving out of the bottom four. Holding the subject set fixed at
+the reference configuration's worst four, the gap shrinks to +0.93 points against a paired
+mean of −0.25.
+
+**Rule corrected: the lower quartile must be computed on a FIXED subject set** — the worst
+four under the incumbent — and read alongside the paired per-subject delta. Never re-rank
+per candidate. This is the same error class as EXP-120b's retired "3 of 4 folds positive"
+clause: a statistic that looks robust while quietly选 selecting on the thing it measures.
+
+**Decision: keep the IMU member.** `ship3` stands as the final configuration.
+
+### The gap that will not be closed, stated plainly
+
+The skeleton uses its **4-fold OOF**, not LOSO: for subject X it comes from a model trained
+on 13–14 subjects rather than 17. That is leak-free — no model saw its own held-out subject
+— and it *understates* the skeleton, so every number above is mildly conservative. It also
+costs two subjects: `astgcn_world25` covers 2,700 clips and 16 users, so **user5 and user21
+are absent** from this table.
+
+**It cannot be fixed in the time available: there is no skeleton trainer in this repo.**
+`code/` holds `prune_world25.py`, `train_skel_motionbert.py` and inference helpers; the
+`astgcn_world25` stack is a pre-existing artifact whose build invocation was already
+recorded as lost (EXP-142's provenance note). Reconstructing it to gain two subjects on a
+conservative estimate is not worth 5 remaining days. **Recorded as a known limitation of
+the selection statistic rather than left as an open TODO.**
+
+---
+
 ## EXP-144 — ✅ ALL THREE VIDEO VIEWS FIT IN 96.47 MB. Bit-packing + one wrong assumption about compressibility, and the 172 configuration is now shippable at zero accuracy cost.
 **Date:** 2026-09-10 · `code/bitpack.py`, `code/pack_stage2.py`, `code/unpack_stage2.py` · **Tier:** exploit · **Purpose:** SHIP
 
