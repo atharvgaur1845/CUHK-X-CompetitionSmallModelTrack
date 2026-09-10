@@ -13,6 +13,123 @@ results.
 
 ---
 
+## RESEARCH-2026-09-10 — ⚠ THE PACKAGE IS NOT RULES-COMPLIANT: the organisers require the YOLO detector weights INSIDE the 100 MB file, and we are 8.34 MB short. Plus: the top 3 are leak-derived, advancement is on the PRIVATE board, and our backbone is explicitly legal.
+**Date:** 2026-09-10 · Kaggle discussion API + official challenge site · **Tier:** infrastructure · **Purpose:** COMPLY / SELECT
+
+Deep research into the leaderboard, the organiser rulings since 2026-08-10, and the
+dataset's own documentation. **Six findings, in order of how much they change what we do.**
+
+### 1. ⚠ COMPLIANCE GAP — the shipped package is missing required weights
+
+Topic 738333, organiser answer 2026-09-07 (this postdates `RULES_VERIFIED.md`, retrieved
+08-10, so it is **new to this repo**):
+
+> "YOLO11n person detector (~5 MB): **Yes, this is allowed.** Small pretrained CNNs are
+> fine, and deterministic label-free person cropping at inference is permitted, **with the
+> detector weights included in your <100 MB checkpoint package** — consistent with our
+> earlier answers."
+
+Our pipeline calls **two** detectors at inference (`kaggle/cuhkx_224_kaggle.py:347-348`):
+`yolo11n.pt` for the person crop and `yolo11n-pose.pt` for the wrist crop. Neither is in
+`stage2_ship3.pth` — the manifest holds only `video`, `skeleton`, `imu`.
+
+| | MB |
+|---|---|
+| `yolo11n.pt` | 5.61 |
+| `yolo11n-pose.pt` | 6.26 |
+| **required** | **11.87** |
+| headroom in `stage2_ship3.pth` (96.47/100) | 3.53 |
+| **deficit** | **8.34** |
+
+This is not academic: the on-site stage runs inference on a **brand-new private dataset**,
+so the crops must be computed from raw frames there — the cached windows do not exist.
+**A package that cannot crop cannot run.**
+
+Both checkpoints are **already fp16** (2.64 M and 2.89 M params). Symmetric int8
+per-output-channel would give ~2.77 + ~3.02 = **5.79 MB**, ~5.2 MB deflated — still ~1.7 MB
+over. Options, cheapest first: (a) int8 the detectors **and** prune one skeleton arch
+(≈3.8 MB deflated each); (b) derive the wrist window from the person box and drop
+`yolo11n-pose` entirely (−6.26 MB, but EXP-104 built the wrist view *on* pose); (c) drop a
+video view (−25.9 MB, and EXP-143's nested CV says all three earn their place).
+**Quantising a detector is riskier than quantising a classifier** — it moves the crop
+window, which moves every downstream member — so it needs its own rowdiff gate.
+
+**Also missing: `inference.sh` does not exist.** Stage 2 requires code + checkpoint within
+**48 hours** of the 09-15 freeze, reproducing our leaderboard standing.
+
+### 2. The top 3 are almost certainly leak-derived, and the organisers have said so obliquely
+
+Topic 714827 (2026-06-27): a participant reported that the public CUHK-X repository
+carried labelled split metadata matchable to test skeleton filenames by timestamp and
+frame id — **test labels without training a model**. Organiser reply 06-28: *"We are aware
+of the data leakage issue… it has now been resolved. The relevant repository has been
+temporarily taken offline."* **The leaderboard was never reset.**
+
+Topic 739668, organiser 2026-09-07:
+
+> "Regarding the early leak: we're aware of it, and the Stage 2 reproduction requirement
+> plus the new held-out data are exactly what neutralize any advantage it might have
+> given. **Scores that depend on the leak rather than a genuine solution won't hold up.**"
+
+Current board: **0.98507 / 0.98009 / 0.97512**, then a step to 0.95522, 0.94029, and a
+cluster at 0.915–0.900. A competitor at 0.86 on the same thread: *"I actually think that
+scores up to 0.91 could be possible, but current top-3 is really strange."* Our own LOSO
+puts the shipped ensemble at **0.784 mean / 0.876 best subject** across 18 held-out
+subjects; 198/201 on unseen subjects is far outside that distribution.
+
+**This is context, not comfort.** It does not move us up, and we must not plan around
+other teams being removed.
+
+### 3. Advancement is decided on the PRIVATE board — and the pool was widened
+
+> "September 15th Public submissions close. **Top 15 teams per track on the Kaggle private
+> leaderboard** are notified and required to upload code + checkpoint within 48 hours."
+
+And from the leak response: *"we will be **expanding the range of teams** considered for
+Stage 2, with a focus on selecting teams that demonstrate **genuine progress in solving the
+HAR cross-subject challenge**."*
+
+We are **14th of 307 on public**. Timass is 13th at 0.86069 = **173/201 — one clip above
+us**; Team Falcons' 09-09 submission (0.86567 = 174) is what pushed us from 13th to 14th.
+
+### 4. Our backbone is legal — settled, a fortiori
+
+Same 09-07 answer approved **R(2+1)D-34 initialised from IG-65M + Kinetics-400 (~64 M
+params, pretrained on 65 M videos)**: *"Yes, this is acceptable. It counts as a permitted
+pretrained CNN, not a prohibited large backbone."* **MViTv2-S is 34 M** — half that, and
+Kinetics-400 only. The risk that our video branch is inadmissible is closed.
+
+### 5. There is no more in-domain data to be had
+
+The dataset site states the full CUHK-X (**30 participants, 64,267 samples, 7 modalities**)
+**"will be released after the competition concludes."** What is public is **CUHK-S, "a
+sample subset… with only 18 users"** — which is exactly our training set. **So the
+apparent 64k-sample dataset is not an available source of extra subjects.** External
+*public* data remains legal under R-2 (NTU RGB+D named explicitly), and more subjects is
+still our binding constraint — but the user excluded NTU mirrors from scope.
+
+### 6. The Kaggle test set is FOUR subjects, not twelve — which changes how to read public
+
+The official track page: *"cross-subject split: training on users 1–9 and 16–24; **testing
+on users 10–11 and 25–26**."* That is **4 test subjects** for all 405 Kaggle clips, not the
+12 that `CLAUDE.md` assumes. It is consistent with EXP-124's "4 public subjects".
+
+**Consequence for the selection rule.** If public (201) and private (204) are drawn from
+the *same* 4 subjects, they share the subject draw, and the ±13.9-clip subject-sampling
+term from EXP-141 **does not separate them** — public becomes a much better predictor of
+private than rule 4 assumes. EXP-133's recording-day evidence hints public and private may
+split by day *within* those subjects. **Unverified, and it should not be assumed without a
+test** — but if true, our 172 public should carry to private, and the on-site stage (fresh
+subjects, 30%) is where the LOSO lower quartile actually earns its keep.
+
+### Actions this creates
+
+1. **Pack the detectors.** Highest priority: the package is non-compliant as it stands.
+2. **Write `inference.sh`** and rehearse the clean-room rerun — 48-hour clock after 09-15.
+3. Re-read the final-selection rule under finding 6 before choosing the two finals.
+
+---
+
 ## EXP-147 / L4 — ❌ THE PAIR VERIFIER FAILS ITS GATE. Trunk features carry AUC 0.588 exactly where the decision is hard, and the plan's last lever is closed.
 **Date:** 2026-09-10 · `code/exp147_pair_verifier.py` · **Tier:** explore · **Purpose:** SCORE
 
