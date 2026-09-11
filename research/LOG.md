@@ -13,6 +13,83 @@ results.
 
 ---
 
+## EXP-154 — ✅ INPUT RESOLUTION IS THE LIVE AXIS, BUT ONLY FOR THE PERSON VIEW. 384 px is +20 clips at ~zero bytes; 288 on wrist is NEGATIVE and my mechanism story was wrong.
+**Date:** 2026-09-12 · `cluster/res288.sbatch`, `cache/crop_wrist288`, `cache/thermal_288` · **Tier:** exploit · **Purpose:** SCORE
+
+Person was the only view ever trained above 224, and it beat its own 224 model on 4/4
+folds. I predicted the other two views would gain **more**, for two specific reasons. Both
+were wrong, and the way they were wrong is the useful part.
+
+### The prediction, and the result
+
+| view | my stated reason to expect a gain | measured 224 → 288 |
+|---|---|---|
+| **wrist** | "a small hand region upscaled, so resolution is the binding constraint" | **−1.36 mean, 3/4 folds NEGATIVE** (+0.25, −2.46, −2.91, −0.31) |
+| **thermal** | "native 320×240, so 288 is *nearer native* than 224" | **a wash** (fold 2 −1.99, fold 3 +2.14) |
+| person | — | **+1.23, 4/4 folds** |
+
+### The corrected mechanism, which is predictive rather than post-hoc
+
+**Resolution pays only where the crop is LARGE relative to the source frame.**
+
+* The **person** box covers much of a 640×480 IR frame, so 384 px samples genuinely finer
+  detail that 224 was discarding. Monotone: **0.71444 → 0.72963 (288) → 0.73333 (384)**.
+* The **wrist** box is a small region *already upsampled* to fill 224. Going to 288 adds
+  interpolated pixels and no information, while enlarging the token grid on 2,281 clips —
+  cost with no signal.
+* **Thermal** frames are 320×240 *native*, so 288 is already at the source's limit and 384
+  would be pure upsampling.
+
+This kills the "more pixels is better" reading and replaces it with a rule that says
+**where not to spend GPU-hours**: no higher resolution for wrist or thermal.
+
+### Person slot, searched over every resolution we own (2,700 pooled OOF, fixed weights)
+
+| person slot | n/2700 | vs 224 | MB @int5 |
+|---|---|---|---|
+| 224 (shipped) | 2071 | — | 25.9 |
+| 288 | 2082 | +11 | 25.9 |
+| **384** | **2091** | **+20** | **25.9** |
+| 224+288 | 2082 | +11 | 51.8 |
+| 288+384 | 2090 | +19 | 51.8 |
+| 224+288+384 | 2084 | +13 | 77.7 |
+
+**384 alone beats every multi-resolution combination**, and costs nothing extra: the
+checkpoint is 137.56 MB against 224's 137.25 (positional tables scale, weights do not), so
+**+0.06 MB at int5**. Per-fold in fusion: **+0.60, +0.86, +1.38, +0.15 — 4/4 positive**,
+50 rescued against 30 broken.
+
+### Re-weighting on top, kept honest
+
+The shipped weights were fitted for a two-view champion that no longer exists. A nested-CV
+search (weights chosen on 3 folds, scored on the 4th) over a 768-point grid:
+
+| | n/2700 |
+|---|---|
+| default weights, person=384 | 2091 |
+| **nested-CV estimate** | **2106 (+15)** |
+| fitted argmax (optimistic) | 2116 |
+| **top-25 centroid — what ships** | **2106** |
+
+The centroid **exactly reproduces the nested-CV estimate**, which is the point of using it
+rather than the bare argmax: it captures the gain without the 10 clips of selection bias.
+Weights: **person 0.2359, wrist 0.1807, thermal 0.1700, skeleton 0.3320, IMU 0.2967** —
+video up, IMU down, which is what a stronger person member should do.
+
+### Cumulative
+
+    ship3 (person 224, old weights)   2071
+    + person 384                      2091   (+20)
+    + re-weighted                     2106   (+15)
+                                      ----
+                                      +35 clips of 2700 = +1.30 points
+
+Blocked on `k224_mvit384_all` (job 341219, queued) — the fold models measured the effect,
+but shipping needs the all-train model, which should be *stronger* still since it sees 18
+subjects rather than 13–14.
+
+---
+
 ## EXP-148 — ❌ SEED SOUP IS DECISIVELY NEGATIVE: −2.39 points, 4/4 folds, and it weakens the case for the thermal soup I already shipped.
 **Date:** 2026-09-11 · `code/soup_weights.py`, `code/quant_probe.py` · **Tier:** exploit · **Purpose:** SCORE
 
