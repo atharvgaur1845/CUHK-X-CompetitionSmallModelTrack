@@ -13,6 +13,58 @@ results.
 
 ---
 
+## EXP-156 — LAUNCHED: R-4 self-training on the test clips, transductive, with a fold-safe control.
+**Date:** 2026-09-12 · `kaggle/cuhkx_224_kaggle.py` (stage_train), `cluster/pseudo.sbatch` · **Tier:** explore · **Purpose:** SCORE
+
+### Why this is not EXP-136 re-run
+
+EXP-136 asked *"do pseudo-labelled unseen subjects improve generalisation to OTHER unseen
+subjects?"*, found the subject learning curve flat past 6, and closed pseudo-labelling.
+This asks a different question: **does training on pseudo-labelled clips of the subjects
+being scored help on those subjects?** The 09-10 research note (§6) established that the
+Kaggle test set is four subjects and private shares them, so transductive adaptation is
+aimed at exactly the board that decides advancement. R-4 permits it explicitly; the
+organisers' caveat is about *later* stages with new subjects, which is a separate decision.
+
+The trainer's pseudo path only ever read the **train** store — EXP-136's 3-way design
+pseudo-labelled train-cache clips. It now matches sids in the **test** store too and
+concatenates a second `ClipStore` into the training loader; `--all-train` runs without
+`--pseudo` are byte-for-byte unaffected, and no argparse field changed, so in-flight resume
+fingerprints hold.
+
+### Pseudo-label quality, measured before spending a GPU-hour
+
+Labels come from the **decoded** output (0.83 OOF), ranked by the fused confidence of the
+decoded class, top 50% kept:
+
+| source | clips | label accuracy, all | **label accuracy, top-50%** |
+|---|---|---|---|
+| fold-safe OOF (`oof_p384w_decoded`) | 2,700 | 0.8300 | **0.9704** |
+| test (`sub_pkgsoup5` decoded) | 405 | — (no truth) | expected ≈ 0.97 |
+
+### Design
+
+| task | what | question it answers |
+|---|---|---|
+| 0 | 13 users, no pseudo, eval user1 | control |
+| 1 | same 13 users **+ fold-2 clips pseudo-labelled by the decoded OOF** (top-50%) | paired: does self-training on fold-2 subjects raise fold-2 accuracy? |
+| 2 | all-train person **384** + top-50% test pseudo | the real thing |
+| 3 | all-train wrist 224 + test pseudo | the real thing |
+| 4 | all-train thermal 224 + test pseudo | the real thing |
+
+Tasks 0/1 are scored on **fold 2** with `quant_probe.py` after the fact (the trainer's own
+eval user is a placeholder so the fold-2 clips are not refused as "eval"). Both use the
+identical 13-user set, so the comparison is paired and the only difference is the pseudo
+clips. Pre-registered bar: the fold-2 paired delta must exceed **3.28** (single-fold, 2 SE).
+
+### Standing risk
+
+The pseudo labels are 97% right, which means 3% are confidently wrong, and the failure mode
+of self-training is confirmation of confident errors. The control run measures that
+directly. If task 1 fails its bar, tasks 2–4 are not submitted.
+
+---
+
 ## EXP-155 — ⚠ THE DECODER ABSORBS MOST OF THE 384 GAIN: +35 pre-decoder becomes +11 post-decoder. Thermal-288 is a wash in fusion; ambiguous-skip is 5 test clips.
 **Date:** 2026-09-12 · **Tier:** exploit · **Purpose:** SCORE — a correction to EXP-154's projection
 

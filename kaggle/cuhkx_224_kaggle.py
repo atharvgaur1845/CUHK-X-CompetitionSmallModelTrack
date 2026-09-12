@@ -922,29 +922,48 @@ def stage_train(args, paths):
             pp = Path(__file__).resolve().parents[1] / "research" / "artifacts" / args.pseudo
         pd_ = np.load(pp, allow_pickle=True)
         pmap = {str(k): v for k, v in zip(pd_["sids"], pd_["probs"])}
-        add_sids = [s for s in pmap if s in row_of and s not in set(tr_sids)]
+        # EXP-156: pseudo sids may live in the TEST store, not only the train store.
+        # EXP-136's 3-way simulation only ever pseudo-labelled train-cache clips; the
+        # R-4 use that actually targets the private board -- self-training on the 405
+        # test clips, which are the SAME four subjects private scores -- needs the test
+        # store read alongside. Clips are matched by sid in whichever index holds them.
+        tidx_p = cache / "test_index.json"
+        tidx = json.loads(tidx_p.read_text()) if tidx_p.is_file() else {"sids": []}
+        trow_of = {s: i for i, s in enumerate(tidx["sids"])}
+        in_train = set(tr_sids)
+        add_sids = [s for s in pmap
+                    if (s in row_of and s not in in_train) or (s in trow_of)]
         if args.pseudo_users:
             pu = set(args.pseudo_users.split(","))
-            add_sids = [s for s in add_sids if usr[s] in pu]
+            add_sids = [s for s in add_sids if s in trow_of or usr[s] in pu]
         add_sids = [s for s in add_sids if s not in set(val_sids)]   # never train on eval
         conf = np.array([float(pmap[s].max()) for s in add_sids])
         if args.pseudo_top_frac < 1.0 and len(add_sids):
             k = max(1, int(len(add_sids) * args.pseudo_top_frac))
             sel = np.argsort(-conf)[:k]
             add_sids = [add_sids[i] for i in sel]
-        add_rows = np.array([row_of[s] for s in add_sids], dtype=int)
-        add_lab = np.array([int(np.argmax(pmap[s])) for s in add_sids], dtype=int)
-        agree = float((add_lab == np.array([lab[s] for s in add_sids])).mean()) if add_sids else 0.0
-        print(f"  pseudo: +{len(add_sids)} clips from "
-              f"{len(set(usr[s] for s in add_sids))} users, top_frac={args.pseudo_top_frac}, "
-              f"pseudo-label accuracy vs the (unused) truth = {agree:.4f}", flush=True)
+        add_train = [s for s in add_sids if s in row_of]
+        add_test = [s for s in add_sids if s in trow_of]
+        add_rows = np.array([row_of[s] for s in add_train], dtype=int)
+        add_lab = np.array([int(np.argmax(pmap[s])) for s in add_train], dtype=int)
+        test_pseudo_rows = np.array([trow_of[s] for s in add_test], dtype=int)
+        test_pseudo_lab = np.array([int(np.argmax(pmap[s])) for s in add_test], dtype=int)
+        agree = (float((add_lab == np.array([lab[s] for s in add_train])).mean())
+                 if add_train else float("nan"))
+        print(f"  pseudo: +{len(add_train)} train-store clips from "
+              f"{len(set(usr[s] for s in add_train))} users (label acc vs unused truth "
+              f"{agree:.4f}) and +{len(add_test)} TEST-store clips, "
+              f"top_frac={args.pseudo_top_frac}", flush=True)
         if len(add_rows):
             tr_rows = np.concatenate([tr_rows, add_rows])
             tr_lab = np.concatenate([tr_lab, add_lab])
-            tr_sids = tr_sids + add_sids
+            tr_sids = tr_sids + add_train
+    else:
+        test_pseudo_rows = np.zeros(0, dtype=int); test_pseudo_lab = np.zeros(0, dtype=int)
 
     device = torch.device("cuda")
-    counts = np.bincount(tr_lab, minlength=N_CLASSES).astype(np.float64)
+    counts = np.bincount(np.concatenate([tr_lab, test_pseudo_lab]),
+                         minlength=N_CLASSES).astype(np.float64)
     log_prior = torch.tensor(np.log(np.maximum(counts / counts.sum(), 1e-9)),
                              dtype=torch.float32, device=device)
 
@@ -976,7 +995,17 @@ def stage_train(args, paths):
               f"{float(soft.max(1).mean()):.4f}", flush=True)
 
     store = ClipStore(cache, "train")
-    tl = DataLoader(make_dataset(store, tr_rows, tr_lab, True, soft=soft),
+    train_ds = make_dataset(store, tr_rows, tr_lab, True, soft=soft)
+    if len(test_pseudo_rows):
+        assert soft is None, "test-store pseudo clips have no teacher targets"
+        from torch.utils.data import ConcatDataset
+        tstore = ClipStore(cache, "test")
+        assert tstore.channels == store.channels and tstore.size == store.size
+        train_ds = ConcatDataset([train_ds,
+                                  make_dataset(tstore, test_pseudo_rows, test_pseudo_lab, True)])
+        print(f"  training set: {len(tr_rows)} train-store + {len(test_pseudo_rows)} "
+              f"test-store pseudo clips", flush=True)
+    tl = DataLoader(train_ds,
                     batch_size=args.batch_size,
                     shuffle=True, num_workers=args.workers, drop_last=True,
                     pin_memory=False, persistent_workers=args.workers > 0)
