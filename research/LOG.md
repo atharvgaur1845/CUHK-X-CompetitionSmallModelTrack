@@ -13,6 +13,65 @@ results.
 
 ---
 
+## EXP-155 — ⚠ THE DECODER ABSORBS MOST OF THE 384 GAIN: +35 pre-decoder becomes +11 post-decoder. Thermal-288 is a wash in fusion; ambiguous-skip is 5 test clips.
+**Date:** 2026-09-12 · **Tier:** exploit · **Purpose:** SCORE — a correction to EXP-154's projection
+
+### Thermal at 288, all four folds
+
+| fold | 224 | 288 | Δ |
+|---|---|---|---|
+| 0 | 0.66216 | 0.68182 | +1.97 |
+| 1 | 0.63759 | 0.65725 | +1.97 |
+| 2 | 0.60583 | 0.58589 | −1.99 |
+| 3 | 0.59112 | 0.61256 | +2.14 |
+
+Mean +1.02, SE 1.01 — 3/4 positive as a member. **In the fusion (person-384 + centroid
+weights): 2106 → 2104, −2**, per-fold +0.90/+0.14/−0.77/−0.58. Both thermals in the slot
+reach 2112 (+6) but that is a second 25.9 MB model. **Thermal stays at 224.** Resolution
+is a person-only gain, consistent with EXP-154's crop-size rule.
+
+### Decoder λ on the new fusion — 0.5 still optimal
+
+| λ | 0.3 | 0.4 | **0.5** | 0.6 | 0.7 | 0.8 |
+|---|---|---|---|---|---|---|
+| decoded | 2225 | 2233 | **2241** | 2238 | 2230 | 2222 |
+
+### ⚠ The correction: the decoder was already fixing most of what 384 fixes
+
+| | pre-decoder | **decoded** | rescues | harms |
+|---|---|---|---|---|
+| ship3 fusion (person 224) | 2071 | 2230 | 225 | 66 |
+| person 384 + centroid weights | 2106 | **2241** | 190 | 55 |
+| Δ | **+35** | **+11** | −35 | −11 |
+
+**The +35 collapses to +11 through the shipped decoder.** Rescues fall by exactly 35: the
+clips that 384 and re-weighting now get right at the member level are, in large part, the
+same clips the transition decoder was already rescuing. Harms fall 66 → 55, which is the
+EXP-125 "trustworthy" direction, but the net is a quarter of what EXP-154 projected.
+
+**Corrected public projection: ~+1 clip, not +2.6.** 171 → ~172. I had projected from the
+pre-decoder number, which this repo's own convention says never to do for a change that
+overlaps with what the decoder exploits.
+
+### Ambiguous-skip: 170 OOF clips, 5 test clips — dead
+
+The decoder skips groups with tied or missing timestamps (40/0/8/122 clips across the four
+OOF folds) and they fall back to per-clip argmax. On **test it is 5 clips in 1 group**.
+Nothing to harvest.
+
+### Standing, honestly
+
+Shippable 171. Person-384 is worth ~+1 after the decoder and is blocked on
+`k224_mvit384_all` (three copies queued on Priority across all partitions — the cluster has
+been saturated for a day). Every other axis is measured: soup −2.39, temporal TTA −0.15,
+wrist-288 −1.36, thermal-288 0, distinctness saturated, λ saturated, verifier dead, teacher
+dead, alignment dead, object channel dead, full-frame dead. **There is no measured path to
++4 from here.** The one *untested* legal lever with multi-clip potential is R-4
+self-training on the test set — which, given the test set is the same four subjects as
+private (research note 09-10 §6), is aimed at exactly the board that decides advancement.
+
+---
+
 ## EXP-154 — ✅ INPUT RESOLUTION IS THE LIVE AXIS, BUT ONLY FOR THE PERSON VIEW. 384 px is +20 clips at ~zero bytes; 288 on wrist is NEGATIVE and my mechanism story was wrong.
 **Date:** 2026-09-12 · `cluster/res288.sbatch`, `cache/crop_wrist288`, `cache/thermal_288` · **Tier:** exploit · **Purpose:** SCORE
 
