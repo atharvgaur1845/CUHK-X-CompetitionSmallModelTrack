@@ -13,7 +13,22 @@ results.
 
 ---
 
-## EXP-158 — CANDIDATE `sub_pkgship6.csv`: person-384 + centroid weights, packaged and verified at 96.36 MB. Predicted 172, range 168–175.
+## EXP-158 — ✅ `sub_pkgship6.csv` = **174/201 = 0.86567**. Person-384 + re-weighting, compliant and reproducible. Predicted 172, range 168–175: landed at the top of the range.
+**Scored 2026-09-13.** +3 over the compliant incumbent (171), +2 over the unshippable
+bag (172). **14th of 307**, one clip below the 175 cluster (12th–13th), one above Timass
+(15th). This is the first time the compliant, reproducible package is also our best
+public score — every earlier best sat in a configuration that could not ship.
+
+The decoded-OOF projection (+11/2700 ≈ +1 clip) under-called it by 2. The likeliest reason
+is the one flagged in EXP-155: the fold models measured the effect on 13–14 training
+subjects, and the shipped all-train model sees 18.
+
+**Provenance: first-run.** Two changes in one submission (person 224→384, centroid
+re-weighting), validated jointly by nested CV; the public result cannot separate them.
+
+---
+
+## EXP-158 (candidate note) — person-384 + centroid weights, packaged and verified at 96.36 MB. Predicted 172, range 168–175.
 **Date:** 2026-09-13 · `stage2_ship6.pth` · **Tier:** exploit · **Purpose:** SCORE
 
 `k224_mvit384_all` landed after the crop_384 train split was finally synced (it had never

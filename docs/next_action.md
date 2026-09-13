@@ -17,7 +17,25 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
-> # ⚡ STATE 2026-09-13 — **submit `sub_pkgship6.csv`** (person-384 + re-weighted, 96.36 MB verified). Board: **15th, tied with 16th, zero cushion.**
+> # ⚡ STATE 2026-09-13 (evening) — **174/201 = 0.86567, 14th.** Compliant and reproducible. `stage2_ship6.pth` + `sub_pkgship6.csv`.
+>
+> | | |
+> |---|---|
+> | **FINAL** | **`sub_pkgship6.csv` = 174/201**, package **`stage2_ship6.pth` 96.36 MB**, verified 4 ways |
+> | contents | person **384** (all-train) + wrist 224 + thermal 224 soup, **centroid weights** (0.2359/0.1807/0.1700/0.3320/0.2967), int5 video, both fp16 detectors, skeleton, IMU trees |
+> | board | 12th 176, **13th 175, us 14th 174, 15th 173**, 16th 172. Top-15 on PRIVATE advances |
+> | freeze | **2026-09-15**; Stage 2 code+checkpoint due 48 h after |
+>
+> **Do next:** `inference.sh` + clean-room rerun. **It does not exist.** Every branch is
+> individually verified from the package; nothing runs them end-to-end from raw frames.
+>
+> **Closed, all measured:** seed soup, wrist/thermal-288, twin pooling, scene vocabulary,
+> transductive self-training, temporal TTA, verifier, teacher, alignment, object channel,
+> full-frame, decoder λ and distinctness. Remaining errors are per-subject and correlated.
+>
+> ---
+>
+> # STATE 2026-09-13 — **submit `sub_pkgship6.csv`** (person-384 + re-weighted, 96.36 MB verified). Board: **15th, tied with 16th, zero cushion.**
 >
 > | | |
 > |---|---|
