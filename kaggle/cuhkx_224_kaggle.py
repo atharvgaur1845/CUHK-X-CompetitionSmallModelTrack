@@ -1014,6 +1014,20 @@ def stage_train(args, paths):
 
     model = build_model(args.arch, in_channels=store.channels,
                         image_size=store.size).to(device)
+    if args.init:
+        # EXP-156: WARM START for transductive fine-tuning. Start from the deployed model
+        # and adapt it for a few epochs on train + pseudo-labelled test clips, instead of
+        # retraining 20 epochs from Kinetics. Faster (runs on a laptop GPU while the
+        # cluster is saturated) and the lighter touch is the safer form of self-training:
+        # the model cannot drift far from what already scores 171.
+        ip = Path(args.init)
+        if not ip.is_file():
+            ip = Path(__file__).resolve().parents[1] / "checkpoints" / f"{args.init}.pt"
+        ipkg = torch.load(ip, map_location="cpu", weights_only=False)
+        missing, unexpected = model.load_state_dict(ipkg["state_dict"], strict=False)
+        assert not unexpected, f"--init {ip.name}: unexpected keys {unexpected[:5]}"
+        assert not missing, f"--init {ip.name}: missing keys {missing[:5]}"
+        print(f"  warm start from {ip.name}", flush=True)
     if args.grad_checkpoint:
         enable_grad_checkpointing(model)
         print('  gradient checkpointing ON (train only; eval path unchanged)', flush=True)
@@ -1195,6 +1209,10 @@ def main(argv=None) -> int:
     ap.add_argument("--fold", type=int, default=2, choices=(0, 1, 2, 3),
                     help="which subject fold to hold out; matches the local vid_* folds")
     ap.add_argument("--epochs", type=int, default=20)
+    ap.add_argument("--init", default="",
+                    help="checkpoint tag (or path) to WARM-START from. Used for transductive "
+                         "fine-tuning (EXP-156): a few epochs on train + pseudo-labelled "
+                         "test clips starting from the deployed model.")
     ap.add_argument("--batch-size", type=int, default=4,
                     help="measured peak VRAM at 224px/16f: mvit_v2_s bs4=5.18GB (446 ms/step "
                          "on an RTX 4060), bs6=7.60GB, swin3d_t bs4=5.81GB. 4 fits an 8GB "

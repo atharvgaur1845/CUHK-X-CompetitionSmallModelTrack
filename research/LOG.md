@@ -13,7 +13,73 @@ results.
 
 ---
 
-## EXP-156 — LAUNCHED: R-4 self-training on the test clips, transductive, with a fold-safe control.
+## EXP-157 — ❌ THE RECORDING STRUCTURE IS FULLY MAPPED, and it does not pay: twin-pooling +1, scene vocabulary non-transferable. Errors are subject-correlated, so no independence prior can help.
+**Date:** 2026-09-13 · `code/twin_pool.py` · **Tier:** explore · **Purpose:** MECHANISM
+
+### What the recordings actually are
+
+* **743/743 groups are all-distinct** — no activity repeats within a recording. (Explains
+  why distinctness saturates at hard, EXP-152.)
+* **Each scene is performed 2–3 times by the same subject, in the same order:** 241
+  (user, scene) pairs with ≥2 trials, **227 in identical order (94%)**.
+* **Repeats are detectable with no user id:** consecutive groups of equal length within
+  120 s are the same scene **97.0%** of the time and the same order **94.3%** (336 pairs).
+  **642/743 groups — 81% of clips (2,367) — sit in a repeat-run** of 2 or 3.
+
+That is a real prior the decoder does not use: it chains *within* a group, and clip *i* of
+trial 2 is the same activity as clip *i* of trials 1 and 3.
+
+### Twin pooling: +1 pre-decoder, −4 decoded
+
+Geometric-mean the twins' probabilities position-wise (1,785 of 2,700 clips pooled in 177
+runs), then decode as usual: **0.78000 → 0.78037 pre-decoder; 2241 → 2237 decoded.**
+
+Why it cannot work here, measured: alignment is fine (truth identical across twins at
+94.6% of positions). Of 187 positions with ≥1 wrong twin, **41% have every twin wrong, and
+68% of those share the identical wrong label.** The same subject doing the same activity in
+the same room with the same object fools the model the same way three times. Pooling
+averages three copies of one mistake. This is EXP-132's subject-level bias seen from the
+other side.
+
+### Scene vocabulary: 201 of 240 scene sets belong to a single subject
+
+Leave-one-user-out, a group's label-set appears in the other 17 users' vocabulary only
+**35.7%** of the time (ordered sequence: 32.2%). The scripts are per-subject. A vocabulary
+constraint would apply to a third of groups and be wrong for the rest.
+
+### The conclusion both results share
+
+Every remaining error mechanism is **per-subject and correlated**: twins fail together,
+scenes are per-subject, and (EXP-156) adapting to the subject via its own pseudo-labels
+just reinforces the shared mistake. No prior that assumes independent evidence can
+recover these clips. That is a statement about the *data*, not about any one method.
+
+---
+
+## EXP-156 — ❌ TRANSDUCTIVE SELF-TRAINING: the member gains +1.38, the FUSION loses. Self-training on the ensemble's own labels buys accuracy with independence.
+**Result (2026-09-13), fold-2 control run locally on the laptop with a warm start (`--init`), 5 epochs, lr 3e-5, paired:**
+
+| model | member micro (fold 2) | fused pre-decoder (fold 2) | **fused decoded (fold 2)** |
+|---|---|---|---|
+| `k224_mvit_f2` (original) | 0.71472 | — | — |
+| `ft_base_f2` — +5 epochs, no pseudo | 0.71166 | 420/552 | 566/677 |
+| `ft_pseudo_f2` — +5 epochs, +fold-2 pseudo (top-50%, 97% correct) | **0.72546 (+1.38)** | **415/552 (−5)** | **564/677 (−2)** |
+
+The member improves cleanly (the base run isolates the extra epochs at −0.31, so +1.38 is
+attributable to the pseudo clips) — and then makes the ensemble **worse**. Mechanism: the
+pseudo-labels came *from the fusion*, so fine-tuning on them pulls the member toward the
+fusion. Its new correct answers are ones the ensemble already had; its confidence on the
+ensemble's errors rises. It gains accuracy and loses independence, and the fusion only ever
+paid for the independence. The +1.38 member number is the classic self-training mirage
+in an ensemble. **Cluster tasks 2–4 cancelled before spending a GPU-hour.**
+
+The one variant not tested is co-training (pseudo-labels from the *other* members only,
+so the fine-tuned member learns what it did not know). With the member-level ceiling at
+~+1.4 even under the best labels, its expected value is under a clip; not pursued.
+
+---
+
+## EXP-156 (launch note, superseded above) — R-4 self-training on the test clips, transductive, with a fold-safe control.
 **Date:** 2026-09-12 · `kaggle/cuhkx_224_kaggle.py` (stage_train), `cluster/pseudo.sbatch` · **Tier:** explore · **Purpose:** SCORE
 
 ### Why this is not EXP-136 re-run
