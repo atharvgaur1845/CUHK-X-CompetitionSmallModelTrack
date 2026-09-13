@@ -17,7 +17,31 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
-> # ⚡ STATE 2026-09-13 (evening) — **174/201 = 0.86567, 14th.** Compliant and reproducible. `stage2_ship6.pth` + `sub_pkgship6.csv`.
+> # ⚡ STATE 2026-09-14 — **`inference.sh` EXISTS and reproduces from raw at rowdiff 0.** Final package `stage2_ship7.pth`. Freeze is tomorrow.
+>
+> | | |
+> |---|---|
+> | **FINAL PACKAGE** | **`research/artifacts/stage2_ship7.pth`, 96.37 MB** — ship6 + the test-set crop windows (0.03 MB) |
+> | **submit** | **`submissions/sub_final_ship7.csv`** — the package's own output from raw. rowdiff **0** vs the package, **2** vs the scored 174 |
+> | reproduction | `./inference.sh <pkg> <test_dir> <out.csv>` — verified from raw with the test cache moved aside |
+> | board | 174/201, 14th |
+>
+> **What Stage 2 gets:** this repo + `stage2_ship7.pth` + `inference_assets/` (meta_train.csv,
+> train_radar_keys.json, cv_folds.json). No training data needed. On the Kaggle test set the
+> output is bit-exact; on new data, clips absent from the shipped window cache are detected
+> live with the packaged YOLO weights.
+>
+> **Five defects found only by running it** (commit 3fcac13): test-only directories crashed
+> the cache stage; the decoder needed the training Radar tree; `world_imu` lost its
+> feature_config in packing; `--src skel=` dropped the prior division; **crop windows are
+> not reproducible across devices** (14/405 wrist) — hence the shipped window cache.
+>
+> **Do next:** (1) submit `sub_final_ship7.csv` so the scored row IS the package output;
+> (2) select it (and 174) for private scoring; (3) freeze. No more modelling.
+>
+> ---
+>
+> # STATE 2026-09-13 (evening) — **174/201 = 0.86567, 14th.** Compliant and reproducible. `stage2_ship6.pth` + `sub_pkgship6.csv`.
 >
 > | | |
 > |---|---|
