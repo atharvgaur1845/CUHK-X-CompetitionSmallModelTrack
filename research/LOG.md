@@ -13,6 +13,35 @@ results.
 
 ---
 
+## EXP-158 — CANDIDATE `sub_pkgship6.csv`: person-384 + centroid weights, packaged and verified at 96.36 MB. Predicted 172, range 168–175.
+**Date:** 2026-09-13 · `stage2_ship6.pth` · **Tier:** exploit · **Purpose:** SCORE
+
+`k224_mvit384_all` landed after the crop_384 train split was finally synced (it had never
+been on the cluster; the 384 fold models were Kaggle-trained). Packaged with the EXP-154
+centroid weights — person 0.2359, wrist 0.1807, thermal 0.1700, skeleton 0.3320, IMU
+0.2967 — int5 video, both fp16 detectors, thermal soup.
+
+| check | result |
+|---|---|
+| size | **96.36 MB** |
+| integrity | 3041 tensors, 0 mismatches |
+| weights, all 3 views | 0.000e+00 vs `quantize_checkpoint --bits 5` |
+| infer | PASS |
+
+**Rowdiff 21/405 vs `sub_pkgsoup5` (171)** — the first candidate in this sequence above
+the ~20-row readability bar. It carries TWO changes (person 224→384 and the re-weighting),
+against the one-change convention; they were validated jointly (the nested-CV weight search
+was run *given* person-384), and with 2 days to the freeze a combined read is the trade
+accepted. **Predicted 172** from +11/2700 decoded (EXP-155); a result inside 168–175 is
+uninformative about either change alone, and ≤169 says the all-train 384 model did not
+carry the fold models' gain.
+
+`VIEW_SPEC` in `pack_stage2.py` now carries `image_size` per role; the manifest had it
+hardcoded to 224, which the unpacker never read (it builds from the cache) but which
+would have mis-described the package.
+
+---
+
 ## EXP-157 — ❌ THE RECORDING STRUCTURE IS FULLY MAPPED, and it does not pay: twin-pooling +1, scene vocabulary non-transferable. Errors are subject-correlated, so no independence prior can help.
 **Date:** 2026-09-13 · `code/twin_pool.py` · **Tier:** explore · **Purpose:** MECHANISM
 

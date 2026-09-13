@@ -61,11 +61,12 @@ def sha(b: bytes) -> str:
 # role -> (cache directory, input channels). Hardcoding these to the IR+Depth values was
 # safe only while every packaged view WAS IR+Depth. Thermal is 3-channel ironbow and reads
 # cache/thermal_224; a wrong in_channels builds a model the weights cannot load into.
-VIEW_SPEC = {
-    "student": ("crop_224", 4),
-    "person":  ("crop_224", 4),
-    "wrist":   ("crop_wrist224", 4),
-    "thermal": ("thermal_224", 3),
+VIEW_SPEC = {   # role -> (cache, in_channels, image_size)
+    "student":   ("crop_224", 4, 224),
+    "person":    ("crop_224", 4, 224),
+    "person384": ("crop_384", 4, 384),   # EXP-154: +20/2700 at ~zero bytes
+    "wrist":     ("crop_wrist224", 4, 224),
+    "thermal":   ("thermal_224", 3, 224),
 }
 
 
@@ -259,7 +260,7 @@ def main() -> int:
             "model": {"builder": "kaggle/cuhkx_224_kaggle.py:build_model",
                       "arch": "mvit_v2_s", "n_classes": 40,
                       "in_channels": VIEW_SPEC[role][1],
-                      "image_size": 224, "n_frames": 16,
+                      "image_size": VIEW_SPEC[role][2], "n_frames": 16,
                       "cache": VIEW_SPEC[role][0]},
             "tensors": [{**e, "code_entry": f"video/{role}/{e['code_entry']}",
                          **({"scale_entry": f"video/{role}/{e['scale_entry']}"}

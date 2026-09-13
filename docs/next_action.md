@@ -17,7 +17,23 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
-> # ⚡ STATE 2026-09-11 — **compliant, reproducible, 171/201.** `stage2_ship5.pth` + `sub_pkgsoup5.csv`.
+> # ⚡ STATE 2026-09-13 — **submit `sub_pkgship6.csv`** (person-384 + re-weighted, 96.36 MB verified). Board: **15th, tied with 16th, zero cushion.**
+>
+> | | |
+> |---|---|
+> | candidate | **`sub_pkgship6.csv`** from `stage2_ship6.pth` — predicted **172**, rowdiff 21 vs the 171 |
+> | incumbent | `sub_pkgsoup5.csv` = 171, `stage2_ship5.pth` |
+> | board | 12th–13th at 175, 14th at 173, **us 15th at 172 tied with 16th**; top-15 on PRIVATE advances |
+>
+> **Closed since 09-11, all measured:** seed soup −2.39 (EXP-148) · wrist-288 −1.36, thermal-288 0 (EXP-154/155) · twin pooling +1 (EXP-157) · scene vocabulary non-transferable (EXP-157) · **transductive self-training: member +1.38, fusion −2 (EXP-156)**. Three independent probes say the remaining errors are per-subject and correlated.
+>
+> **Open:** person-384 = ~+1 decoded (this candidate). Nothing else measured positive.
+>
+> **Do next:** score `sub_pkgship6`; then `inference.sh` — Stage 2 gives 48 h after 09-15 and it still does not exist.
+>
+> ---
+>
+> # STATE 2026-09-11 — **compliant, reproducible, 171/201.** `stage2_ship5.pth` + `sub_pkgsoup5.csv`.
 >
 > | | |
 > |---|---|
