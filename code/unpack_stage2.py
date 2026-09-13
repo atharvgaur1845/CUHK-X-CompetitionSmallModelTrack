@@ -76,6 +76,8 @@ def main() -> int:
     ap.add_argument("--package", default="research/artifacts/stage2_package.pth")
     ap.add_argument("--check", default="integrity,weights",
                     help="comma list of integrity,weights,infer,detector")
+    ap.add_argument("--out-dir", default=str(ROOT / "research" / "artifacts"),
+                    help="where --check infer writes testprobs_pkg_<role>.npz")
     ap.add_argument("--detector-clips", type=int, default=0,
                     help="limit the detector window check to the first N test clips "
                          "(0 = all 405)")
@@ -167,7 +169,7 @@ def main() -> int:
                 print(f"  infer {m['id']:28s} argmax {same}/{len(ref)} vs {ref_tag}, "
                       f"max|dp| {np.abs(probs-ref).max():.3e}")
             np.savez_compressed(
-                ROOT / "research" / "artifacts" / f"testprobs_pkg_{m['role']}.npz",
+                Path(a.out_dir) / f"testprobs_pkg_{m['role']}.npz",
                 probs=probs.astype(np.float32),
                 sids=np.array([str(s) for s in idx["sids"]], dtype="<U15"))
             print(f"    wrote testprobs_pkg_{m['role']}.npz")

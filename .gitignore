@@ -76,3 +76,4 @@ cluster/activate.sh
 /.kdset/
 /.krepo/
 /.kwrist/
+inference_work/

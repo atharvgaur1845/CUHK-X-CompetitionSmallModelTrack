@@ -155,8 +155,15 @@ def _train_radar_keys() -> dict[str, tuple[str, str]]:
     """Map train sample ID to (user, recording timestamp)."""
 
     result: dict[str, tuple[str, str]] = {}
+    # inference.sh: the on-site / Stage-2 machine holds only TEST clips, and the
+    # transition model still has to be fitted from the training recordings' grouping. The
+    # keys are 2,933 (user, timestamp) pairs -- ship them as a file and fall back to it
+    # when the training tree is absent; refresh the file whenever the tree IS present.
+    cached = ROOT / "research" / "artifacts" / "train_radar_keys.json"
     if not TRAIN_RADAR.is_dir():
-        raise FileNotFoundError(TRAIN_RADAR)
+        if cached.is_file():
+            return {k: tuple(v) for k, v in json.loads(cached.read_text()).items()}
+        raise FileNotFoundError(f"{TRAIN_RADAR} (and no cached {cached.name})")
     for class_dir in sorted(TRAIN_RADAR.iterdir()):
         if not class_dir.is_dir():
             continue
@@ -175,6 +182,10 @@ def _train_radar_keys() -> dict[str, tuple[str, str]]:
                     continue
                 sid = f"{class_id:02d}_{user_dir.name}_{trial_dir.name}"
                 result[sid] = (user_dir.name, key)
+    try:
+        cached.write_text(json.dumps(result, sort_keys=True))
+    except OSError:
+        pass
     return result
 
 

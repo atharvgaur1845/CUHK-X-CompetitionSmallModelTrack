@@ -26,7 +26,7 @@ import numpy as np
 ROOT = os.environ.get("CUHKX_ROOT") or os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))
 TRAIN = os.path.join(ROOT, "Small-Model-Track/Training/data/HAR/data")
-TEST = os.path.join(ROOT, "Small-Model-Track/Testing/data/small_model_track_test")
+TEST = os.environ.get("CUHKX_TEST_ROOT") or os.path.join(ROOT, "Small-Model-Track/Testing/data/small_model_track_test")
 CACHE = os.path.join(ROOT, "cache")
 H, W = 120, 160
 DEVICES = ("WTC", "WTLA", "WTRA", "WTLL", "WTRL")

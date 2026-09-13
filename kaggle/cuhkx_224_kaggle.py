@@ -152,7 +152,7 @@ def _describe(base: Path, max_depth: int = 3, limit: int = 40) -> str:
 
 
 def find_paths(data_root: str | None = None, cache_name: str = f"crop_{IMAGE_SIZE}",
-               cache_dir: str | None = None) -> dict:
+               cache_dir: str | None = None, test_only: bool = False) -> dict:
     """Locate the competition data wherever Kaggle mounted it.
 
     Set --data-root (or run(data_root=...)) to skip the search entirely.
@@ -200,6 +200,11 @@ def find_paths(data_root: str | None = None, cache_name: str = f"crop_{IMAGE_SIZ
         # carries the row order. Raw trees stay None and the `cache` stage is unavailable.
         print(f"  prebuilt cache at {prebuilt} — skipping the raw-data search "
               f"(the 'cache' stage is unavailable in this mode)", flush=True)
+    elif test_only and test_root is not None:
+        # inference.sh: an on-site / Stage-2 directory holds ONLY test clips. The cache
+        # stage must be able to build the test split from raw frames with no training
+        # tree present at all; before this branch it exited here.
+        print(f"  test-only: no training tree required", flush=True)
     elif train_ir is None or test_root is None:
         seen = "\n".join(_describe(b) for b in bases[:4] if b.is_dir())
         sys.exit(
@@ -234,7 +239,7 @@ def find_paths(data_root: str | None = None, cache_name: str = f"crop_{IMAGE_SIZ
     for k, v in paths.items():
         print(f"  {k:12s} {v}")
     if not have_cache:
-        if paths["train_depth"] is None or not paths["train_depth"].is_dir():
+        if not test_only and (paths["train_depth"] is None or not paths["train_depth"].is_dir()):
             sys.exit(f"Depth_Color not found near IR (looked at {paths['train_depth']})")
         print(f"  test clips visible: {len(list(test_root.glob('SM_test_*')))}")
     else:
@@ -265,7 +270,7 @@ def endpoint_uniform(items: list, count: int) -> list:
 
 def build_jobs(paths: dict) -> tuple[list, list]:
     train, test = [], []
-    for class_dir in sorted(paths["train_ir"].iterdir()):
+    for class_dir in (sorted(paths["train_ir"].iterdir()) if paths.get("train_ir") else []):
         if not class_dir.is_dir():
             continue
         try:
@@ -1209,6 +1214,9 @@ def main(argv=None) -> int:
     ap.add_argument("--fold", type=int, default=2, choices=(0, 1, 2, 3),
                     help="which subject fold to hold out; matches the local vid_* folds")
     ap.add_argument("--epochs", type=int, default=20)
+    ap.add_argument("--test-only", action="store_true",
+                    help="cache stage: build only the TEST split, and do not require a "
+                         "training tree to exist (inference.sh on a test-only directory).")
     ap.add_argument("--init", default="",
                     help="checkpoint tag (or path) to WARM-START from. Used for transductive "
                          "fine-tuning (EXP-156): a few epochs on train + pseudo-labelled "
@@ -1328,9 +1336,11 @@ def main(argv=None) -> int:
         cache_name += f"_t{stored_frames}"
     if args.stage in ("cache", "all"):
         N_FRAMES = stored_frames        # only the writer needs the deeper count
-    paths = find_paths(args.data_root, cache_name, args.cache_dir)
+    paths = find_paths(args.data_root, cache_name, args.cache_dir, test_only=args.test_only)
     if args.stage in ("cache", "all"):
         train_jobs, test_jobs = build_jobs(paths)
+        if args.test_only:
+            train_jobs = []
         print(f"jobs: train={len(train_jobs)} test={len(test_jobs)}")
         if args.limit:
             train_jobs, test_jobs = train_jobs[:args.limit], test_jobs[:args.limit]
@@ -1338,8 +1348,9 @@ def main(argv=None) -> int:
         paths["cache"].mkdir(parents=True, exist_ok=True)
         dev = "cuda" if os.environ.get("CUDA_VISIBLE_DEVICES", "0") != "" else "cpu"
         windows = compute_windows(train_jobs + test_jobs, paths["cache"], dev, args.crop)
-        build_cache(paths, "train", train_jobs, windows, args.cache_workers,
-                    args.image_size, args.jpeg_quality)
+        if train_jobs:
+            build_cache(paths, "train", train_jobs, windows, args.cache_workers,
+                        args.image_size, args.jpeg_quality)
         build_cache(paths, "test", test_jobs, windows, args.cache_workers,
                     args.image_size, args.jpeg_quality)
     if args.stage in ("train", "all"):

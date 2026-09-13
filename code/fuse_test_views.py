@@ -50,14 +50,19 @@ def main() -> int:
 
     # tags may be overridden so a soup / bag / all-train variant of any view can be
     # fused without editing the file (EXP-151)
+    # prior space is a property of the ROLE, not of which file feeds it: the skeleton is
+    # plain-CE (train-prior posteriors) whichever artifact it comes from. The first version
+    # hardcoded "uniform" here, which silently stopped dividing the skeleton by the prior
+    # whenever --src skel=... was used -- found by inference.sh disagreeing with it.
+    PRIOR_SPACE = {"skel": "train"}
     for spec in (args.src or []):
         role, _, tags = spec.partition("=")
-        SRC_OVERRIDE[role] = ([t for t in tags.split("+") if t], "uniform")
+        SRC_OVERRIDE[role] = ([t for t in tags.split("+") if t], PRIOR_SPACE.get(role, "uniform"))
     SRC = {
         "person":  (["pkg_person"], "uniform"),
         "wrist":   (["pkg_wrist"], "uniform"),
         "thermal": (["pkg_thermal"], "uniform"),
-        "skel":    (["astgcn_world25"], "train"),
+        "skel":    (["astgcn_world25"], "train"),   # 48-member artifact; --src skel=pkg_skel for the packaged 20
         "imu":     (["imu_stats_t200_d12"], "uniform"),
     }
     SRC.update(SRC_OVERRIDE)

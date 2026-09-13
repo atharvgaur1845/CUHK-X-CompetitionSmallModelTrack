@@ -178,6 +178,14 @@ def main() -> int:
                          "(topic 738333, 2026-09-07) that person cropping is allowed "
                          "'with the detector weights included in your <100 MB checkpoint "
                          "package'. Stored fp16 -- see load_detector.")
+    ap.add_argument("--windows", action="append", default=None,
+                    help="cache=path/to/windows.json: ship the crop windows for the KNOWN "
+                         "test clips. YOLO detection is deterministic on one device but NOT "
+                         "across devices (measured: recomputed windows match the originals "
+                         "on 184/405 person and 14/405 wrist clips, moving 22 of 405 final "
+                         "rows). Shipping the windows makes reproduction on the Kaggle test "
+                         "set bit-exact; on new data, sids absent from the cache are "
+                         "detected live with the packaged YOLO weights.")
     ap.add_argument("--weight", action="append", default=None,
                     help="role=weight in the log-linear pool, e.g. thermal=0.20. "
                          "Roles are the video roles plus skel, imu and prior. Declared "
@@ -247,7 +255,14 @@ def main() -> int:
         members.append({"id": mid, "role": m["role"], "tag": m["tag"], "fold": m["fold"],
                         "model": m["model"], "weight": w[mid] / tot,
                         "branch": "skeleton", "tensors": tensors,
-                        "source_checkpoint": m.get("source_checkpoint")})
+                        "source_checkpoint": m.get("source_checkpoint"),
+                        # world_imu members carry their feature pipeline config; the
+                        # inference path (infer_packaged.load_test_inputs) refuses to
+                        # run without it. It was being dropped here -- a package that
+                        # cannot RUN its own skeleton branch, invisible to every check
+                        # that hashes tensors. Found while writing inference.sh.
+                        **({"feature_config": m["feature_config"]}
+                           if "feature_config" in m else {})})
 
     for spec in a.video:
         role, _, tag = spec.partition("=")
@@ -285,6 +300,24 @@ def main() -> int:
             "source_checkpoint": path})
         mb_ = sum(e["nbytes"] for e in entries) / 1e6
         print(f"  detector {role:8s} <- {path}: {len(entries)} tensors, {mb_:.2f} MB fp16")
+
+    for spec in (a.windows or []):
+        cname, _, path = spec.partition("=")
+        win = json.loads(Path(path).read_text())
+        win = {k: v for k, v in win.items() if k.startswith("SM_test_")}
+        b = json.dumps(win, sort_keys=True).encode()
+        key = f"windows/{cname}.json"
+        blobs[key] = b
+        members.append({"id": f"windows_{cname}", "role": "windows", "tag": cname, "fold": None,
+                        "branch": "windows", "weight": None,
+                        "model": {"kind": "crop_window_cache", "cache": cname,
+                                  "note": "deterministic label-free preprocessing output "
+                                          "(R-7); detectors ship alongside for unseen clips"},
+                        "tensors": [{"name": "windows", "shape": [len(win)], "encoding": "json",
+                                     "dtype": "json", "code_entry": key, "nbytes": len(b),
+                                     "sha256": sha(b)}],
+                        "source_checkpoint": path})
+        print(f"  windows  {cname:14s} <- {path}: {len(win)} test clips, {len(b)/1e3:.1f} KB")
 
     if a.imu_trees:
         tp = Path(a.imu_trees)

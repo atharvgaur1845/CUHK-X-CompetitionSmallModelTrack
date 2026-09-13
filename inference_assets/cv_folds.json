@@ -1,0 +1,53 @@
+{
+  "description": "4-fold subject-grouped CV; val fold = 2 early + 2 late users (mirrors test users 10,11,25,26). Always-train users excluded from val.",
+  "always_train": [
+    "user5",
+    "user21"
+  ],
+  "folds": [
+    {
+      "fold": 0,
+      "val_users": [
+        "user1",
+        "user9",
+        "user17",
+        "user18"
+      ],
+      "val_classes_covered": 40,
+      "val_samples": 674
+    },
+    {
+      "fold": 1,
+      "val_users": [
+        "user2",
+        "user4",
+        "user16",
+        "user19"
+      ],
+      "val_classes_covered": 39,
+      "val_samples": 673
+    },
+    {
+      "fold": 2,
+      "val_users": [
+        "user3",
+        "user8",
+        "user22",
+        "user24"
+      ],
+      "val_classes_covered": 40,
+      "val_samples": 677
+    },
+    {
+      "fold": 3,
+      "val_users": [
+        "user6",
+        "user7",
+        "user20",
+        "user23"
+      ],
+      "val_classes_covered": 40,
+      "val_samples": 676
+    }
+  ]
+}

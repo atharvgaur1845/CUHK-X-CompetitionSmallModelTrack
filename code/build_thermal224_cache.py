@@ -109,11 +109,16 @@ def main():
     ap.add_argument("--jpeg-quality", type=int, default=90)
     ap.add_argument("--workers", type=int, default=max(2, (os.cpu_count() or 4)))
     ap.add_argument("--out", default="")
+    ap.add_argument("--test-root", default="",
+                    help="override the test clip directory (inference.sh)")
     ap.add_argument("--ref-cache", default="",
                     help="cache whose sid ORDER this must match (default cache/crop_224). "
                          "Alignment with the other members is not optional: a shifted row "
                          "mis-scores every clip in the fusion.")
     a = ap.parse_args()
+    global TEST_ROOT
+    if a.test_root:
+        TEST_ROOT = Path(a.test_root)
 
     cache = Path(a.out) if a.out else ROOT / "cache" / f"thermal_{a.image_size}"
     cache.mkdir(parents=True, exist_ok=True)
