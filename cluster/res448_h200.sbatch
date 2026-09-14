@@ -4,7 +4,7 @@
 #SBATCH --gres=gpu:nvidia_h200_nvl:1
 #SBATCH --cpus-per-task=4
 #SBATCH --time=12:00:00
-#SBATCH --array=2,3
+#SBATCH --array=2,3,4
 #SBATCH --output=/scratch/pabitra/cuhkx/logs/p448h_%A_%a.out
 #
 # EXP-160 -- person crop at 448, the last step of the resolution curve (224 -> 288 -> 384

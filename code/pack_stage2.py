@@ -65,6 +65,7 @@ VIEW_SPEC = {   # role -> (cache, in_channels, image_size)
     "student":   ("crop_224", 4, 224),
     "person":    ("crop_224", 4, 224),
     "person384": ("crop_384", 4, 384),   # EXP-154: +20/2700 at ~zero bytes
+    "person448": ("crop_448", 4, 448),   # EXP-160 candidate; ships only past its gate
     "wrist":     ("crop_wrist224", 4, 224),
     "thermal":   ("thermal_224", 3, 224),
 }
