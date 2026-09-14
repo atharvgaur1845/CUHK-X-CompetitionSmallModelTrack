@@ -13,6 +13,41 @@ results.
 
 ---
 
+## EXP-160 — ❌ PERSON AT 448 px: the resolution curve is FLAT past 384. Member −0.81, fusion −17/2700 pre-decoder (t = −2.02); the decoded +20 fails the bar (t = 1.48) and is the decoder's coupling, not the member. Not shipped.
+**2026-09-14/15.** `cluster/res448_a100.sbatch` + `res448_h200.sbatch` (jobs 345717/345718),
+same windows as `crop_384` rendered at 448, same recipe (`--batch-size 4 --accum 4`), 4
+folds; the all-train run (345733) was cancelled once folds 2/3 read null. Gate:
+`code/exp160_gate.py` rebuilds the shipped fusion on the 2,700 pooled OOF clips
+(2109 vs the recorded 2106; 99.8 % argmax agreement) and swaps the person slot.
+
+| fold | member 384 → 448 | fusion, pre-decoder | fusion, decoded |
+|---|---|---|---|
+| 0 | −0.73 | −0.29 | +0.59 |
+| 1 | −1.84 | −1.35 | −0.25 |
+| 2 | +0.36 | −0.72 | +0.54 |
+| 3 | −0.61 | 0.00 | +2.30 |
+| **mean ± SE** | **−0.81** | **−0.59 ± 0.29, t = −2.02** | **+0.80 ± 0.54, t = 1.48** |
+| pooled | 1980 → 1958 | 2109 → **2092 (−17)**, 53 rescued / 70 broken | 2240 → 2260 (+20) |
+
+**Verdict.** The pre-decoder read is significantly *negative*; the decoded read is positive
+but below the 2 SE bar, and 79 of its 136 changed rows are on clips whose pre-decoder
+argmax did not move — the sequence decoder re-arranging near-ties, with fold 3 supplying
+the whole gain against a pre-decoder delta of exactly 0.00. Opposite signs across the
+decoder are the signature of the decoder's coupling (EXP-155 in reverse), and nothing
+about a *weaker* member becoming a stronger fusion after decoding has ever been validated
+against Kaggle. Fails on both reads; `stage2_ship7.pth` stands.
+
+**The resolution curve, complete:** 224 → 288 → 384 → 448 = 0.71444 → 0.72963 → 0.73333
+→ 0.72519 pooled member OOF. The crop-size rule (EXP-154) predicted the person view would
+keep paying while the crop is large relative to the source; at 448 the crop is already
+above the source resolution (IR frames are 640×480, person boxes ~224–480 px), so the last
+step is interpolation, the mechanism that made wrist-288 negative. Consistent, and closed.
+
+Cost: 5 GPU-runs (~11 GPU-h) on otherwise idle A100/H200 partitions, zero submissions.
+Epoch times: 545 s (A100), 402 s (H200) at 448.
+
+---
+
 ## EXP-159 — ✅ CLEAN-ROOM, CROSS-DEVICE REPRODUCTION: `inference.sh` on the cluster A100 (torch 2.7.1+cu126, py3.11) from code + package only = **rowdiff 0** vs `sub_final_ship7.csv`, 2 min 39 s. `sub_final_ship7.csv` scored **173/201 = 0.86069** (package's own output, within the predicted 174 ± 1).
 **2026-09-14.** The organisers will run the package on their machine; until today it had
 only ever run on the laptop (RTX, torch 2.12+cu130, py3.12). `cluster/cleanroom.sbatch`
