@@ -44,7 +44,7 @@ The fusion formula is written into the package manifest and printed by step 7:
 | branch | bytes | contents |
 |---|---|---|
 | video | 64.79 MB | 3 × MViTv2-S (Kinetics-400 init, fine-tuned): person crop @384 (4 ch), wrist crop @224 (4 ch), thermal @224 (3 ch); int5 per-output-channel weight codes, bit-packed |
-| skeleton | 18.93 MB | 20 members × 5 architectures (adaptive-graph GCN, ST-GCN soup, TCN soup, IMU-conditioned, world-frame IMU), int8 |
+| skeleton stack (`world25`) | 18.93 MB | 20 members in 5 families — skeleton: adaptive-graph ST-GCN, ST-GCN soup, joint/velocity/bone TCN soup; IMU (deep): invariant-feature TCN, world-frame TCN — 4 folds each, int8 |
 | detectors | 10.30 MB | YOLO11n person + YOLO11n-pose wrist, fp16 — inside the package as required (topic 738333) |
 | IMU | 1.58 MB | ExtraTrees on 545 statistical features, stored as tensors |
 | windows | 0.01 MB | crop windows for the 405 Kaggle test clips (see *Determinism*) |
