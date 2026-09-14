@@ -1,0 +1,14 @@
+# Inference-only requirements for inference.sh (Stage-2 reproduction).
+# Training-only imports (scikit-learn, transformers, safetensors) are lazy and never
+# reached by inference.sh; they are deliberately absent here.
+#
+# Verified environments (both reproduce submissions/sub_final_ship7.csv at rowdiff 0):
+#   laptop   Python 3.12.3  torch 2.12.0+cu130  torchvision 0.27.0+cu130  ultralytics 8.4.118  numpy 2.4.4  (RTX, laptop)
+#   cluster  Python 3.11.15 torch 2.7.1+cu126   torchvision 0.22.1+cu126  ultralytics 8.4.118  numpy 2.x    (A100 80GB)
+# Any torch >= 2.7 with a matching torchvision works; the CUDA build must match the driver.
+torch>=2.7
+torchvision>=0.22
+ultralytics==8.4.118
+numpy>=2.0
+pillow>=10
+opencv-python-headless>=4.8   # pulled in by ultralytics; the -headless build avoids a GUI dependency

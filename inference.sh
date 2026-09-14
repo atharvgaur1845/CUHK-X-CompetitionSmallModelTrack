@@ -3,11 +3,12 @@
 #
 #   ./inference.sh <package.pth> <test_dir> <out.csv> [work_dir]
 #
-#   package.pth   the single <=100 MB checkpoint (research/artifacts/stage2_ship6.pth)
+#   package.pth   the single <=100 MB checkpoint (research/artifacts/stage2_ship7.pth)
 #   test_dir      directory holding SM_test_XXXX/ clip folders (IR, Depth_Color, Thermal,
-#                 Skeleton, IMU, Radar subfolders) and sample_submission.csv beside it
-#                 as <test_dir>/../sample_submission.csv  -- i.e. the competition layout
-#                 Small-Model-Track/Testing/data/small_model_track_test
+#                 Skeleton, IMU, Radar subfolders); sample_submission.csv is looked for at
+#                 <test_dir>/../../ (the competition layout, Testing/sample_submission.csv),
+#                 then <test_dir>/../, then <test_dir>/. The layout the code expects is
+#                 materialised under the repo with symlinks if it is not already there.
 #   out.csv       submission to write
 #   work_dir      scratch for caches (default: ./inference_work)
 #
@@ -18,7 +19,8 @@
 # shipped training metadata (inference_assets/), so no training data is required.
 #
 # Reproduction gate: on the Kaggle test directory this must reproduce
-# submissions/sub_pkgship6_true.csv at rowdiff 0 (python3 code/rowdiff.py).
+# submissions/sub_final_ship7.csv at rowdiff 0 (python3 code/rowdiff.py) -- laptop RTX
+# and cluster A100/H100 both verified (EXP-159).
 set -euo pipefail
 PKG=$(readlink -f "$1"); TEST=$(readlink -f "$2"); OUT="$3"; WORK=$(readlink -f "${4:-inference_work}")
 REPO=$(cd "$(dirname "$0")" && pwd)
@@ -31,6 +33,29 @@ echo "== package  $PKG"; echo "== test dir $TEST"; echo "== work     $WORK"
 mkdir -p "$REPO/cache" "$REPO/research/artifacts"
 for f in meta_train.csv; do [ -f "$REPO/cache/$f" ] || cp "$REPO/inference_assets/$f" "$REPO/cache/$f"; done
 for f in train_radar_keys.json cv_folds.json; do [ -f "$REPO/research/artifacts/$f" ] || cp "$REPO/inference_assets/$f" "$REPO/research/artifacts/$f"; done
+
+# 0b. the competition layout inside the repo. Three scripts (infer_stage2_skel_imu.py,
+#     ordered_transition_decoder.py, imu_stats_member.py) resolve the test clips and the
+#     submission order through $REPO/Small-Model-Track/Testing/, not through <test_dir>.
+#     Found by the clean-room run (EXP-159): on a machine where the data lives elsewhere
+#     the run died at step 6. Materialise that layout with symlinks when it is absent;
+#     when it is present (this laptop, the cluster home tree) nothing is touched.
+LAYOUT="$REPO/Small-Model-Track/Testing"
+if [ ! -e "$LAYOUT/data/small_model_track_test" ]; then
+  mkdir -p "$LAYOUT/data" && ln -s "$TEST" "$LAYOUT/data/small_model_track_test"
+  echo "== linked $LAYOUT/data/small_model_track_test -> $TEST"
+fi
+if [ ! -f "$LAYOUT/sample_submission.csv" ]; then
+  found=""
+  for c in "$TEST/../../sample_submission.csv" "$TEST/../sample_submission.csv" "$TEST/sample_submission.csv"; do
+    [ -f "$c" ] && { cp "$c" "$LAYOUT/sample_submission.csv"; found="$c"; break; }
+  done
+  if [ -n "$found" ]; then echo "== sample_submission.csv taken from $found"
+  else  # no ordering file beside the data: emit the clips in sorted id order
+    { echo "path,prediction"; ls "$TEST" | grep -E '^SM_test_[0-9]+$' | sort | sed 's#^#small_model_track_test/#; s#$#/,0#'; } > "$LAYOUT/sample_submission.csv"
+    echo "== WARNING: no sample_submission.csv found beside $TEST; wrote one in sorted clip order"
+  fi
+fi
 
 # 1. detectors OUT OF THE PACKAGE (organiser requirement: weights inside the 100 MB file)
 echo "== [1/7] extracting detectors from the package"

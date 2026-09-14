@@ -17,6 +17,34 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
+> # ⚡ STATE 2026-09-14 (late) — **Clean-room reproduction PASSED on the cluster (rowdiff 0, EXP-159).** `sub_final_ship7.csv` scored 173. Tag `stage2-final`. Freeze **2026-09-15 15:55 UTC**.
+>
+> | | |
+> |---|---|
+> | **FINAL PACKAGE** | **`research/artifacts/stage2_ship7.pth`**, 96,369,921 B, sha256 `5b914543…360330` — unchanged |
+> | **row of record** | **`submissions/sub_final_ship7.csv` = 173/201 = 0.86069** (the package's own output); best public **`sub_pkgship6.csv` = 174** |
+> | reproduction | laptop (RTX, torch 2.12) **and** cluster A100 (torch 2.7.1, py3.11, code + package only, caches from raw): **rowdiff 0**, 2 min 39 s |
+> | Stage-2 bundle | `STAGE2_README.md`, `requirements-inference.txt`, `inference.sh`, `inference_assets/`, `cluster/cleanroom.sbatch` |
+> | in flight | EXP-160 person-448, jobs 345717 (a100: folds 0,1 + all-train) / 345718 (h200: folds 2,3), logs `/scratch/pabitra/cuhkx/logs/p448*_*.out`, checkpoints in `/scratch/pabitra/cuhkx/runs/`. Expected ≤ +1 clip. Ships ONLY if pooled fusion OOF beats 384 by 2 SE and all-train lands before the freeze |
+>
+> **Manual, on the Kaggle site (the API cannot do it): select `sub_pkgship6.csv` and
+> `sub_final_ship7.csv` as the two final submissions.** Do not leave it to auto-select.
+>
+> **If EXP-160 passes its gate:** pack with `--video person448=<all-train.pt>` (add
+> `person448: ("crop_448", 4, 448)` to `VIEW_SPEC` in `code/pack_stage2.py`; the loader
+> reads `cache`/`in_channels`/`image_size` from the manifest), re-derive weights with
+> `code/soup_weights.py`-style nested CV, verify 4 ways, **re-run `cluster/cleanroom.sbatch`
+> against the new package's own laptop output**, submit once. The cluster raw test copy is
+> now complete (it was missing IR/Depth/Skeleton/IMU/Radar for clips 0333–0405 until today).
+> If it fails or is late: nothing changes; `stage2_ship7.pth` stands.
+>
+> **Everything else goes to the report and presentation** (30% of the grade): fusion
+> flattens the subject distribution (EXP-145, sd 6.89 → 5.42), the LOSO tables, the
+> resolution/crop-size rule (EXP-154), the compliance + reproducibility section
+> (EXP-129/158/159), and the measured negatives.
+>
+> ---
+>
 > # ⚡ STATE 2026-09-14 — **`inference.sh` EXISTS and reproduces from raw at rowdiff 0.** Final package `stage2_ship7.pth`. Freeze is tomorrow.
 >
 > | | |

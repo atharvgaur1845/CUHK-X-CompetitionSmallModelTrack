@@ -13,6 +13,44 @@ results.
 
 ---
 
+## EXP-159 — ✅ CLEAN-ROOM, CROSS-DEVICE REPRODUCTION: `inference.sh` on the cluster A100 (torch 2.7.1+cu126, py3.11) from code + package only = **rowdiff 0** vs `sub_final_ship7.csv`, 2 min 39 s. `sub_final_ship7.csv` scored **173/201 = 0.86069** (package's own output, within the predicted 174 ± 1).
+**2026-09-14.** The organisers will run the package on their machine; until today it had
+only ever run on the laptop (RTX, torch 2.12+cu130, py3.12). `cluster/cleanroom.sbatch`
+rsyncs **only** `code/`, `kaggle/`, `inference_assets/`, `inference.sh` and the 96.37 MB
+`stage2_ship7.pth` to an empty directory (no caches, no checkpoints, no `research/`, no
+training data), wipes the work dir, and runs `./inference.sh` against the raw test tree.
+A venv over `physmon` supplied ultralytics 8.4.118 (`physmon` had none — the cluster
+crop caches had always been synced from the laptop, never built there).
+
+| run | result | cause |
+|---|---|---|
+| job 345700 | **rowdiff 46** | not the code: clips `SM_test_0333`–`0405` (73) had **no IR/Depth/Skeleton/IMU/Radar on the cluster** — the original data sync truncated at 332 clips and only Thermal was ever re-synced (the EXP-139-era "334 of 395 thermal dirs" incident). Every branch but thermal emitted one constant posterior for those 73 rows; the sequence decoder then moved 9 neighbouring rows |
+| on the 332 complete clips of that run | argmax identical in **every** branch and in the fusion; max \|Δp\| 1.6e-3 (video), 4.4e-5 (skeleton), 0 (IMU) | fp32 on a different GPU / CUDA / torch — numerics only |
+| job 345715, after syncing the 73 clips (816 MB) | **rowdiff 0** | — |
+
+**Two defects found by the run, both fixed before the tag:**
+1. `inference.sh` step 0b — `infer_stage2_skel_imu.py`, `ordered_transition_decoder.py`
+   and `imu_stats_member.py` resolve the test clips and the submission order through
+   `$REPO/Small-Model-Track/Testing/`, not through `<test_dir>`. In a directory without
+   that tree the run dies at step 6. The script now materialises the layout with symlinks
+   (test dir) and a copy (`sample_submission.csv`, looked for at `<test_dir>/../../`,
+   `../`, `.`; generated in sorted clip order with a warning if absent). No-op when the
+   layout exists, so the laptop output cannot change.
+2. The header's claim that `sample_submission.csv` sits at `<test_dir>/../` was wrong
+   (it is `<test_dir>/../../` in the competition layout).
+
+**What this closes.** B-037's cross-device residual: the crop windows were the one
+measured drift (EXP-158 note, 184/405 person, 14/405 wrist), and shipping them in the
+package removed it; the MViT / GCN / tree forward passes were never checked across GPUs
+until now. They agree to 1.6e-3 and to the argmax on all 405 rows. Runtime is 2 min 39 s,
+not the ~35 min the handover assumed — with cached windows there is no YOLO pass.
+
+**Provenance: external for the score (Kaggle 173/201), measured for the reproduction.**
+Files: `cluster/cleanroom.sbatch`, `STAGE2_README.md`, `requirements-inference.txt`,
+`inference.sh` (step 0b). Tag `stage2-final` marks the commit.
+
+---
+
 ## EXP-158 — ✅ `sub_pkgship6.csv` = **174/201 = 0.86567**. Person-384 + re-weighting, compliant and reproducible. Predicted 172, range 168–175: landed at the top of the range.
 **Scored 2026-09-13.** +3 over the compliant incumbent (171), +2 over the unshippable
 bag (172). **14th of 307**, one clip below the 175 cluster (12th–13th), one above Timass

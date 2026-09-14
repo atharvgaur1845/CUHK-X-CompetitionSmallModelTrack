@@ -10,12 +10,12 @@
 > `docs/next_action.md` in the *same commit*. A stale handover is worse than no handover —
 > it sends the next session confidently in the wrong direction.
 >
-> **Currently: 0.83084 = 167/201** (`sub_r2_dist`). Live board 2026-09-08: **rank 14, tied
-> 15th**, with 166 one clip below. Target is now **187–188 = 0.930–0.935 (+20 clips)** —
-> demonstrated, not speculative: a legitimate team scored **188** on 2026-09-08 and eight
-> teams are at 0.90+. **Kaggle GPU quota is exhausted; the SLURM cluster `ssh sharanga` is
-> up.** A legal **93.37 MB** package now exists and is verified four ways (EXP-129).
-> **Plan: [`docs/FABLE_BRIEF.md`](docs/FABLE_BRIEF.md).**
+> **Currently: 0.86567 = 174/201** (`sub_pkgship6`, 14th of 307); the package's own output
+> `sub_final_ship7.csv` = 173. **Final package `research/artifacts/stage2_ship7.pth`
+> (96.37 MB), tag `stage2-final`; `inference.sh` reproduces it from raw frames at rowdiff 0
+> on the laptop and in a clean room on the cluster A100 (EXP-159).** Freeze 2026-09-15
+> 15:55 UTC. Stage-2 bundle: `STAGE2_README.md`. Every modelling lever is measured and
+> logged (EXP-132–158); remaining errors are per-subject and correlated.
 >
 > **The video branch is information-saturated.** Four person folds and one person + one
 > wrist both reach 166; adding members to the video slot is now a graveyard axis, as are
