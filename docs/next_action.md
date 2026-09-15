@@ -17,6 +17,20 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
+> # ⚡ 2026-09-15 14:20 UTC — FINAL-HOUR NOTE. Public 174 is now 16th (15th = 175). Freeze 15:55 UTC.
+>
+> Every reweighting, IMU-off and decoder variant of the package lands within **≤ 8 rows** of
+> `sub_final_ship7.csv` (code/cand_weights.py) — the decoder is an attractor and no
+> decorrelated equal-accuracy candidate exists. The one free lever is Kaggle's
+> best-of-two-selected rule: `submissions/sub_ship8_imu0.csv` (IMU weight 0, 7 rows from
+> ship7, OOF −11/2700 pre-decoder) is reproduced at rowdiff 0 from
+> `research/artifacts/stage2_ship8_imu0.pth` (96,370,033 B, sha256 `07d60d14…f5c8d1`) —
+> **identical tensors to ship7, manifest weight only.** Rule: submit it; if public ≥ 173
+> select {`sub_pkgship6`, `sub_ship8_imu0`}, else keep {`sub_pkgship6`, `sub_final_ship7`}.
+> Whichever wins on private is the package to upload for Stage 2.
+>
+> ---
+>
 > # ⚡ STATE 2026-09-14 (late) — **Clean-room reproduction PASSED on the cluster (rowdiff 0, EXP-159).** `sub_final_ship7.csv` scored 173. Tag `stage2-final`. Freeze **2026-09-15 15:55 UTC**.
 >
 > | | |
