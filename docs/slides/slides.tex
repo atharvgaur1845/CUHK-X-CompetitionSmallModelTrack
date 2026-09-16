@@ -1,0 +1,169 @@
+\documentclass[aspectratio=169,10pt]{beamer}
+\usetheme{metropolis}
+\usepackage{booktabs,graphicx,multirow}
+\graphicspath{{../report/figures/}}
+\metroset{numbering=fraction,progressbar=frametitle}
+\title{Five Sensors, One Model}
+\subtitle{Multimodal activity recognition under a 100\,MB constraint --- CUHK-X Challenge 2026, Small Model Track}
+\author{Team AGX --- TODO-TEAM names}
+\date{Selection Stage finals, 2026}
+\begin{document}
+\maketitle
+
+\begin{frame}{The problem, in one sentence}
+Forty everyday activities, from sensors that cannot identify a face, on people the model has never seen, in a single file of at most 100\,MB.
+\begin{itemize}
+\item infrared + depth video, thermal video, tracked skeletons, five wearable inertial units, radar timing
+\item 18 training subjects, 4 test subjects, further held-out subjects evaluated by the organisers
+\item metric: top-1 accuracy; every inference-time weight inside the 100\,MB
+\end{itemize}
+\note{Takeaway: the constraints, not the classes, define the problem. Threat: ``why 100 MB?'' -- the track rule.}
+\end{frame}
+
+\begin{frame}{Why this is hard: subjects, not clips, are the unit}
+\begin{columns}\column{0.55\textwidth}\includegraphics[width=\textwidth]{fig_loso_subjects.pdf}
+\column{0.45\textwidth}
+\begin{itemize}
+\item one video model, one subject held out at a time: accuracy ranges over \textbf{28 points}
+\item four public subjects: a public score carries $\pm$6.9 clips at one standard error
+\item the residual error is \emph{per-subject and correlated}: twin recordings share the identical wrong label 68\,\% of the time
+\end{itemize}\end{columns}
+\note{Threat: ``isn't the public board just noise?'' Yes, at ±7 clips -- which is why we validate on 18 subjects.}
+\end{frame}
+
+\begin{frame}{Core insight}
+\Large Complementary small sensors plus recording structure beat model size.\normalsize
+\begin{itemize}
+\item every larger single model overfit 2\,281 training clips (VideoMAE-B fine-tune: 0/4 folds)
+\item five small members, fused in the right probability space, decoded with an activity-script prior
+\item the gain is not only higher accuracy: it is a \textbf{flatter} per-subject distribution (sd 6.9 $\to$ 5.4)
+\end{itemize}
+\note{Threat: ``did you try a bigger model?'' -- yes; measured worse.}
+\end{frame}
+
+\begin{frame}{System overview}
+\begin{center}\small
+raw clip $\to$ YOLO11n person window / YOLO11n-pose wrists (packaged) $\to$ IR+Depth crops 384 / 224\,px, thermal full frame 224\,px $\to$ 3 $\times$ MViTv2-S (int5) $\;\|\;$ skeleton/IMU stack (20 members, int8) $\;\|\;$ IMU-statistics forest $\to$ $\sum w_i \log p_i$ (prior-corrected) $\to$ ordered transition decoder $\to$ CSV
+\end{center}
+\includegraphics[width=\textwidth]{fig_bytes.pdf}
+\note{Threat: ``where are the detectors?'' -- inside the package, fp16, rebuilt at run time.}
+\end{frame}
+
+\begin{frame}{Seeing the person and the hand: the crop-size rule}
+\begin{columns}\column{0.5\textwidth}\includegraphics[width=\textwidth]{fig_resolution.pdf}
+\column{0.5\textwidth}
+\begin{itemize}
+\item person crop: 224 $\to$ 288 $\to$ 384 px, +1.5 and +0.4 points, 4/4 folds; 448 px: $-17$ fused clips
+\item wrist crop: 224 $\to$ 288 px is \textbf{$-1.36$} points
+\item resolution pays where the crop is large relative to the source and costs where the crop is already upsampled
+\end{itemize}\end{columns}
+\note{Threat: ``why not 448?'' -- measured negative, t = -2.0.}
+\end{frame}
+
+\begin{frame}{Thermal comes back}
+\begin{itemize}
+\item at 128\,px, cropped: member 0.544, \textbf{zero} fusion gain at any coefficient
+\item the same recipe at 224\,px, full frame: member 0.627 (+5.6, 4/4 folds), +46 of 2\,700 fused clips, +5 public
+\item the failure was the recipe, not the sensor: heat of objects and scene context complement the infrared crop
+\end{itemize}
+\note{Threat: ``why was it null before?'' -- recipe: resolution and crop, measured one at a time.}
+\end{frame}
+
+\begin{frame}{Skeleton and inertial members}
+\begin{tabular}{lll}\toprule
+family & members & bytes\\\midrule
+adaptive-graph ST-GCN, ST-GCN, joint/velocity/bone TCN & 12 & \multirow{2}{*}{18.9\,MB int8}\\
+invariant-feature IMU TCN, world-frame IMU TCN & 8 & \\
+IMU statistics forest (545 features, 200 trees) & 1 & 1.6\,MB\\\bottomrule
+\end{tabular}
+\begin{itemize}
+\item removing the skeleton stack costs 27 clips of 2\,700; the forest 11 (neutral, kept on a paired test)
+\item no absolute orientation from the IMUs: it is a subject/mounting leak
+\end{itemize}
+\note{Threat: ``why keep the IMU?'' -- paired delta -0.25; the unselected IMU-off submission scored 180 vs 179 private: neutral.}
+\end{frame}
+
+\begin{frame}{Fusing in the right space}
+\begin{columns}\column{0.5\textwidth}\includegraphics[width=\textwidth]{fig_ablation_sensitivity.pdf}
+\column{0.5\textwidth}
+\begin{itemize}
+\item video members emit uniform-prior posteriors, the skeleton stack train-prior posteriors: divide before fusing (wrong direction: $-4$ points)
+\item coefficients by nested cross-validation; every coefficient $\pm$50\,\% stays within $\pm$1\,\%
+\item any single absent sensor costs $\le$ 1.8 points
+\end{itemize}\end{columns}
+\note{Threat: ``did you fit the weights to the leaderboard?'' -- nested CV; any reweighting moves ≤ 8 of 405 rows.}
+\end{frame}
+
+\begin{frame}{Structure as a prior: the ordered transition decoder}
+\begin{columns}\column{0.45\textwidth}\includegraphics[width=\textwidth]{fig_decoder_structure.pdf}
+\column{0.55\textwidth}
+\begin{itemize}
+\item recordings are scripted; clips are grouped by their radar session key and ordered in time
+\item transition model fitted on training metadata only; beam search; soft distinctness penalty
+\item +131 clips intact; +9 if the order is shuffled; +55 from distinctness alone; harmful only if reversed
+\end{itemize}\end{columns}
+\note{Threat: ``you exploit recording order.'' Label-free, permitted (R-7); neutral without the script.}
+\end{frame}
+
+\begin{frame}{What generalises}
+\begin{itemize}
+\item 18-subject leave-one-subject-out: person view mean 0.726, sd 0.069, spread 28 points
+\item shipped ensemble: mean 0.782, sd \textbf{0.054}, spread \textbf{21 points}; standard error of an 8-subject draw 2.44 $\to$ 1.92
+\item a lower-quartile rule that re-ranks subjects per candidate rewards shuffling; we use a fixed subject set and paired deltas
+\end{itemize}
+\note{Threat: ``LOSO is not a new site.'' Agreed and stated.}
+\end{frame}
+
+\begin{frame}{Fitting 100\,MB}
+\begin{itemize}
+\item three MViTv2-S as 5-bit weight codes, bit-packed: 25.9\,MB each (int5 vs int6: one public clip, recovered by the thermal soup)
+\item skeleton stack int8 + deflate 22.8 $\to$ 18.9\,MB; forest as tensors 1.6\,MB
+\item detectors fp16, 10.3\,MB: int8 moved 150 of 405 crop windows, so they are not quantised
+\item 96.37\,MB on disk; nothing outside the file is loaded at inference
+\end{itemize}
+\end{frame}
+
+\begin{frame}{What did not work}
+\small
+\begin{tabular}{ll}\toprule
+frozen foundation teacher (V-JEPA~2) & 0.419 vs 0.712\\
+bigger backbones & overfit, 0/4 folds\\
+per-subject alignment, object channel, pair verifier & dead (purity 0.34, AUC 0.50, AUC 0.59)\\
+seed soups, temporal TTA, full-frame IR+Depth & $-2.4$, fusion loss, correlated copy\\
+transductive self-training & member +1.4, fusion $-2$\\
+person view at 448\,px & $-17$ of 2\,700\\\bottomrule
+\end{tabular}
+\vspace{4pt}
+One cause: the residual error is per-subject and correlated; each lever assumes independent evidence.
+\note{Threat: ``why so many failures?'' -- they are the map; each is measured against a 2 SE bar.}
+\end{frame}
+
+\begin{frame}{Reproducibility}
+\begin{itemize}
+\item \texttt{bash inference.sh <data\_dir> <out.csv>}: byte-identical to the submitted file on an RTX 4060 laptop and a cluster A100, and in a network-isolated container
+\item across GPUs: max posterior difference $1.6\times10^{-3}$, prediction changes 0/405 (TODO-CROSSGPU: H100/H200/V100)
+\item hostile synthetic set: reused ids, new ids, missing sensors, malformed files, shuffled or absent submission template --- completes, rows in order
+\item disclosed residual: the primary CSV was fused before the skeleton stack was pruned to fit 100\,MB --- 403/405 rows, two decoder near-ties, documented
+\end{itemize}
+\note{Threat: ``your primary needed a coefficient change'' -- no: we ship the principled coefficients and disclose two rows.}
+\end{frame}
+
+\begin{frame}{Results}
+\begin{tabular}{lrr}\toprule
+ & clips & accuracy\\\midrule
+Kaggle public (4 subjects) & 174/201 & 0.866\\
+Kaggle private (same subjects) & 179/204 & \textbf{0.877} (14th of 307)\\
+pooled out-of-fold, decoded (16 subjects) & 2\,240/2\,700 & 0.830\\
+organisers' held-out set & \multicolumn{2}{c}{to be published}\\\bottomrule
+\end{tabular}
+\end{frame}
+
+\begin{frame}{Takeaway}
+\Large The next gain is more subjects, not more model.\normalsize
+\begin{itemize}
+\item the members hold the information (oracle over five members 0.877); selection under subject shift is the barrier
+\item the subject learning curve is flat past six subjects
+\item we froze the competitive solution, reproduced it exactly, stress-tested it on unseen data, and showed which parts mattered
+\end{itemize}
+\end{frame}
+\end{document}
