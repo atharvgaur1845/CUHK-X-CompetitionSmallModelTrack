@@ -1,0 +1,9 @@
+A = inference_work/artifacts
+B = docs/verification_logs/crossgpu/H200
+  person384  clips  405  max|dp| 1.47e-03  mean|dp| 9.94e-06  argmax changes 0
+  wrist      clips  405  max|dp| 2.02e-03  mean|dp| 1.09e-05  argmax changes 0
+  thermal    clips  405  max|dp| 1.34e-03  mean|dp| 1.19e-05  argmax changes 1  (['SM_test_0241'])
+  skel       clips  405  max|dp| 4.26e-05  mean|dp| 1.80e-06  argmax changes 0
+  imu        clips  405  max|dp| 0.00e+00  mean|dp| 0.00e+00  argmax changes 0
+  fused      clips  405  max|dp| 4.83e-04  mean|dp| 4.64e-06  argmax changes 0
+  CSV rows 405 vs 405; header ['path', 'prediction'] vs ['path', 'prediction']; same order True; prediction changes 0; sha256 identical (7c6434ac5652 vs 7c6434ac5652)

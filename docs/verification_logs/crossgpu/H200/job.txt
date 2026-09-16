@@ -1,0 +1,34 @@
+=== NVIDIA_H200_NVL  job 348806  Wed Sep 16 18:20:57 UTC 2026 ===
+name, driver_version, memory.total [MiB]
+NVIDIA H200 NVL, 580.126.20, 143771 MiB
+--- submission 56213683
+== inference.sh  package=artifacts/stage2_ship7.pth sha256=5b9145436b588c8f70e3df479f734e75f0bcfeb62de9659194a51573bc360330  submission=56213683  config=56213683.json
+== data_dir=/data  output=/output/submission_56213683.csv  work=/output/work_56213683/20260916T182058Z-56213683-14
+== clips: 405 under /data/data/small_model_track_test ; order from /data/sample_submission.csv
+== [0/7] package integrity
+== [1/7] detectors and fingerprint-gated crop windows from the package
+  windows crop_384: 405 shipped, 405 accepted by IR-filename fingerprint, 0 rejected; clips to be detected live by the packaged detector: 0
+== [2/7] skeleton + IMU npz cache
+== [3/7] person crop @384 and wrist crop @224 (packaged YOLO for clips without a shipped window)
+== [4/7] thermal full frame @224
+== [5/7] video members from the package
+== [6/7] skeleton and IMU members from the package
+== [7/7] fusion (coefficients from 56213683.json) and ordered transition decoder
+== wrote /output/submission_56213683.csv  rows=405  sha256=7c6434ac56523644cbe215891bc867c88ff2bd9847f4fa484d62d721191b45d9  wall=572s
+7c6434ac56523644cbe215891bc867c88ff2bd9847f4fa484d62d721191b45d9  /scratch/pabitra/cuhkx/verif/out_NVIDIA_H200_NVL_348806/submission_56213683.csv
+--- submission 56212349
+== inference.sh  package=artifacts/stage2_ship7.pth sha256=5b9145436b588c8f70e3df479f734e75f0bcfeb62de9659194a51573bc360330  submission=56212349  config=56212349.json
+== data_dir=/data  output=/output/submission_56212349.csv  work=/output/work_56212349/20260916T183031Z-56212349-14
+== clips: 405 under /data/data/small_model_track_test ; order from /data/sample_submission.csv
+== [0/7] package integrity
+== [1/7] detectors and fingerprint-gated crop windows from the package
+  windows crop_384: 405 shipped, 405 accepted by IR-filename fingerprint, 0 rejected; clips to be detected live by the packaged detector: 0
+== [2/7] skeleton + IMU npz cache
+== [3/7] person crop @384 and wrist crop @224 (packaged YOLO for clips without a shipped window)
+== [4/7] thermal full frame @224
+== [5/7] video members from the package
+== [6/7] skeleton and IMU members from the package
+== [7/7] fusion (coefficients from 56212349.json) and ordered transition decoder
+== wrote /output/submission_56212349.csv  rows=405  sha256=7c6434ac56523644cbe215891bc867c88ff2bd9847f4fa484d62d721191b45d9  wall=84s
+7c6434ac56523644cbe215891bc867c88ff2bd9847f4fa484d62d721191b45d9  /scratch/pabitra/cuhkx/verif/out_NVIDIA_H200_NVL_348806/submission_56212349.csv
+=== done Wed Sep 16 18:31:56 UTC 2026 ===
