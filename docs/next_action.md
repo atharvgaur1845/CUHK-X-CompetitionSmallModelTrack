@@ -33,8 +33,21 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 > (`inference_assets/window_fingerprints.json`), id-agnostic enumeration, `configs/<id>.json` coefficients.
 > Gates passed on the laptop: G1 (56213683 → sha `7c6434ac…`, byte-identical), G3 (clip dir as data_dir).
 >
-> **Next:** synthetic held-out suite (`code/make_synthetic_testset.py`) → Dockerfile → cluster cross-GPU
-> table → package build (`small_AGX_verification_v1/`) → freeze → clean-room attack → upload.
+> **Done 16 Sept evening:** synthetic suite passes (G5 variants, G10); Docker image `cuhkx-small-agx:v1`
+> built with offline self-checks (archive `dist/image.tar.gz` 3.6 GB, sha `e45fba74…`); package assembled by
+> `code/build_verification_package.sh` → `dist/small_AGX_verification_v1/` (docs in `package/`); measured
+> 4 min 53 s / peak GPU 5.4 GB / RSS 1.9 GB; cluster Apptainer jobs 348761–348764 (A100/H100/H200/V100)
+> queued behind other users; EXP-162 analysis (missing sensor ≤ 1.8 pts, coefficient plateau, decoder
+> neutral under shuffled order); report draft `docs/report/report.pdf`, deck `docs/slides/slides.pdf`,
+> `docs/QA_BANK.md`, `docs/POPULAR_AWARD.md`.
+>
+> **Blocked on the user:** send `docs/organizer_email_2026-09-16.md`; confirm the Kaggle "Selected" pair;
+> install nvidia-container-toolkit (G6/G14 on the laptop); Docker Hub/GHCR login + repo name; team names,
+> emails, affiliation (`TODO-TEAM` in `package/README.md`, `package/manifest.yaml`, report, slides); sign
+> the declaration in `package/declarations/`.
+>
+> **Then:** cross-GPU table (G8) → README §7 → rebuild package → freeze (`git tag verification-v1`) →
+> registry push → zip + checksums → clean-room attack (G14, `tools/independent_compare.py`) → upload.
 >
 > ---
 >
