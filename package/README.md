@@ -147,11 +147,19 @@ rebuilt into `.pt` files at step [1]. No external datasets. No APIs.
   autocast with flip TTA; the skeleton stack in fp32; the IMU forest is an exact integer tree
   walk; fusion and the decoder are float64 NumPy with deterministic tie-breaking. Repeated runs
   on the same machine give byte-identical CSVs (verified 4× on the laptop, 2× on the cluster).
-- **Across GPUs.** Predictions are the claim, not bit-equality. RTX 4060 (torch 2.12+cu130,
-  Python 3.12) vs A100 (torch 2.7.1+cu126, Python 3.11, the image's toolchain): max
-  per-branch posterior difference 1.6e-3 (video), 4.4e-5 (skeleton), 0 (IMU); **prediction
-  changes 0/405; CSV identical** (`docs/verification_logs/`). The near-tie rows named in §1
-  are the rows most exposed to such differences; if a run on another GPU generation differs,
+- **Across GPUs.** Predictions are the claim, not bit-equality. Reference: the RTX 4060 laptop run
+  (torch 2.12+cu130, Python 3.12) that produced the submitted file. Runs on other generations, the
+  cluster ones from this very image via Apptainer (`docs/verification_logs/crossgpu/`):
+
+  | GPU | toolchain | max \|Δp\| person / wrist / thermal / skeleton / IMU | fused argmax changes | CSV |
+  |---|---|---|---|---|
+  | A100 80 GB (cluster, native env) | torch 2.7.1+cu126, py3.11 | 1.6e-3 / 1.2e-3 / 1.5e-3 / 4.4e-5 / 0 | 0 / 405 | identical |
+  | H200 NVL (Apptainer, this image) | image | 1.5e-3 / 2.0e-3 / 1.3e-3 / 4.3e-5 / 0 | 0 / 405 | identical |
+  | Tesla V100 (Apptainer, this image) | image | 1.4e-3 / 1.7e-3 / 1.4e-3 / 9.2e-5 / 0 | 0 / 405 | identical |
+
+  The only member-level argmax change anywhere is the thermal member on `SM_test_0241` (a
+  within-member near-tie, seen on H200 and V100), absorbed by the fusion. The near-tie rows named
+  in §1 are the rows most exposed to such differences; if a run on yet another generation differs,
   it will be in rows of that kind and we ask that the CSV be compared row-wise.
 - **Crop windows.** Window computation by the detector is not reproducible across GPUs at the
   pixel level (measured: recomputing on another GPU changed 22 of 405 final rows), which is why
