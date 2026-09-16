@@ -83,3 +83,6 @@ inference_work/
 /inference_work*/
 /artifacts/
 dist/
+docs/report/*.aux
+docs/report/*.log
+docs/report/*.out
