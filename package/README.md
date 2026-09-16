@@ -16,6 +16,8 @@ data with one command, offline. Read §0 and §5 first; everything else is refer
 
 - Team name: `AGX`
 - Track: `small`
+- Members: Atharv (atharvgaur591@gmail.com), Independent, India
+- Contact: atharvgaur591@gmail.com
 - Selected Kaggle Final Submission record: `submission/submission_info.yaml`
 - Selected final submissions:
   - **#1 (primary):** Kaggle submission ID `56212349`, file name `sub_pkgship6.csv`, submitted on `2026-09-13T17:45:03Z`, public 0.86567, private **0.87745**, SHA-256 of the exact submitted CSV `f5ead8996755cf06eec288fa28ea7fc23731bcad88c4faaea0d98c561ce0eed0`
@@ -76,7 +78,7 @@ detected live by the packaged detectors. Training: see `src/CODE_MAP.md` and
 
 ## 4 Environment setup
 
-**Docker (preferred).** Image `docker.io/TODO-TEAM/cuhkx-small-agx:v1` (also supplied as
+**Docker (preferred).** Image `ghcr.io/atharvgaur1845/cuhkx-small-agx:v1` (also supplied as
 `image.tar.gz`, SHA-256 in the form). Built from `environment/Dockerfile` on
 `pytorch/pytorch:2.7.1-cuda12.6-cudnn9-runtime` (Python 3.11, torch 2.7.1+cu126, torchvision
 0.22.1, ultralytics 8.4.118, OpenCV headless 5.0). `WORKDIR` is the package root. The
@@ -84,7 +86,7 @@ build runs self-checks (artifact hashes, package integrity, detector rebuild, of
 construction); nothing is downloaded at run time.
 
 ```bash
-docker load -i image.tar.gz        # or: docker pull docker.io/TODO-TEAM/cuhkx-small-agx:v1
+docker load -i image.tar.gz        # or: docker pull ghcr.io/atharvgaur1845/cuhkx-small-agx:v1
 docker run --rm --gpus all --network none --shm-size 16g \
     -v <data_dir>:/data:ro -v <output_dir>:/output \
     cuhkx-small-agx:v1  bash inference.sh /data /output/submission.csv
@@ -193,11 +195,11 @@ rebuilt into `.pt` files at step [1]. No external datasets. No APIs.
 
 ## 9 Final checklist
 
-- [x] All placeholder fields replaced (`TODO-TEAM` items are filled by the team before upload)
+- [x] All placeholder fields replaced (team, registry, declaration)
 - [x] `manifest.yaml` matches the submitted files (`artifacts/SHA256SUMS` verified at image build)
 - [x] The package runs from a clean directory through `inference.sh` (laptop, cluster, container)
 - [x] Every Selected Final Submission ID and its exact CSV are included and mapped to the configuration
 - [x] `primary_verification_submission_id` = 56212349
 - [x] External data (none), base models (two, training-time), APIs (none), licences declared
-- [ ] `declarations/CUHK-X_Honor_Declaration.docx` completed and signed by every member, signed PDF included
+- [x] `declarations/CUHK-X_Honor_Declaration.docx` completed and signed by every member, signed PDF included
 - [x] No API keys, passwords, credentials, raw challenge data or caches included

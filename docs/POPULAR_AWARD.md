@@ -2,7 +2,7 @@
 
 **Project title:** Five Sensors, One Model: Multimodal Activity Recognition Under a 100 MB Constraint
 
-**Team / track:** AGX — Small Model Track. Affiliation, country, members, photo: TODO-TEAM.
+**Team / track:** AGX — Small Model Track. Member: Atharv (independent), India. Photo: to add.
 
 **Introduction (95 words):** People are recognisable in ordinary video, so this challenge asks
 whether a machine can tell forty everyday activities apart from sensors that preserve privacy: an

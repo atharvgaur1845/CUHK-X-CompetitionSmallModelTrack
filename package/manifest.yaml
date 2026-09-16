@@ -4,7 +4,12 @@ schema_version: 2
 team:
   name: "AGX"
   track: "small"
-  contact_email: "atharvanna71@gmail.com"
+  contact_email: "atharvgaur591@gmail.com"
+  members:
+    - name: "Atharv"
+      email: "atharvgaur591@gmail.com"
+      affiliation: "Independent"
+      country: "India"
 
 kaggle_submission_record:
   path: "submission/submission_info.yaml"
@@ -21,7 +26,7 @@ solution:
 environment:
   specification: "environment/requirements.txt"
   dockerfile: "environment/Dockerfile"
-  docker_image: "docker.io/TODO-TEAM/cuhkx-small-agx:v1 (also image.tar.gz, sha256 in the submission form)"
+  docker_image: "ghcr.io/atharvgaur1845/cuhkx-small-agx:v1 (also image.tar.gz, sha256 in the submission form)"
   operating_system: "Ubuntu 22.04 (image); verified from Ubuntu 24.04 and Rocky Linux 8 hosts"
   python_version: "3.11 (image); 3.12 on the development laptop"
   cuda_or_accelerator_version: "CUDA 12.6 runtime in the image (torch 2.7.1+cu126); NVIDIA driver >= 525"

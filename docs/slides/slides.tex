@@ -5,7 +5,7 @@
 \metroset{numbering=fraction,progressbar=frametitle}
 \title{Five Sensors, One Model}
 \subtitle{Multimodal activity recognition under a 100\,MB constraint --- CUHK-X Challenge 2026, Small Model Track}
-\author{Team AGX --- TODO-TEAM names}
+\author{Atharv --- Team AGX (independent), India}
 \date{Selection Stage finals, 2026}
 \begin{document}
 \maketitle
@@ -141,7 +141,7 @@ One cause: the residual error is per-subject and correlated; each lever assumes 
 \begin{frame}{Reproducibility}
 \begin{itemize}
 \item \texttt{bash inference.sh <data\_dir> <out.csv>}: byte-identical to the submitted file on an RTX 4060 laptop and a cluster A100, and in a network-isolated container
-\item across GPUs: max posterior difference $1.6\times10^{-3}$, prediction changes 0/405 (TODO-CROSSGPU: H100/H200/V100)
+\item five GPU generations (RTX 4060, A100, H100, H200, V100): max posterior difference $\le 2.0\times10^{-3}$, prediction changes 0/405 on each, CSV identical --- unchanged predictions is the claim, not bit-equality
 \item hostile synthetic set: reused ids, new ids, missing sensors, malformed files, shuffled or absent submission template --- completes, rows in order
 \item disclosed residual: the primary CSV was fused before the skeleton stack was pruned to fit 100\,MB --- 403/405 rows, two decoder near-ties, documented
 \end{itemize}
