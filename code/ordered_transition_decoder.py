@@ -62,20 +62,16 @@ CACHE = ROOT / "cache"
 TRAIN_RADAR = (
     ROOT / "Small-Model-Track" / "Training" / "data" / "HAR" / "data" / "Radar"
 )
-TEST_ROOT = (
-    ROOT
-    / "Small-Model-Track"
-    / "Testing"
-    / "data"
-    / "small_model_track_test"
-)
+TEST_ROOT = Path(
+    os.environ.get("CUHKX_TEST_ROOT")
+    or ROOT / "Small-Model-Track" / "Testing" / "data" / "small_model_track_test"
+)   # inference.sh sets CUHKX_TEST_ROOT to the clip directory it located
 DEFAULT_SAMPLE_SUBMISSION = (
     ROOT / "Small-Model-Track" / "Testing" / "sample_submission.csv"
 )
 DEFAULT_FOLDS = ARTIFACTS / "cv_folds.json"
 N_CLASSES = 40
 RADAR_RE = re.compile(r"radar_output_T(.+)\.csv$")
-TEST_SID_RE = re.compile(r"(SM_test_\d+)")
 
 
 @dataclass(frozen=True)
@@ -887,10 +883,11 @@ def _official_test_order(path: Path) -> tuple[list[str], dict[str, str]]:
     sids: list[str] = []
     paths: dict[str, str] = {}
     for row in rows:
-        match = TEST_SID_RE.search(row["path"])
-        if not match:
+        # the clip id is the last component of the sample-submission path, whatever the
+        # naming scheme of the dataset (Kaggle: small_model_track_test/SM_test_0001/)
+        sid = row["path"].strip().strip("/").split("/")[-1]
+        if not sid:
             raise ValueError(f"cannot parse test ID from {row['path']!r}")
-        sid = match.group(1)
         if sid in paths:
             raise ValueError(f"duplicate {sid} in {path}")
         sids.append(sid)
@@ -922,10 +919,14 @@ def run_test(args: argparse.Namespace) -> int:
     if set(input_sids) != set(official_sids):
         missing = sorted(set(official_sids) - set(input_sids))
         extra = sorted(set(input_sids) - set(official_sids))
-        raise ValueError(
-            f"probability/test-order ID mismatch: missing={missing[:3]} "
-            f"extra={extra[:3]}"
-        )
+        if missing:
+            raise ValueError(
+                f"probability/test-order ID mismatch: {len(missing)} official clip(s) have "
+                f"no probabilities, e.g. {missing[:3]}"
+            )
+        # clips that exist on disk but are not in the sample submission are simply not
+        # written -- the output must have exactly the official rows in the official order
+        print(f"note: {len(extra)} cached clip(s) absent from the sample submission are dropped: {extra[:3]}")
     order = {sid: index for index, sid in enumerate(input_sids)}
     probabilities = probabilities[[order[sid] for sid in official_sids]]
 

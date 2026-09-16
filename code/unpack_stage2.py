@@ -157,8 +157,10 @@ def main() -> int:
             assert ch == store.channels, (
                 f"{m['id']}: manifest says in_channels={ch} but cache "
                 f"{m['model']['cache']} has {store.channels}")
+            # pretrained=False: architecture only; the package's state_dict is loaded next.
+            # Nothing is downloaded (the verification container has no network).
             model = K.build_model(m["model"]["arch"], image_size=store.size,
-                                  in_channels=ch).to(dev)
+                                  in_channels=ch, pretrained=False).to(dev)
             model.load_state_dict(load_member(z, m))
             probs, _ = K.predict(model, dl, dev)
             ref_tag = m["tag"] + "_q6"
@@ -171,7 +173,7 @@ def main() -> int:
             np.savez_compressed(
                 Path(a.out_dir) / f"testprobs_pkg_{m['role']}.npz",
                 probs=probs.astype(np.float32),
-                sids=np.array([str(s) for s in idx["sids"]], dtype="<U15"))
+                sids=np.array([str(s) for s in idx["sids"]], dtype=str))
             print(f"    wrote testprobs_pkg_{m['role']}.npz")
             del model
             if dev.type == "cuda":

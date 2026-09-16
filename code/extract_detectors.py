@@ -30,6 +30,10 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--package", required=True)
     ap.add_argument("--out", default=".")
+    ap.add_argument("--test-root", default=None,
+                    help="clip directory of the run; shipped windows are used only for clips whose "
+                         "IR-filename fingerprint matches inference_assets/window_fingerprints.json")
+    ap.add_argument("--fingerprints", default=str(ROOT / "inference_assets" / "window_fingerprints.json"))
     a = ap.parse_args()
     from ultralytics.nn import tasks
     z = zipfile.ZipFile(a.package); man = json.loads(z.read("manifest.json"))
@@ -55,13 +59,33 @@ def main() -> int:
         n += 1
     if n != 2:
         raise SystemExit(f"expected 2 detectors in the package, found {n}")
-    # crop-window cache for the known test clips (see pack_stage2 --windows)
+    # Crop-window cache for the Kaggle test clips (see pack_stage2 --windows). A shipped
+    # window is written ONLY for a clip that exists under --test-root AND whose IR-filename
+    # fingerprint matches the one recorded for that id: the same clip id on a different
+    # dataset (a held-out set in the same layout) must go through the packaged detector.
+    fp = json.load(open(a.fingerprints))["clips"] if a.test_root else {}
+    from window_fingerprints import clip_fingerprint
     for m in man["members"]:
         if m["branch"] != "windows":
             continue
+        shipped = json.loads(z.read(m["tensors"][0]["code_entry"]))
+        keep, rejected = {}, []
+        for sid, win in shipped.items():
+            if a.test_root is None:
+                keep[sid] = win
+                continue
+            cd = Path(a.test_root) / sid
+            if cd.is_dir() and fp.get(sid) == clip_fingerprint(cd):
+                keep[sid] = win
+            else:
+                rejected.append(sid)
         d = out / "cache" / m["tag"]; d.mkdir(parents=True, exist_ok=True)
-        (d / "windows.json").write_bytes(z.read(m["tensors"][0]["code_entry"]))
-        print(f"  wrote {d / 'windows.json'}  ({m['tensors'][0]['shape'][0]} cached test windows)")
+        (d / "windows.json").write_text(json.dumps(keep))
+        n_live = "n/a" if a.test_root is None else sum(
+            1 for c in Path(a.test_root).iterdir() if c.is_dir() and not c.name.startswith(".") and c.name != "__MACOSX") - len(keep)
+        print(f"  windows {m['tag']}: {len(shipped)} shipped, {len(keep)} accepted by IR-filename fingerprint, "
+              f"{len(rejected)} rejected; clips to be detected live by the packaged detector: {n_live}"
+              + (f"  (first rejected: {rejected[:5]})" if rejected else ""))
     return 0
 
 

@@ -17,6 +17,27 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
+> # ⚡ 2026-09-16 — SELECTION STAGE (14th private, 179/204). Verification package due 18 Sept 23:59 UTC; internal freeze 17 Sept 12:00 UTC. Plan: `~/.claude/plans/you-are-planning-a-cuddly-glade.md` (master plan, approved).
+>
+> **Primary target = `sub_pkgship6.csv` (ID 56212349, private 0.87745, sha256 `f5ead899…`).** The frozen
+> package reproduces the second Selected (`sub_final_ship7.csv`, ID 56213683) **byte-identically** and the
+> primary in **403/405 rows** (decoder near-ties `SM_test_0206`, `SM_test_0382`; cause: ship6 was fused from
+> the 48-member skeleton output before the 100 MB prune). ~900 coefficient settings searched with frozen
+> tensors, best 1 row (`code/search_config_weights.py`, `docs/verification_logs/`). Decision: same
+> coefficients for both configs, residual disclosed; organiser email drafted in
+> `docs/organizer_email_2026-09-16.md` (user sends).
+>
+> **New contract, working:** `bash inference.sh <data_dir> <output_csv> [submission_id]` — offline
+> (`build_model(pretrained=False)`, empty `TORCH_HOME`), per-run `work/<run_id>`, caches wiped each run,
+> `code/locate_test_data.py` finds the clips at any mount level, fingerprint-gated shipped windows
+> (`inference_assets/window_fingerprints.json`), id-agnostic enumeration, `configs/<id>.json` coefficients.
+> Gates passed on the laptop: G1 (56213683 → sha `7c6434ac…`, byte-identical), G3 (clip dir as data_dir).
+>
+> **Next:** synthetic held-out suite (`code/make_synthetic_testset.py`) → Dockerfile → cluster cross-GPU
+> table → package build (`small_AGX_verification_v1/`) → freeze → clean-room attack → upload.
+>
+> ---
+>
 > # ⚡ 2026-09-15 14:20 UTC — FINAL-HOUR NOTE. Public 174 is now 16th (15th = 175). Freeze 15:55 UTC.
 >
 > Every reweighting, IMU-off and decoder variant of the package lands within **≤ 8 rows** of

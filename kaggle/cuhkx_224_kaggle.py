@@ -178,6 +178,11 @@ def find_paths(data_root: str | None = None, cache_name: str = f"crop_{IMAGE_SIZ
     have_cache = bool(prebuilt and (prebuilt / "train_index.json").is_file())
 
     train_ir = test_root = sample_sub = None
+    if test_only and data_root:
+        # inference.sh passes the located clip directory itself: no discovery walk, no
+        # naming assumption, nothing outside <data_dir> is touched
+        test_root = Path(data_root)
+        bases = []
     for base in bases:
         if not base.is_dir():
             continue
@@ -241,7 +246,7 @@ def find_paths(data_root: str | None = None, cache_name: str = f"crop_{IMAGE_SIZ
     if not have_cache:
         if not test_only and (paths["train_depth"] is None or not paths["train_depth"].is_dir()):
             sys.exit(f"Depth_Color not found near IR (looked at {paths['train_depth']})")
-        print(f"  test clips visible: {len(list(test_root.glob('SM_test_*')))}")
+        print(f"  test clips visible: {sum(1 for d in test_root.iterdir() if d.is_dir() and not d.name.startswith('.'))}")
     else:
         meta = json.loads((prebuilt / "train_index.json").read_text())
         print(f"  prebuilt cache: {len(meta['sids'])} train clips, "
@@ -286,10 +291,11 @@ def build_jobs(paths: dict) -> tuple[list, list]:
                 sid = f"{class_id:02d}_{user_dir.name}_{trial_dir.name}"
                 depth = paths["train_depth"] / class_dir.name / user_dir.name / trial_dir.name
                 train.append((sid, str(trial_dir), str(depth), class_id, user_dir.name))
-    # Explicit glob: the test root can contain unrelated directories, and picking
-    # one up shifts every row against the submission order.
-    for clip_dir in sorted(paths["test_root"].glob("SM_test_*")):
-        if clip_dir.is_dir():
+    # Every non-hidden directory is a clip: the id scheme is the dataset's business (the
+    # Kaggle set uses SM_test_XXXX; a held-out set may not). Hidden entries and __MACOSX
+    # are skipped; the sample submission, not this listing, fixes the output row order.
+    for clip_dir in sorted(paths["test_root"].iterdir()):
+        if clip_dir.is_dir() and not clip_dir.name.startswith(".") and clip_dir.name != "__MACOSX":
             test.append((clip_dir.name, str(clip_dir / "IR"), str(clip_dir / "Depth_Color"), -1, ""))
     return train, test
 
@@ -365,9 +371,9 @@ def compute_windows(jobs: list, cache: Path, device: str, crop: str = "person") 
             except Exception:
                 continue
         win = None
+        images = []   # reset per clip: a clip with no frames must not reuse the previous clip's probes
         if frames:
             probes = list(dict.fromkeys(endpoint_uniform(frames, min(DETECTION_FRAMES, len(frames)))))
-            images = []
             for p in probes:
                 try:
                     images.append(Image.open(p).convert("RGB"))
@@ -660,20 +666,27 @@ def _port_mvit_weights(model, src_sd):
 
 
 def build_model(arch: str, n_classes: int = N_CLASSES, in_channels: int = CHANNELS,
-                image_size: int = IMAGE_SIZE):
-    """Kinetics backbone, stem widened to 4 channels, optionally rebuilt off 224 px."""
+                image_size: int = IMAGE_SIZE, pretrained: bool = True):
+    """Kinetics backbone, stem widened to 4 channels, optionally rebuilt off 224 px.
+
+    pretrained=False builds the architecture only (weights=None everywhere): the inference
+    path loads a full state_dict from the package right after, so fetching the Kinetics
+    checkpoint would be a pointless network access -- and the verification container has
+    none (Selection Stage guidelines: inference must not download anything).
+    """
     import torch
     import torch.nn as nn
     import torchvision.models.video as V
 
     if arch == "mvit_v2_s":
+        k400 = V.MViT_V2_S_Weights.KINETICS400_V1 if pretrained else None
         if image_size == 224:
-            model = V.mvit_v2_s(weights=V.MViT_V2_S_Weights.KINETICS400_V1)
+            model = V.mvit_v2_s(weights=k400)
         else:
             # mvit_v2_s hardcodes spatial_size=(224,224); intercept _mvit so the same
             # block_setting is reused at the target size, then port the weights.
             import torchvision.models.video.mvit as _M
-            ref = V.mvit_v2_s(weights=V.MViT_V2_S_Weights.KINETICS400_V1)
+            ref = V.mvit_v2_s(weights=k400) if pretrained else None
             orig = _M._mvit
 
             def _patched(block_setting, stochastic_depth_prob, weights, progress, **kw):
@@ -685,22 +698,23 @@ def build_model(arch: str, n_classes: int = N_CLASSES, in_channels: int = CHANNE
                 model = V.mvit_v2_s(weights=None)
             finally:
                 _M._mvit = orig
-            _port_mvit_weights(model, ref.state_dict())
-            del ref
+            if ref is not None:
+                _port_mvit_weights(model, ref.state_dict())
+                del ref
         model.head[-1] = nn.Linear(model.head[-1].in_features, n_classes)
         stem_attr = ("conv_proj",)
     elif arch == "videomae_b":
         return _build_videomae(n_classes, in_channels, image_size, "base")
     elif arch == "swin3d_t":
-        model = V.swin3d_t(weights=V.Swin3D_T_Weights.KINETICS400_V1)
+        model = V.swin3d_t(weights=V.Swin3D_T_Weights.KINETICS400_V1 if pretrained else None)
         model.head = nn.Linear(model.head.in_features, n_classes)
         stem_attr = ("patch_embed", "proj")
     elif arch == "swin3d_s":
-        model = V.swin3d_s(weights=V.Swin3D_S_Weights.KINETICS400_V1)
+        model = V.swin3d_s(weights=V.Swin3D_S_Weights.KINETICS400_V1 if pretrained else None)
         model.head = nn.Linear(model.head.in_features, n_classes)
         stem_attr = ("patch_embed", "proj")
     elif arch == "s3d":
-        model = V.s3d(weights=V.S3D_Weights.KINETICS400_V1)
+        model = V.s3d(weights=V.S3D_Weights.KINETICS400_V1 if pretrained else None)
         model.classifier[1] = nn.Conv3d(1024, n_classes, kernel_size=1)
         stem_attr = ("features", "0", "0", "0")
     else:
@@ -1346,7 +1360,10 @@ def main(argv=None) -> int:
             train_jobs, test_jobs = train_jobs[:args.limit], test_jobs[:args.limit]
             print(f"  --limit {args.limit}: SMOKE TEST ONLY, this cache is not trainable")
         paths["cache"].mkdir(parents=True, exist_ok=True)
-        dev = "cuda" if os.environ.get("CUDA_VISIBLE_DEVICES", "0") != "" else "cpu"
+        import torch as _t
+        dev = "cuda" if (os.environ.get("CUDA_VISIBLE_DEVICES", "0") != "" and _t.cuda.is_available()) else "cpu"
+        if dev == "cpu":
+            print("  WARNING: no CUDA device visible; the detector runs on CPU (slow, diagnostic only)")
         windows = compute_windows(train_jobs + test_jobs, paths["cache"], dev, args.crop)
         if train_jobs:
             build_cache(paths, "train", train_jobs, windows, args.cache_workers,

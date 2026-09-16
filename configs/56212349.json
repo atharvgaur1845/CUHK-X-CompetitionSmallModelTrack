@@ -1,0 +1,19 @@
+{
+ "submission_id": "56212349",
+ "kaggle_file": "sub_pkgship6.csv",
+ "submitted_at_utc": "2026-09-13T17:45:03Z",
+ "public_score": 0.86567,
+ "private_score": 0.87745,
+ "csv_sha256": "f5ead8996755cf06eec288fa28ea7fc23731bcad88c4faaea0d98c561ce0eed0",
+ "package": "artifacts/stage2_ship7.pth",
+ "package_sha256": "5b9145436b588c8f70e3df479f734e75f0bcfeb62de9659194a51573bc360330",
+ "fusion_weights": {
+  "imu": 0.2967,
+  "person384": 0.2359,
+  "prior": 0.25,
+  "skel": 0.332,
+  "thermal": 0.17,
+  "wrist": 0.1807
+ },
+ "note": "PRIMARY verification target. Same package, same coefficients as 56213683: the two Selected submissions were produced by the same frozen models and fusion; sub_pkgship6.csv was fused two hours earlier from the skeleton ensemble's full 48-member output, the packaged ensemble keeps the 20 members that fit the 100 MB rule, and the package reproduces 403/405 rows of this file (SM_test_0206, SM_test_0382 are decoder near-ties). ~900 alternative coefficient settings were searched for an exact reproduction with the frozen tensors; the closest is 1 row (docs/verification_logs/). See README sections 2 and 7."
+}

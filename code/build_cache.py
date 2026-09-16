@@ -255,7 +255,8 @@ def collect_train_jobs():
 def collect_test_jobs():
     jobs = {}
     for d in sorted(os.listdir(TEST)):
-        if not d.startswith("SM_test"):
+        # any non-hidden directory is a clip; the id scheme belongs to the dataset
+        if d.startswith(".") or d == "__MACOSX" or not os.path.isdir(os.path.join(TEST, d)):
             continue
         jobs[d] = {"paths": {}}
         for mod in ("Skeleton", "IMU", "Depth_Color", "IR"):

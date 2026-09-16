@@ -1,0 +1,19 @@
+{
+ "submission_id": "56213683",
+ "kaggle_file": "sub_final_ship7.csv",
+ "submitted_at_utc": "2026-09-13T19:15:08Z",
+ "public_score": 0.86069,
+ "private_score": 0.87254,
+ "csv_sha256": "7c6434ac56523644cbe215891bc867c88ff2bd9847f4fa484d62d721191b45d9",
+ "package": "artifacts/stage2_ship7.pth",
+ "package_sha256": "5b9145436b588c8f70e3df479f734e75f0bcfeb62de9659194a51573bc360330",
+ "fusion_weights": {
+  "imu": 0.2967,
+  "person384": 0.2359,
+  "prior": 0.25,
+  "skel": 0.332,
+  "thermal": 0.17,
+  "wrist": 0.1807
+ },
+ "note": "the package manifest's own fusion coefficients; reproduces sub_final_ship7.csv row-for-row"
+}

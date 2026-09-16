@@ -77,3 +77,8 @@ cluster/activate.sh
 /.krepo/
 /.kwrist/
 inference_work/
+
+# Selection Stage run directories and package artifact links
+/work/
+/inference_work*/
+/artifacts/

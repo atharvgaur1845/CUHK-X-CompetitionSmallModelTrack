@@ -45,14 +45,15 @@ def skeleton(z, man, batch, workers, device):
     return sids, probs
 
 
-def imu(z, man):
+def imu(z, man, sids):
+    """IMU forest posteriors for exactly the skeleton branch's clip list (same order); the
+    clip set comes from the cache built for this run, never from a fixed file."""
     import imu_stats_member as ISM
     import imu_trees_to_tensors as ITT
     m = next(x for x in man["members"] if x["branch"] == "imu")
     d = {t["name"]: np.frombuffer(z.read(t["code_entry"]), dtype=np.dtype(t["dtype"])).reshape(t["shape"])
          for t in m["tensors"]}
-    sample = ROOT / "Small-Model-Track" / "Testing" / "sample_submission.csv"
-    sids = [r[0].strip("/").split("/")[-1] for r in list(csv.reader(open(sample)))[1:]]
+    sids = list(sids)
     X = ISM.build_matrix(sids, "test")
     P = ITT.torch_predict_int8(d, X)
     P = (P.numpy() if torch.is_tensor(P) else np.asarray(P)).astype(np.float64)
@@ -77,11 +78,11 @@ def main() -> int:
 
     print("skeleton branch:")
     sids, sk = skeleton(z, man, a.batch, a.workers, dev)
-    np.savez_compressed(out / "testprobs_pkg_skel.npz", probs=sk.astype(np.float32), sids=np.array(sids, dtype="<U15"))
+    np.savez_compressed(out / "testprobs_pkg_skel.npz", probs=sk.astype(np.float32), sids=np.array(sids, dtype=str))
     print("imu branch:")
-    isids, im = imu(z, man)
+    isids, im = imu(z, man, sids)
     assert isids == list(sids), "sid order differs between skeleton and imu"
-    np.savez_compressed(out / "testprobs_pkg_imu.npz", probs=im.astype(np.float32), sids=np.array(sids, dtype="<U15"))
+    np.savez_compressed(out / "testprobs_pkg_imu.npz", probs=im.astype(np.float32), sids=np.array(sids, dtype=str))
     print(f"wrote testprobs_pkg_skel.npz, testprobs_pkg_imu.npz ({len(sids)} clips)")
 
     if a.verify:
