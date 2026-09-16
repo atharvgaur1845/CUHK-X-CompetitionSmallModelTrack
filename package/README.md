@@ -172,6 +172,10 @@ rebuilt into `.pt` files at step [1]. No external datasets. No APIs.
 - **Same clip ids on a different dataset** are safe: the shipped windows are used only when the
   clip's IR filenames match the stored fingerprint; otherwise the log says how many clips were
   detected live.
+- **The package directory must be writable** (Docker's container filesystem is): each run writes
+  about 0.5 GB of caches under `work/<run_id>/` and `src/cache/`, deleted at the next run. Under a
+  read-only package tree (e.g. an Apptainer SIF without writable binds) step [2] fails with
+  `No space left on device`; bind writable directories over `src/cache`, `src/research` and `work`.
 - **Paths with spaces** are supported. The output path is made absolute before the run.
 - **`--shm-size`** is not needed (workers use no shared tensors) but harmless.
 - If `torch.cuda.is_available()` is false the run continues on CPU with a warning; this is a

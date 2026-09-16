@@ -17,9 +17,15 @@ echo "=== $GPU  job $SLURM_JOB_ID  $(date -u) ==="
 nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv
 for SUB in 56213683 56212349; do
   echo "--- submission $SUB"
+  # the SIF is read-only and --writable-tmpfs is only tens of MB: bind writable scratch over the
+  # two places the pipeline writes derived state (Docker's container FS is writable, so the
+  # organisers' command needs none of this)
+  mkdir -p $OUT/src_cache_$SUB $OUT/src_research_$SUB
   apptainer exec --nv --containall --no-home --writable-tmpfs --pwd /package \
       --env CUHKX_WORK=/output/work_$SUB --env WORKERS=8 \
-      -B $DATA:/data:ro -B $OUT:/output $V/cuhkx-small-agx-v1.sif \
+      -B $DATA:/data:ro -B $OUT:/output \
+      -B $OUT/src_cache_$SUB:/package/src/cache -B $OUT/src_research_$SUB:/package/src/research \
+      $V/cuhkx-small-agx-v1.sif \
       bash inference.sh /data /output/submission_$SUB.csv $SUB 2>&1 | grep -E "^== |WARNING|ERROR|FAILED|windows crop_384|Traceback" 
   sha256sum $OUT/submission_$SUB.csv
 done
