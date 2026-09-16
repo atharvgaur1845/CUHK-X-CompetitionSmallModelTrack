@@ -13,6 +13,36 @@ results.
 
 ---
 
+## EXP-162 — analysis for the report (no shipped change): missing a sensor costs ≤ 1.8 points; every fusion coefficient sits on a plateau; the decoder is neutral when recording order is random, harmful only when reversed, and half its gain is the distinctness prior.
+**2026-09-16.** `code/exp162_analysis.py` (fusion harness of EXP-160, 2,700 pooled OOF, pre-decoder
+baseline 2109) and `ordered_transition_decoder.py oof --control …` on `oof_p384w_fused_rebuilt.npz`.
+
+**(a) Missing-modality ablation** (member replaced by a constant posterior / removed):
+person −48 / −48 · wrist −29 / −25 · skeleton −27 / −23 · thermal −11 / −12 · IMU −13 / −11 (clips of
+2,700). No single sensor loss exceeds 1.8 points; the person view is the most load-bearing, consistent
+with EXP-140. Members alone: person 1980, wrist 1944, thermal 1711, skeleton 1668, IMU 1017.
+
+**(b) Coefficient sensitivity** (each scaled ×0.5…×1.5, others fixed): every cell within 2085–2116, i.e.
+±1 % of the baseline; the shipped centroid is on a plateau, not a peak — which is also why the
+Kaggle output moves ≤ 8/405 rows under any reweighting (final-hour table, 2026-09-15).
+
+**(c) Decoder under structure loss** (decoded OOF, baseline pre-decoder 2109):
+
+| recording order | decoded | Δ vs pre-decoder | rescues / harms |
+|---|---|---|---|
+| intact (shipped) | **2240** | **+131** | 187 / 56 |
+| shuffled within groups | 2118 | +9 | 114 / 105 |
+| reversed | 2055 | −54 | 88 / 142 |
+| uniform transitions (distinctness prior only) | 2164 | +55 | 82 / 27 |
+| permuted class labels in the transition model | 2092 | −17 | 82 / 99 |
+
+Reading: about half of the decoder's gain is the label-free "distinct activities within a recording
+group" prior (+55), the other half the scripted order (+76). If a held-out recording does not follow
+the script, the decoder is neutral (+9); only a systematically *reversed* order harms. Stated as a
+limitation in the report. **Provenance: measured, OOF; nothing shipped changes.**
+
+---
+
 ## EXP-160 — ❌ PERSON AT 448 px: the resolution curve is FLAT past 384. Member −0.81, fusion −17/2700 pre-decoder (t = −2.02); the decoded +20 fails the bar (t = 1.48) and is the decoder's coupling, not the member. Not shipped.
 **2026-09-14/15.** `cluster/res448_a100.sbatch` + `res448_h200.sbatch` (jobs 345717/345718),
 same windows as `crop_384` rendered at 448, same recipe (`--batch-size 4 --accum 4`), 4
