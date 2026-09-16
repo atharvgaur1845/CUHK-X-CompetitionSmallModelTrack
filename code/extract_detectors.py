@@ -81,8 +81,10 @@ def main() -> int:
                 rejected.append(sid)
         d = out / "cache" / m["tag"]; d.mkdir(parents=True, exist_ok=True)
         (d / "windows.json").write_text(json.dumps(keep))
+        mods = ("IR", "Depth_Color", "Thermal", "Skeleton", "IMU", "Radar")
         n_live = "n/a" if a.test_root is None else sum(
-            1 for c in Path(a.test_root).iterdir() if c.is_dir() and not c.name.startswith(".") and c.name != "__MACOSX") - len(keep)
+            1 for c in Path(a.test_root).iterdir()
+            if c.is_dir() and not c.name.startswith(".") and c.name != "__MACOSX" and any((c / m).is_dir() for m in mods)) - len(keep)
         print(f"  windows {m['tag']}: {len(shipped)} shipped, {len(keep)} accepted by IR-filename fingerprint, "
               f"{len(rejected)} rejected; clips to be detected live by the packaged detector: {n_live}"
               + (f"  (first rejected: {rejected[:5]})" if rejected else ""))

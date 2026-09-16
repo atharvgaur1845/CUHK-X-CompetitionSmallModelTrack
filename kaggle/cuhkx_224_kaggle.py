@@ -246,7 +246,7 @@ def find_paths(data_root: str | None = None, cache_name: str = f"crop_{IMAGE_SIZ
     if not have_cache:
         if not test_only and (paths["train_depth"] is None or not paths["train_depth"].is_dir()):
             sys.exit(f"Depth_Color not found near IR (looked at {paths['train_depth']})")
-        print(f"  test clips visible: {sum(1 for d in test_root.iterdir() if d.is_dir() and not d.name.startswith('.'))}")
+        print(f"  test clips visible: {sum(1 for d in test_root.iterdir() if _is_clip_dir(d))}")
     else:
         meta = json.loads((prebuilt / "train_index.json").read_text())
         print(f"  prebuilt cache: {len(meta['sids'])} train clips, "
@@ -295,9 +295,19 @@ def build_jobs(paths: dict) -> tuple[list, list]:
     # Kaggle set uses SM_test_XXXX; a held-out set may not). Hidden entries and __MACOSX
     # are skipped; the sample submission, not this listing, fixes the output row order.
     for clip_dir in sorted(paths["test_root"].iterdir()):
-        if clip_dir.is_dir() and not clip_dir.name.startswith(".") and clip_dir.name != "__MACOSX":
+        if _is_clip_dir(clip_dir):
             test.append((clip_dir.name, str(clip_dir / "IR"), str(clip_dir / "Depth_Color"), -1, ""))
     return train, test
+
+
+CLIP_MODALITIES = ("IR", "Depth_Color", "Thermal", "Skeleton", "IMU", "Radar")
+
+
+def _is_clip_dir(d: Path) -> bool:
+    """A clip is a non-hidden directory holding at least one modality folder; anything else
+    under the test root (stray folders, __MACOSX) is not a clip."""
+    return (d.is_dir() and not d.name.startswith(".") and d.name != "__MACOSX"
+            and any((d / m).is_dir() for m in CLIP_MODALITIES))
 
 
 # ================================================================================

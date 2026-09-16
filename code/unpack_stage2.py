@@ -165,7 +165,9 @@ def main() -> int:
             probs, _ = K.predict(model, dl, dev)
             ref_tag = m["tag"] + "_q6"
             ref_p = ROOT / "research" / "artifacts" / f"testprobs_{ref_tag}.npz"
-            if ref_p.is_file():
+            if ref_p.is_file() and [str(x) for x in np.load(ref_p, allow_pickle=True)["sids"]] == [str(x) for x in idx["sids"]]:
+                # development-time comparison against the pre-package posteriors; only
+                # meaningful when the clip list is the Kaggle test set
                 ref = np.load(ref_p)["probs"]
                 same = int((probs.argmax(1) == ref.argmax(1)).sum())
                 print(f"  infer {m['id']:28s} argmax {same}/{len(ref)} vs {ref_tag}, "

@@ -258,6 +258,8 @@ def collect_test_jobs():
         # any non-hidden directory is a clip; the id scheme belongs to the dataset
         if d.startswith(".") or d == "__MACOSX" or not os.path.isdir(os.path.join(TEST, d)):
             continue
+        if not any(os.path.isdir(os.path.join(TEST, d, m)) for m in ("IR", "Depth_Color", "Thermal", "Skeleton", "IMU", "Radar")):
+            continue   # not a clip (stray folder)
         jobs[d] = {"paths": {}}
         for mod in ("Skeleton", "IMU", "Depth_Color", "IR"):
             p = os.path.join(TEST, d, mod)
