@@ -154,6 +154,7 @@ rebuilt into `.pt` files at step [1]. No external datasets. No APIs.
   | GPU | toolchain | max \|Δp\| person / wrist / thermal / skeleton / IMU | fused argmax changes | CSV |
   |---|---|---|---|---|
   | A100 80 GB (cluster, native env) | torch 2.7.1+cu126, py3.11 | 1.6e-3 / 1.2e-3 / 1.5e-3 / 4.4e-5 / 0 | 0 / 405 | identical |
+  | H100 80 GB HBM3 (Apptainer, this image) | image | 1.5e-3 / 2.0e-3 / 1.3e-3 / 4.3e-5 / 0 | 0 / 405 | identical |
   | H200 NVL (Apptainer, this image) | image | 1.5e-3 / 2.0e-3 / 1.3e-3 / 4.3e-5 / 0 | 0 / 405 | identical |
   | Tesla V100 (Apptainer, this image) | image | 1.4e-3 / 1.7e-3 / 1.4e-3 / 9.2e-5 / 0 | 0 / 405 | identical |
 
