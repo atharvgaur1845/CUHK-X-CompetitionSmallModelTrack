@@ -1035,11 +1035,14 @@ on 13–14 subjects rather than 17. That is leak-free — no model saw its own h
 costs two subjects: `astgcn_world25` covers 2,700 clips and 16 users, so **user5 and user21
 are absent** from this table.
 
-**It cannot be fixed in the time available: there is no skeleton trainer in this repo.**
-`code/` holds `prune_world25.py`, `train_skel_motionbert.py` and inference helpers; the
-`astgcn_world25` stack is a pre-existing artifact whose build invocation was already
-recorded as lost (EXP-142's provenance note). Reconstructing it to gain two subjects on a
-conservative estimate is not worth 5 remaining days. **Recorded as a known limitation of
+**It cannot be fixed in the time available.** *(Corrected 2026-09-16: this entry originally
+said "there is no skeleton trainer in this repo", which is wrong — `code/train.py` +
+`code/har_models.py` trained every skeleton member and `code/train_imu_world.py` the
+world-IMU members; their recipes are in `research/artifacts/results.csv` and
+`cluster/skel_retrain.sbatch`. What is unrecorded is only the **prune** step
+`code/prune_world25.py` that produced `w25_p4` from the 48-member stack — see EXP-142's
+provenance note.)* Retraining 18 LOSO copies of the stack to gain two subjects on a
+conservative estimate was not worth 5 remaining days. **Recorded as a known limitation of
 the selection statistic rather than left as an open TODO.**
 
 ---

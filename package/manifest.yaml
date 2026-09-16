@@ -1,0 +1,126 @@
+# CUHK-X verification manifest -- team AGX, Small Model Track
+schema_version: 2
+
+team:
+  name: "AGX"
+  track: "small"
+  contact_email: "atharvanna71@gmail.com"
+
+kaggle_submission_record:
+  path: "submission/submission_info.yaml"
+  selected_submission_count: 2
+
+solution:
+  type: "ensemble"
+  entrypoint: "inference.sh"
+  primary_config: "configs/56212349.json"      # second Selected submission: configs/56213683.json (identical coefficients)
+  source_root: "src"
+  code_map: "src/CODE_MAP.md"
+  training_provenance: "docs/PROVENANCE.md"
+
+environment:
+  specification: "environment/requirements.txt"
+  dockerfile: "environment/Dockerfile"
+  docker_image: "docker.io/TODO-TEAM/cuhkx-small-agx:v1 (also image.tar.gz, sha256 in the submission form)"
+  operating_system: "Ubuntu 22.04 (image); verified from Ubuntu 24.04 and Rocky Linux 8 hosts"
+  python_version: "3.11 (image); 3.12 on the development laptop"
+  cuda_or_accelerator_version: "CUDA 12.6 runtime in the image (torch 2.7.1+cu126); NVIDIA driver >= 525"
+  system_packages: []
+
+hardware:
+  gpu_count: 1
+  minimum_gpu_memory_gb_per_gpu: 6
+  minimum_host_memory_gb: 8
+  minimum_free_disk_gb: 1
+  expected_setup_time: "3-5 min (docker load) or docker pull"
+  expected_inference_time: "2 min 39 s on an A100 for the 405 Kaggle clips; 4 min 53 s on an RTX 4060 laptop"
+
+network:
+  required_during_setup: false
+  required_during_inference: false
+  allowed_hosts: []
+  explanation: "The image contains every dependency and weight. inference.sh sets an empty TORCH_HOME and YOLO_OFFLINE=1; models are built with pretrained=False and loaded from the package."
+
+api:
+  required: false
+  provider: null
+  model_and_version: null
+  configuration_example: null
+  credential_environment_variables: []
+  estimated_usage: null
+
+artifacts:
+  - name: "stage2_ship7.pth"
+    purpose: "single deployable checkpoint: 3 MViTv2-S video members (int5), 20-member skeleton/IMU stack (int8), IMU ExtraTrees (tensors), YOLO11n + YOLO11n-pose detectors (fp16), crop windows of the 405 Kaggle test clips; manifest.json inside"
+    path: "artifacts/stage2_ship7.pth"
+    source_url: null
+    revision_or_version: "built 2026-09-13 by src/code/pack_stage2.py; git tag stage2-final"
+    sha256: "5b9145436b588c8f70e3df479f734e75f0bcfeb62de9659194a51573bc360330"
+    required: true
+  - name: "configs"
+    purpose: "fusion coefficients per Selected submission (identical for both)"
+    path: "configs/56212349.json"
+    source_url: null
+    revision_or_version: null
+    sha256: "986a4878dcab0c51618ba1c4df97852152292ff5309af5ab937da9d8263d0f2f"
+    required: true
+  - name: "meta_train.csv"
+    purpose: "training-split metadata: class prior for fusion, transition statistics for the decoder (no test information)"
+    path: "src/inference_assets/meta_train.csv"
+    source_url: null
+    revision_or_version: null
+    sha256: "2722a1f5644f1a5f0ec2e522217e041c0a208bd34fbb3627349e16feb9d99f44"
+    required: true
+  - name: "train_radar_keys.json"
+    purpose: "training-split recording keys used to fit the decoder's transition model"
+    path: "src/inference_assets/train_radar_keys.json"
+    source_url: null
+    revision_or_version: null
+    sha256: "4ad4a8a188ad84a873f045eca2c14adaa9a7d0951f7d03c910b050204a938d59"
+    required: true
+  - name: "cv_folds.json"
+    purpose: "fold protocol file read by the skeleton loader (no effect on test inference)"
+    path: "src/inference_assets/cv_folds.json"
+    source_url: null
+    revision_or_version: null
+    sha256: "70430dc227de0365e43bd40dcaff11aac5b091b2c4be816aede75c0ce2ee831f"
+    required: true
+  - name: "window_fingerprints.json"
+    purpose: "sha1 of the IR frame filenames of the 405 Kaggle clips; gates the use of the shipped crop windows"
+    path: "src/inference_assets/window_fingerprints.json"
+    source_url: null
+    revision_or_version: null
+    sha256: "1e18588a03e3f4ed217caad795d986db1171508aec475c9a50aa926aab3d5086"
+    required: true
+  - name: "MViTv2-S Kinetics-400 (public base model, TRAINING initialisation only)"
+    purpose: "initialisation of the three video members during training; not loaded at inference"
+    path: null
+    source_url: "https://download.pytorch.org/models/mvit_v2_s-ae3be167.pth"
+    revision_or_version: "torchvision MViT_V2_S_Weights.KINETICS400_V1 (file mvit_v2_s-ae3be167.pth), BSD-3-Clause"
+    sha256: null
+    required: false
+  - name: "YOLO11n / YOLO11n-pose (public base models, packaged)"
+    purpose: "person and wrist crop windows; their tensors are inside stage2_ship7.pth in fp16 and rebuilt into .pt files at step [1]"
+    path: "artifacts/stage2_ship7.pth"
+    source_url: "https://github.com/ultralytics/assets/releases/tag/v8.3.0"
+    revision_or_version: "yolo11n.pt sha256 0ebbc80d4a7680d14987a577cd21342b65ecfd94632bd9a8da63ae6417644ee1; yolo11n-pose.pt sha256 869e83fcdffdc7371fa4e34cd8e51c838cc729571d1635e5141e3075e9319dc0; AGPL-3.0"
+    sha256: null
+    required: true
+
+external_training_data: []
+
+reproducibility:
+  random_seeds: []            # none consumed at inference; training seeds in docs/PROVENANCE.md
+  precision_mode: "video members fp16 autocast with horizontal-flip TTA; skeleton stack fp32; IMU forest exact integer tree walk; fusion and decoder float64"
+  expected_nondeterminism: "none on one machine (byte-identical repeated runs). Across GPU generations: posterior differences <= 1.6e-3 measured RTX 4060 vs A100 with 0/405 prediction changes; see README section 7"
+  comparison_notes: "submission 56213683 reproduces byte-for-byte. Submission 56212349 (primary) reproduces 403/405 rows: SM_test_0206 and SM_test_0382 are decoder near-ties affected by the 48->20 member prune of the skeleton stack; cause, margins and the exhaustive coefficient search are documented in README sections 1 and 7 and docs/verification_logs/"
+
+inference_input:
+  type: "official_label_free_testing_directory"
+  path_supplied_by_organizer: true
+  published_layout_preserved: true
+  participant_preprocessing_included: true
+
+declarations:
+  honor_declaration_form: "declarations/CUHK-X_Honor_Declaration.docx"
+  signed_declaration: "declarations/CUHK-X_Honor_Declaration_signed.pdf"

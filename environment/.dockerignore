@@ -1,0 +1,7 @@
+work/
+src/cache/
+src/research/
+src/Small-Model-Track/
+**/__pycache__/
+**/*.pyc
+.git/

@@ -239,9 +239,9 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 > retired "3 of 4 folds" clause.
 >
 > **Known limitation, not a TODO:** the skeleton uses its 4-fold OOF, not LOSO (leak-free,
-> conservative, and costs subjects user5/user21). **There is no skeleton trainer in this
-> repo** — `astgcn_world25` is a pre-existing artifact whose build invocation was already
-> lost. Not fixable in the time left.
+> conservative, and costs subjects user5/user21). *(Corrected 2026-09-16: the skeleton
+> trainer is `code/train.py`; only the 48→20 **prune** invocation of `prune_world25.py` is
+> unrecorded — EXP-142.)* Not fixable in the time left.
 >
 > **Do next:** modelling is saturated — every remaining axis is measured flat or dead.
 > Shift to reproducibility (`inference.sh`, clean-room rerun, 10%) and the report (20%).

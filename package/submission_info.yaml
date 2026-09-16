@@ -1,0 +1,27 @@
+team_name: "AGX"
+track: "small"
+primary_verification_submission_id: "56212349"
+selected_final_submissions:
+  - selection_slot: 1
+    submission_id: "56212349"
+    kaggle_filename: "sub_pkgship6.csv"
+    submitted_at_utc: "2026-09-13T17:45:03Z"
+    public_score: "0.86567"
+    private_score: "0.87745"
+    csv_path: "submission/final_submission_1.csv"
+    csv_sha256: "f5ead8996755cf06eec288fa28ea7fc23731bcad88c4faaea0d98c561ce0eed0"
+    model_checkpoint_config_mapping:
+      model_or_checkpoint: "artifacts/stage2_ship7.pth (sha256 5b9145436b588c8f70e3df479f734e75f0bcfeb62de9659194a51573bc360330)"
+      configuration: "configs/56212349.json -- fusion coefficients person384 0.2359, wrist 0.1807, thermal 0.17, skel 0.332, imu 0.2967, prior 0.25; decoder transition-weight 0.5, conditional, unigram backoff, distinctness penalty 2.0 (fixed in inference.sh). Reproduced in 403/405 rows; see notes."
+  - selection_slot: 2
+    submission_id: "56213683"
+    kaggle_filename: "sub_final_ship7.csv"
+    submitted_at_utc: "2026-09-13T19:15:08Z"
+    public_score: "0.86069"
+    private_score: "0.87254"
+    csv_path: "submission/final_submission_2.csv"
+    csv_sha256: "7c6434ac56523644cbe215891bc867c88ff2bd9847f4fa484d62d721191b45d9"
+    model_checkpoint_config_mapping:
+      model_or_checkpoint: "artifacts/stage2_ship7.pth (same file)"
+      configuration: "configs/56213683.json -- identical coefficients and decoder settings; this file is the package's own output and is reproduced byte-for-byte."
+notes: "Both Selected submissions come from the same frozen models, preprocessing, fusion and decoder. The primary (56212349) was fused on 2026-09-13 from the skeleton ensemble's full 48-member test output; the packaged ensemble keeps the 20 members carrying fusion weight to satisfy the 100 MB rule, which moves two decoder near-tie rows (SM_test_0206 7->8, SM_test_0382 22->21). About 900 alternative coefficient settings were decoded with the frozen tensors; the closest reproduces 404/405. We ship the nested-CV coefficients for both and disclose the residual (README sections 1 and 7, docs/verification_logs/). The CSVs are the exact files uploaded to Kaggle, copied without modification."

@@ -82,3 +82,4 @@ inference_work/
 /work/
 /inference_work*/
 /artifacts/
+dist/
