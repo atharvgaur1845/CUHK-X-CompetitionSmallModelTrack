@@ -2,14 +2,15 @@
 """One-page public poster: page 1 of the technical report and the asset for the Most Popular vote.
 
 The idea is one image: ONE PERSON, FIVE WAYS OF SEEING. A real training clip (jumping jacks, user2,
-recording 5-1-1) sits in the centre as the infrared camera sees it; around it the same instant through the
-other four lenses plus radar; below it the five specialists converge into one decision. Every number is
+recording 5-1-1) sits in the centre as the depth camera sees it (a silhouette, no face: the public
+message is that the system never needs to see who you are); around it the same instant through the
+other lenses plus radar; below it the five specialists converge into one decision. Every number is
 the measured value the report and its figure audit carry; nothing is drawn from invented data.
 
-Real data used: infrared frame 18 of 61 and its depth frame (the arms-up apex), thermal frame 40 of 122
+Real data used: depth frame 18 of 61 and its infrared frame (the arms-up apex), thermal frame 40 of 122
 (the nearest arms-up frame; the two cameras are not frame-synchronised), the 17-joint skeleton of frame 18,
 the five inertial units' |acceleration| over the clip, every radar detection of the clip (height vs time).
-The infrared frame is contrast-stretched for print; the model reads the raw frame. The shipped fusion,
+The small infrared thumbnail is contrast-stretched for print; the model reads the raw frame. The shipped fusion,
 with user2 held out, predicts this clip correctly and so does every specialist (figdata.shipped_oof).
 
 Two typefaces: Liberation Serif Bold (the paper's Times) for the title and the numbers, Liberation Sans
@@ -117,14 +118,14 @@ T(96, 118.9, "Multimodal activity recognition under a 100 MB constraint", 8, BLA
 rule(113.0, lw=2.0); rule(112.4, lw=0.5)
 
 # ================================================================== LEVEL 2: one person, five ways of seeing (5 seconds)
-PX0, PX1, PY0, PY1 = 42.0, 58.0, 70.0, 104.0            # the person: infrared crop, contrast-stretched
-crop = A["ir"][12:478, 50:270]; aspect = crop.shape[1] / crop.shape[0]
+PX0, PX1, PY0, PY1 = 42.0, 58.0, 70.0, 104.0            # the person: the depth frame (no face is needed, or shown)
+crop = A["depth"][12:478, 50:270]; aspect = crop.shape[1] / crop.shape[0]
 pw = (PY1 - PY0) * aspect; PX0 = 50 - pw / 2; PX1 = 50 + pw / 2
 ax.add_patch(Rectangle((PX0 + 0.6, PY0 - 0.6), pw, PY1 - PY0, fc=(0, 0, 0, 0.12), ec="none", zorder=1))
-ax.imshow(crop, cmap="gray", vmin=0, vmax=1, extent=(PX0, PX1, PY0, PY1), aspect="auto", zorder=3, interpolation="bilinear")
+ax.imshow(crop, extent=(PX0, PX1, PY0, PY1), aspect="auto", zorder=3, interpolation="bilinear")
 ax.add_patch(Rectangle((PX0, PY0), pw, PY1 - PY0, fc="none", ec=BLACK, lw=0.9, zorder=4))
 T(50, 68.8, "ONE HUMAN ACTION", 9, BLACK, SANS, ha="center", va="top")
-T(50, 66.9, "jumping jacks, as the infrared camera sees it", 7.5, BLACK, SANS, ha="center", va="top")
+T(50, 66.9, "jumping jacks, in depth: no face needed", 7.5, BLACK, SANS, ha="center", va="top")
 
 LW, LX_L, LX_R, UY0, UY1, LY0, LY1 = 24.0, 10.0, 66.0, 86.0, 104.5, 65.5, 84.0
 # --- upper left: infrared + depth (the same camera pair, raw)
@@ -132,7 +133,7 @@ panel(LX_L, UY0, LW, UY1 - UY0); lens_label(LX_L + 1.2, UY1 - 1.5, "ir", "IR + D
 ch = 13.0; cw = ch * 0.737; cx = LX_L + (LW - 2 * cw - 0.8) / 2; cy = UY0 + 3.0
 ax.imshow(A["ir"][12:478, 50:393], cmap="gray", vmin=0, vmax=1, extent=(cx, cx + cw, cy, cy + ch), aspect="auto", zorder=3)
 ax.imshow(A["depth"][12:478, 50:393], extent=(cx + cw + 0.8, cx + 2 * cw + 0.8, cy, cy + ch), aspect="auto", zorder=3)
-T(LX_L + LW / 2, UY0 + 0.8, "body and scene, 640 x 480", 7.5, BLACK, SANS, ha="center", va="bottom")
+T(LX_L + LW / 2, UY0 + 0.8, "infrared and depth, 640 x 480", 7.5, BLACK, SANS, ha="center", va="bottom")
 connector((LX_L + LW, 95.5), (PX0, 95.5), COL["ir"])
 # --- upper right: thermal
 panel(LX_R, UY0, LW, UY1 - UY0); lens_label(LX_R + 1.2, UY1 - 1.5, "thermal", "THERMAL")
