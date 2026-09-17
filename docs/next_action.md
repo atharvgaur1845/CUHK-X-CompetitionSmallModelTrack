@@ -33,6 +33,12 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 >
 > **Rule from here: nothing under the tag changes.** README wording, report, slides, publicity may.
 >
+> **Uploaded via the organisers' form 2026-09-17 (~01:00 UTC)**: the zip and `image.tar.gz` above, offline = yes,
+> registry link, checksums, notes with the residual disclosure. **Post-upload doc-only change:** affiliation
+> corrected to "BITS Pilani, K K Birla Goa Campus" in `package/README.md`, `package/manifest.yaml`, report,
+> slides, `docs/POPULAR_AWARD.md`. The uploaded v1 archives (and `dist/`) still say "Independent" in those
+> two metadata strings — inference is unaffected; do not rebuild `dist/` unless the user asks for a v1.1 re-upload.
+>
 > **Next (after the user uploads):** Most Popular form (`docs/POPULAR_AWARD.md`); re-download the uploaded
 > files from the form's mirror on 18 Sept and hash once; then report/slides iteration (`docs/report/`,
 > `docs/slides/`, `docs/QA_BANK.md`). Organiser reply to `docs/organizer_email_2026-09-16.md` (sent 17 Sept)

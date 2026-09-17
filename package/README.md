@@ -16,7 +16,7 @@ data with one command, offline. Read §0 and §5 first; everything else is refer
 
 - Team name: `AGX`
 - Track: `small`
-- Members: Atharv (atharvgaur591@gmail.com), Independent, India
+- Members: Atharv (atharvgaur591@gmail.com), BITS Pilani, K K Birla Goa Campus, India
 - Contact: atharvgaur591@gmail.com
 - Selected Kaggle Final Submission record: `submission/submission_info.yaml`
 - Selected final submissions:
