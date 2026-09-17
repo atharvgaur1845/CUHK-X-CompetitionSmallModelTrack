@@ -41,6 +41,11 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 > 16-subject one (sd 6.4 -> 5.4, spread 23 -> 21; the 18-subject person sd 6.9 / spread 28 is stated in the
 > caption). No em dashes. Slides: user builds them from `docs/slides/SLIDE_CONTENT.md` + `docs/slides/figures/`
 > (PNG 300 dpi + SVG of every report figure); `docs/slides/slides.tex` is the old draft and is superseded.
+> **Report v2.2 (2026-09-18):** 9 pages; page 1 is the one-page poster (`docs/poster/make_poster.py` ->
+> `poster.pdf`, placed with `pdfpages`), the paper (cover with graphical abstract, abstract, findings strip)
+> starts on page 2. Poster is print style: white, black bold Liberation Serif (the paper's face), no grey
+> text, sensor colours only where they carry meaning; the same file is the Most Popular asset
+> (`poster_social.png` 1080 x 1350). Title still "Five Sensors, One Model"; alternatives under discussion.
 >
 > **Uploaded via the organisers' form 2026-09-17 (~01:00 UTC)**: the zip and `image.tar.gz` above, offline = yes,
 > registry link, checksums, notes with the residual disclosure. **Post-upload doc-only change:** affiliation

@@ -8,6 +8,7 @@
 \usepackage{dblfloatfix}
 \usepackage{capt-of}
 \usepackage{balance}
+\usepackage{pdfpages}
 \graphicspath{{figures/}}
 % let figures share pages with text instead of piling up at the end
 \renewcommand{\topfraction}{0.95}\renewcommand{\dbltopfraction}{0.95}\renewcommand{\bottomfraction}{0.6}
@@ -33,6 +34,8 @@
   \end{minipage}}
 
 \begin{document}
+% page 1: the one-page poster (docs/poster/make_poster.py), same numbers as the figures; the paper starts on page 2
+\includepdf[pages=1]{../poster/poster.pdf}
 
 \makeatletter
 \twocolumn[{%

@@ -22,6 +22,10 @@ negative RED `#B4433A`, baseline GRAY `#8A929B`.
 | 10 | `fig10_verification.pdf` | drift exists, predictions unchanged | EXP-159, G6, G8, G14 | `gpu.json`, `docs/verification_logs/crossgpu/*/compare_vs_laptop.txt` | A100 1.6e-3 / 4.4e-5; H100 2.0e-3 / 4.3e-5; H200 2.0e-3 / 4.3e-5; V100 1.7e-3 / 9.2e-5; 0/405 each; CSV identical | matrix | the RTX 4060 row is the reference (dp = 0 by definition); its "0/405" is the docker run on the laptop vs the submitted file (G6) |
 | 11 | `fig11_errors.pdf` | errors are subject-correlated and one-directional | EXP-132 (method), EXP-157 (twins, caption) | `errors.json` | 591 errors; 214 in repeated cells; 60 repeated cells; 56 subject-pair cells, 52 one-directional; top pairs Read/Turn 32, Sweep/Mop 19, Mobile/Games 14, ... | dot matrix (area = clips, colour = direction); per-subject bars | computed on the shipped fusion; EXP-132's logged 229/658 is for the earlier champion (stated in the caption); "3+" threshold follows EXP-132 |
 
+## Page 1: the poster
+
+`../poster/make_poster.py` -> `poster.pdf`, included with `pdfpages` before the cover. It draws from the same tables (`D["members"]`, `D["resolution"]`, `_load_clip_assets`): unique rescues 73/68/61/52/34, oracle 2,399, LOO 11 to 48; person 0.714/0.730/0.733/0.725 and wrist 0.720/0.706 (labelled +1.9 and -1.4 points); the seven lever families of Fig. 9 as adopted/rejected marks; 96.37 MB, 0.877 (14/307), 0/405 on five GPUs. Typeface Liberation Serif Bold, minimum 7.5 pt on the 8 x 10 in canvas (about 8 pt on the letter page). No grey text.
+
 ## Numbers in the text that are not in a figure
 
 | claim | source |
