@@ -178,34 +178,34 @@ def landscape_table():
     level 'member' = pooled/4-fold member OOF accuracy in points; 'system' = fused OOF (clips of 2,700 converted to points, 27 clips = 1 point) or decoded OOF."""
     L = [
         # adopted
-        dict(name="MViTv2-S vs R(2+1)D IG-65M", lane="backbone", level="member", delta=+2.42, verdict="adopted", exp="EXP-103", note="p = 0.0016"),
-        dict(name="224 px + MViT recipe vs 128 px CNN", lane="resolution", level="member", delta=+7.5, verdict="adopted", exp="EXP-102/103", note="0.640 to 0.715"),
+        dict(name="MViTv2-S vs R(2+1)D", lane="backbone", level="member", delta=+2.42, verdict="adopted", exp="EXP-103", note="p = 0.0016"),
+        dict(name="MViT 224 vs CNN 128", lane="resolution", level="member", delta=+7.5, verdict="adopted", exp="EXP-102/103", note="0.640 to 0.715"),
         dict(name="person 288 px", lane="resolution", level="member", delta=+1.23, verdict="adopted", exp="EXP-154", note="4/4 folds"),
         dict(name="person 384 px", lane="resolution", level="system", delta=+20 / 27, verdict="adopted", exp="EXP-154", note="+20 fused clips"),
         dict(name="thermal 224 full frame", lane="input view", level="member", delta=+5.62, verdict="adopted", exp="EXP-139", note="4/4 folds"),
         dict(name="thermal in fusion", lane="input view", level="system", delta=+46 / 27, verdict="adopted", exp="EXP-139", note="+46 decoded clips"),
-        dict(name="nested-CV re-weighting", lane="fusion", level="system", delta=+15 / 27, verdict="adopted", exp="EXP-154", note="+15 clips"),
-        dict(name="ordered transition decoder", lane="structure", level="system", delta=+131 / 27, verdict="adopted", exp="EXP-125/162", note="+131 clips"),
+        dict(name="nested-CV\nweights", lane="fusion", level="system", delta=+15 / 27, verdict="adopted", exp="EXP-154", note="+15 clips"),
+        dict(name="transition decoder", lane="structure", level="system", delta=+131 / 27, verdict="adopted", exp="EXP-125/162", note="+131 clips"),
         dict(name="soft distinctness", lane="structure", level="system", delta=+27 / 27, verdict="adopted", exp="EXP-125", note="+27 clips, 4/4"),
         # rejected: capacity
         dict(name="VideoMAE-B (86.7 M)", lane="backbone", level="member", delta=-1.80, verdict="rejected", exp="EXP-115", note="0/4 folds"),
         dict(name="Swin3D-T", lane="backbone", level="member", delta=-9.82, verdict="rejected", exp="EXP-104", note="0.617 vs 0.715, fold 2"),
-        dict(name="V-JEPA 2 ViT-L frozen teacher", lane="training signal", level="member", delta=-29.3, verdict="rejected", exp="EXP-135", note="0.419 vs 0.712"),
-        dict(name="layer-wise LR decay", lane="backbone", level="member", delta=+0.245, verdict="rejected", exp="EXP-112", note="2/4 folds, sd 1.79"),
+        dict(name="V-JEPA 2 teacher", lane="training signal", level="member", delta=-29.3, verdict="rejected", exp="EXP-135", note="0.419 vs 0.712"),
+        dict(name="LR decay (LLRD)", lane="backbone", level="member", delta=+0.245, verdict="rejected", exp="EXP-112", note="2/4 folds, sd 1.79"),
         # resolution
         dict(name="person 448 px", lane="resolution", level="member", delta=-0.81, verdict="rejected", exp="EXP-160", note="fusion -17 clips"),
         dict(name="wrist 288 px", lane="resolution", level="member", delta=-1.36, verdict="rejected", exp="EXP-154", note="3/4 folds negative"),
         # views
-        dict(name="full-frame IR+depth 224", lane="input view", level="member", delta=-4.98, verdict="rejected", exp="EXP-143", note="0.662 vs 0.712; fusion +8 at best"),
-        dict(name="COCO object channel", lane="input view", level="signal", delta=0.0, verdict="no signal", exp="EXP-134", note="hand-held AUC 0.50"),
+        dict(name="full-frame IR+depth", lane="input view", level="member", delta=-4.98, verdict="rejected", exp="EXP-143", note="0.662 vs 0.712; fusion +8 at best"),
+        dict(name="COCO object probe", lane="input view", level="signal", delta=0.0, verdict="no signal", exp="EXP-134", note="hand-held AUC 0.50"),
         # training signal
-        dict(name="oracle distillation (member)", lane="training signal", level="member", delta=+4.91, verdict="rejected", exp="EXP-122/127", note="student alone 157 public, fused 165 vs 167"),
-        dict(name="transductive self-training", lane="training signal", level="system", delta=-2 / 6.77, verdict="rejected", exp="EXP-156", note="member +1.38, fusion -2 of 677 (fold 2)"),
+        dict(name="oracle distillation", lane="training signal", level="member", delta=+4.91, verdict="rejected", exp="EXP-122/127", note="student alone 157 public, fused 165 vs 167"),
+        dict(name="self-training", lane="training signal", level="system", delta=-2 / 6.77, verdict="rejected", exp="EXP-156", note="member +1.38, fusion -2 of 677 (fold 2)"),
         # inference time
-        dict(name="temporal TTA (both views)", lane="inference time", level="system", delta=-4 / 27, verdict="rejected", exp="EXP-146", note="members +0.5/+0.9, fusion -4"),
+        dict(name="temporal TTA", lane="inference time", level="system", delta=-4 / 27, verdict="rejected", exp="EXP-146", note="members +0.5/+0.9, fusion -4"),
         dict(name="seed soup", lane="inference time", level="member", delta=-2.39, verdict="rejected", exp="EXP-148", note="4/4 folds negative"),
         dict(name="pair verifier", lane="inference time", level="system", delta=-0.84, verdict="rejected", exp="EXP-147", note="on 2,372 decidable clips"),
-        dict(name="per-group logit centering", lane="inference time", level="system", delta=+5 / 27, verdict="rejected", exp="EXP-137", note="+5 decoded clips"),
+        dict(name="logit centering", lane="inference time", level="system", delta=+5 / 27, verdict="rejected", exp="EXP-137", note="+5 decoded clips"),
         # structure
         dict(name="twin pooling", lane="structure", level="system", delta=-4 / 27, verdict="rejected", exp="EXP-157", note="+1 pre-decoder, -4 decoded"),
         dict(name="subject alignment", lane="structure", level="signal", delta=0.0, verdict="no signal", exp="EXP-133/137", note="purity 0.34"),

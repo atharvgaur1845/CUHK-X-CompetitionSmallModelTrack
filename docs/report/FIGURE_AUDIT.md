@@ -2,7 +2,7 @@
 
 Every figure is produced by `generate_all_figures.py` from the tables written by `figdata.py`
 into `figures_src/*.json`. No number is typed into a figure by hand; the JSON files are the
-plotted values. Style: `figstyle.py` (one palette, Lato, vector PDF, fonts embedded).
+plotted values. Style: `figstyle.py` (one palette; Liberation Serif Bold, metric-compatible with the Times body font, so figure text matches the paper; every text element bold; nothing below 7.5 pt at print scale; vector PDF with embedded TrueType fonts).
 
 Semantic colours: person BLUE `#2E5C9E`, wrist BLUE_LIGHT `#6F97D1`, thermal ORANGE `#D9772B`,
 skeleton/IMU TEAL `#1F7F7A`, IMU forest TEAL_LIGHT `#5FB3A9`, decoder/structure PURPLE `#6B4FA0`,
@@ -39,9 +39,9 @@ negative RED `#B4433A`, baseline GRAY `#8A929B`.
 
 ## Checks performed
 
-- every figure compiled to vector PDF with embedded fonts (`pdffonts`: Identity-H, embedded); the only raster content is the real sensor frames in Figs. 1 and 4;
-- every page rendered at 110 dpi and inspected for overlaps and label collisions (fixed: Fig. 2 callouts, Fig. 3 labels, Fig. 4 ladder labels, Fig. 5 strip labels, Fig. 6 headers, Fig. 8 label spreading, Fig. 9 label spreading, Fig. 10 headers, Fig. 11 label sizes);
-- minimum text size in figures 5.5 pt (lane labels in Fig. 8, column labels in Fig. 11), body 7.5 pt;
+- every figure compiled to vector PDF with embedded fonts (`pdffonts`: CID TrueType, Identity-H, embedded); the only raster content is the real sensor frames in Figs. 1 and 5;
+- typography pass (2026-09-18): all figure text bold Liberation Serif (the body is Times via mathptmx); figure text floor raised to 7.5 pt and figures re-laid out to fit (Figs. 4, 5, 6, 10 became full width; Fig. 7 became one transposed grid; Fig. 9 labels spread; Fig. 1 rebuilt with a larger canvas); every page rendered at 110 dpi and inspected for overlaps after every change;
+- minimum text size in figures 7.5 pt; body 8 to 9 pt; big numerals 15 to 24 pt;
 - no em dashes in the report or the figures;
 - caption numbers cross-checked against `figures_src/*.json` by script (see the session log);
 - the previous report's five figures were compared with the new set: every quantity they carried is present in the new figures with the same values (resolution curve, LOSO per subject, missing-modality and coefficient tables, decoder controls, byte budget).

@@ -4,7 +4,7 @@
  "bar_note": "seed sd 1.16 (EXP-120a) -> paired sd 1.64; bar = 1.64 on a 4-fold mean; system-level changes were judged on the paired fold delta (t >= 2) and on rowdiff readability",
  "levers": [
   {
-   "name": "MViTv2-S vs R(2+1)D IG-65M",
+   "name": "MViTv2-S vs R(2+1)D",
    "lane": "backbone",
    "level": "member",
    "delta": 2.42,
@@ -13,7 +13,7 @@
    "note": "p = 0.0016"
   },
   {
-   "name": "224 px + MViT recipe vs 128 px CNN",
+   "name": "MViT 224 vs CNN 128",
    "lane": "resolution",
    "level": "member",
    "delta": 7.5,
@@ -58,7 +58,7 @@
    "note": "+46 decoded clips"
   },
   {
-   "name": "nested-CV re-weighting",
+   "name": "nested-CV\nweights",
    "lane": "fusion",
    "level": "system",
    "delta": 0.5555555555555556,
@@ -67,7 +67,7 @@
    "note": "+15 clips"
   },
   {
-   "name": "ordered transition decoder",
+   "name": "transition decoder",
    "lane": "structure",
    "level": "system",
    "delta": 4.851851851851852,
@@ -103,7 +103,7 @@
    "note": "0.617 vs 0.715, fold 2"
   },
   {
-   "name": "V-JEPA 2 ViT-L frozen teacher",
+   "name": "V-JEPA 2 teacher",
    "lane": "training signal",
    "level": "member",
    "delta": -29.3,
@@ -112,7 +112,7 @@
    "note": "0.419 vs 0.712"
   },
   {
-   "name": "layer-wise LR decay",
+   "name": "LR decay (LLRD)",
    "lane": "backbone",
    "level": "member",
    "delta": 0.245,
@@ -139,7 +139,7 @@
    "note": "3/4 folds negative"
   },
   {
-   "name": "full-frame IR+depth 224",
+   "name": "full-frame IR+depth",
    "lane": "input view",
    "level": "member",
    "delta": -4.98,
@@ -148,7 +148,7 @@
    "note": "0.662 vs 0.712; fusion +8 at best"
   },
   {
-   "name": "COCO object channel",
+   "name": "COCO object probe",
    "lane": "input view",
    "level": "signal",
    "delta": 0.0,
@@ -157,7 +157,7 @@
    "note": "hand-held AUC 0.50"
   },
   {
-   "name": "oracle distillation (member)",
+   "name": "oracle distillation",
    "lane": "training signal",
    "level": "member",
    "delta": 4.91,
@@ -166,7 +166,7 @@
    "note": "student alone 157 public, fused 165 vs 167"
   },
   {
-   "name": "transductive self-training",
+   "name": "self-training",
    "lane": "training signal",
    "level": "system",
    "delta": -0.29542097488921715,
@@ -175,7 +175,7 @@
    "note": "member +1.38, fusion -2 of 677 (fold 2)"
   },
   {
-   "name": "temporal TTA (both views)",
+   "name": "temporal TTA",
    "lane": "inference time",
    "level": "system",
    "delta": -0.14814814814814814,
@@ -202,7 +202,7 @@
    "note": "on 2,372 decidable clips"
   },
   {
-   "name": "per-group logit centering",
+   "name": "logit centering",
    "lane": "inference time",
    "level": "system",
    "delta": 0.18518518518518517,

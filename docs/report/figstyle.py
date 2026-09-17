@@ -36,30 +36,40 @@ MEMBER_LABEL = {"person": "person view", "wrist": "wrist view", "thermal": "ther
                 "skeleton": "skeleton/IMU ensemble", "imu": "IMU forest"}
 
 # ---------------------------------------------------------------- typography
-_FONT_DIRS = [Path("/usr/share/fonts/truetype/lato")]
+# The report body is set in Times (mathptmx = URW Nimbus Roman); the figures use the same face, bold.
+_FONT_DIRS = [Path("/usr/share/fonts/opentype/urw-base35"), Path("/usr/share/fonts/truetype/liberation")]
 
 
 def _register_fonts() -> str:
-    found = False
-    for d in _FONT_DIRS:
+    # Liberation Serif is metric-compatible with Times and is TrueType, which embeds cleanly (Type 42);
+    # the URW Nimbus Roman OTF (CFF) embeds with a font-type mismatch warning in poppler, so it is the fallback.
+    for d, pat, name in [(_FONT_DIRS[1], "LiberationSerif-*.ttf", "Liberation Serif"), (_FONT_DIRS[0], "NimbusRoman-*.otf", "Nimbus Roman")]:
+        found = False
         if d.is_dir():
-            for f in d.glob("Lato-*.ttf"):
+            for f in d.glob(pat):
                 try:
                     fm.fontManager.addfont(str(f)); found = True
                 except Exception:
                     pass
-    return "Lato" if found else "DejaVu Sans"
+        if found: return name
+    return "DejaVu Serif"
 
 
 FONT = _register_fonts()
 
-# point sizes: body 7.5 is the floor for print; numerals bigger
-S_BODY, S_SMALL, S_LABEL, S_TITLE, S_BIG, S_HUGE = 7.5, 6.5, 8.5, 9.5, 13, 20
+# point sizes at final print scale; nothing in a figure goes below MIN (readable without zooming)
+S_BODY, S_SMALL, S_LABEL, S_TITLE, S_BIG, S_HUGE = 9.0, 8.0, 10.0, 11.0, 15, 24
+MIN = 7.5
+
+
+def sz(x: float) -> float:
+    return max(float(x), MIN)
 
 
 def use() -> None:
     plt.rcParams.update({
-        "font.family": FONT, "font.size": S_BODY,
+        "font.family": FONT, "font.size": S_BODY, "font.weight": "bold", "axes.labelweight": "bold",
+        "mathtext.fontset": "custom", "mathtext.rm": f"{FONT}:bold", "mathtext.it": f"{FONT}:bold:italic", "mathtext.bf": f"{FONT}:bold",
         "axes.titlesize": S_TITLE, "axes.labelsize": S_BODY, "xtick.labelsize": S_SMALL, "ytick.labelsize": S_SMALL,
         "legend.fontsize": S_SMALL, "axes.edgecolor": INK, "axes.labelcolor": INK, "xtick.color": INK, "ytick.color": INK,
         "text.color": INK, "axes.spines.top": False, "axes.spines.right": False, "axes.linewidth": 0.6,
