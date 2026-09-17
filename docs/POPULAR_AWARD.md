@@ -1,6 +1,8 @@
 # Most Popular Award — public-facing copy (form due 18 Sept 23:59 UTC)
 
-**Project title:** Five Sensors, One Model: Multimodal Activity Recognition Under a 100 MB Constraint
+**Project title:** Five Specialists, One Decision: Multimodal Activity Recognition Under a 100 MB Constraint
+
+**Poster headline:** FIVE SENSORS. ONE DECISION.
 
 **Team / track:** AGX — Small Model Track. Member: Atharv, BITS Pilani, K K Birla Goa Campus, India. Photo: to add.
 

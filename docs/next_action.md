@@ -45,7 +45,7 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 > `poster.pdf`, placed with `pdfpages`), the paper (cover with graphical abstract, abstract, findings strip)
 > starts on page 2. Poster is print style: white, black bold Liberation Serif (the paper's face), no grey
 > text, sensor colours only where they carry meaning; the same file is the Most Popular asset
-> (`poster_social.png` 1080 x 1350). Title still "Five Sensors, One Model"; alternatives under discussion. Figure secondary text is
+> (`poster_social.png` 1080 x 1350). Title (2026-09-18): report "Five Specialists, One Decision: ...", poster headline "FIVE SENSORS. ONE DECISION."; poster v3 = one person, five lenses (real frame 18 of the jumping-jacks clip), streams converging to one decision. Figure secondary text is
 > GRAY_TEXT `#4B535E` (figstyle), the light GRAY is fills only; `make_slide_figures.py` also re-exports the PNG/SVG copies.
 >
 > **Uploaded via the organisers' form 2026-09-17 (~01:00 UTC)**: the zip and `image.tar.gz` above, offline = yes,

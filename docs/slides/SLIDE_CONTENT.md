@@ -14,9 +14,10 @@ Rule of the deck: one figure and one sentence per slide. The sentence is the tit
 ---
 
 ## 1. Title
-**Five Sensors, One Model: Multimodal Activity Recognition Under a 100 MB Constraint**
+**Five Specialists, One Decision: Multimodal Activity Recognition Under a 100 MB Constraint**
+Poster headline (say it, do not read it): FIVE SENSORS. ONE DECISION.
 CUHK-X Challenge 2026, Small Model Track, Team AGX. Atharv, BITS Pilani, K K Birla Goa Campus.
-Visual: `fig01_abstract` cropped to the left column (the five sensor tiles) or the whole figure faded.
+Visual: the poster's centre (`docs/poster/poster.png`, crop to the person and the five lenses), or the whole poster faded.
 
 ## 2. The problem in one line
 **Recognise 40 everyday activities from sensors that cannot identify you, for people the model has never seen, with everything in one 100 MB file.**
@@ -130,7 +131,7 @@ Visual: `fig11_errors`.
 Threat: "what would you do with a month?" Subject diversity in representation learning, tested the same way: paired folds, 2 SE bar.
 
 ## 16. Takeaway
-**Five sensors, one model: complementary small specialists plus structure beat model size under a 100 MB budget, and the limits are measured too.**
+**Five sensors, one decision: complementary small specialists plus structure beat model size under a 100 MB budget, and the limits are measured too.**
 Visual: `fig01_abstract` again, or the four findings tiles.
 
 ---
