@@ -61,25 +61,25 @@ def fig01_abstract():
         ax.add_patch(FancyBboxPatch((XT, y), WT, HT, boxstyle="round,pad=0,rounding_size=0.5", fc="white", ec=st.GRAY_LIGHT, lw=0.6, zorder=1))
         ax.add_patch(Rectangle((XT, y), 0.7, HT, fc=col, ec="none", zorder=2))
         ax.text(XT + 1.4, y + HT - 0.6, lab, fontsize=st.S_BODY, color=st.INK, va="top", zorder=3)
-        ax.text(XT + 1.4, y + HT - 2.9, sub, fontsize=F0, color=st.GRAY, va="top", zorder=3)
+        ax.text(XT + 1.4, y + HT - 2.9, sub, fontsize=F0, color=st.GRAY_TEXT, va="top", zorder=3)
     CX0 = XT + 1.4; CY = lambda y: (y + 0.6, y + HT - 5.2)   # content box below the two text lines
     y0, y1 = CY(ys[0]); h = y1 - y0; w = h * 4 / 3
     ax.imshow(A["ir"], cmap="gray", extent=(CX0, CX0 + w, y0, y1), zorder=2, aspect="auto"); ax.imshow(A["depth"], extent=(CX0 + w + 0.5, CX0 + 2 * w + 0.5, y0, y1), zorder=2, aspect="auto")
-    ax.text(CX0 + 2 * w + 1.3, (y0 + y1) / 2, "infrared,\ndepth", fontsize=F0, color=st.GRAY, va="center")
+    ax.text(CX0 + 2 * w + 1.3, (y0 + y1) / 2, "infrared,\ndepth", fontsize=F0, color=st.GRAY_TEXT, va="center")
     y0, y1 = CY(ys[1]); h = y1 - y0; w = h * 4 / 3
     ax.imshow(A["thermal"], extent=(CX0, CX0 + w, y0, y1), zorder=2, aspect="auto")
-    ax.text(CX0 + w + 0.8, (y0 + y1) / 2, "heat of body\nand objects", fontsize=F0, color=st.GRAY, va="center")
+    ax.text(CX0 + w + 0.8, (y0 + y1) / 2, "heat of body\nand objects", fontsize=F0, color=st.GRAY_TEXT, va="center")
     y0, y1 = CY(ys[2]); k = A["skel"]; X, Z = k[:, 0], k[:, 2]; sc = (y1 - y0) / (Z.max() - Z.min()); cx = CX0 + 3.4
     for i, j in D["samples"]["h36m_bones"]:
         ax.plot([cx + (X[i] - X.mean()) * sc, cx + (X[j] - X.mean()) * sc], [y0 + (Z[i] - Z.min()) * sc, y0 + (Z[j] - Z.min()) * sc], color=st.TEAL, lw=1.4, zorder=3, solid_capstyle="round")
     ax.scatter(cx + (X - X.mean()) * sc, y0 + (Z - Z.min()) * sc, s=7, color=st.TEAL, zorder=4, linewidths=0)
-    ax.text(cx + 4.6, (y0 + y1) / 2, "tracked joints,\nworld frame", fontsize=F0, color=st.GRAY, va="center")
+    ax.text(cx + 4.6, (y0 + y1) / 2, "tracked joints,\nworld frame", fontsize=F0, color=st.GRAY_TEXT, va="center")
     y0, y1 = CY(ys[3]); names = ["WTLA", "WTRA", "WTC(", "WTLL", "WTRL"]; rowh = (y1 - y0) / 5
     for i, nm in enumerate(names):
         v = A["imu"][nm]; v = (v - v.min()) / max(v.max() - v.min(), 1e-6)
         xx = np.linspace(CX0, CX0 + 12.0, len(v)); yy = y1 - (i + 0.95) * rowh + v * rowh * 0.85
         ax.plot(xx, yy, color=st.TEAL_LIGHT, lw=0.8, zorder=3)
-    ax.text(CX0 + 12.8, (y0 + y1) / 2, "|acceleration|,\n5 devices", fontsize=F0, color=st.GRAY, va="center")
+    ax.text(CX0 + 12.8, (y0 + y1) / 2, "|acceleration|,\n5 devices", fontsize=F0, color=st.GRAY_TEXT, va="center")
     y0, y1 = CY(ys[4]); R = A["radar"]; w = 6.5
     px = CX0 + (R[:, 0] - R[:, 0].min()) / (R[:, 0].max() - R[:, 0].min()) * w; py = y0 + (R[:, 1] - R[:, 1].min()) / (R[:, 1].max() - R[:, 1].min()) * (y1 - y0)
     ax.scatter(px, py, s=1.5, color=st.PURPLE, alpha=0.45, zorder=3, linewidths=0)
@@ -98,11 +98,11 @@ def fig01_abstract():
         col = st.MEMBER[key]; ny[key] = y + HN / 2
         ax.add_patch(FancyBboxPatch((XN, y), WN, HN, boxstyle="round,pad=0,rounding_size=0.5", fc="white", ec=col, lw=1.0, zorder=2))
         ax.text(XN + 1.0, y + HN - 0.6, t1, fontsize=st.S_BODY, color=col, va="top", zorder=3)
-        ax.text(XN + 1.0, y + HN - 3.0, t2, fontsize=F0, color=st.GRAY, va="top", zorder=3)
-        ax.text(XN + 1.0, y + 0.5, f"{MB[key]:.1f} MB", fontsize=F0, color=st.GRAY, va="bottom", zorder=3)
+        ax.text(XN + 1.0, y + HN - 3.0, t2, fontsize=F0, color=st.GRAY_TEXT, va="top", zorder=3)
+        ax.text(XN + 1.0, y + 0.5, f"{MB[key]:.1f} MB", fontsize=F0, color=st.GRAY_TEXT, va="bottom", zorder=3)
         ax.text(XN + WN - 1.0, y + 0.4, f"{acc[key]/2700:.3f}", fontsize=st.S_LABEL + 1, color=col, va="bottom", ha="right", zorder=3)
-    ax.text(XN + WN, 60.4, "specialists (accuracy alone, OOF)", fontsize=F0, color=st.GRAY, ha="right", va="top")
-    ax.text(XT, 61.8, "five sensing streams (one training clip: jumping jacks)", fontsize=F0, color=st.GRAY, ha="left", va="top")
+    ax.text(XN + WN, 60.4, "specialists (accuracy alone, OOF)", fontsize=F0, color=st.GRAY_TEXT, ha="right", va="top")
+    ax.text(XT, 61.8, "five sensing streams (one training clip: jumping jacks)", fontsize=F0, color=st.GRAY_TEXT, ha="left", va="top")
     tile_mid = lambda i: (XT + WT, ys[i] + HT / 2)
     for i, key in [(0, "person"), (0, "wrist"), (1, "thermal"), (2, "skeleton"), (3, "skeleton"), (3, "imu")]:
         st.arrow(ax, tile_mid(i), (XN, ny[key]), color=st.MEMBER[key], lw=0.8, ms=6, coords="data")
@@ -112,20 +112,20 @@ def fig01_abstract():
     ax.add_patch(FancyBboxPatch((XF, YF), WF, HF, boxstyle="round,pad=0,rounding_size=0.6", fc=st.PAPER, ec=st.INK, lw=1.0, zorder=2))
     ax.text(XF + WF / 2, YF + HF - 0.9, "prior-corrected\nlog-linear fusion", fontsize=st.S_BODY, color=st.INK, ha="center", va="top", zorder=3, linespacing=1.1)
     ax.text(XF + WF / 2, YF + HF - 7.0, r"$\sum_i w_i \log p_i$", fontsize=st.S_LABEL + 2, color=st.INK, ha="center", va="top", zorder=3)
-    ax.text(XF + WF / 2, YF + 0.7, "coefficients by\nnested CV", fontsize=F0, color=st.GRAY, ha="center", va="bottom", zorder=3, linespacing=1.05)
+    ax.text(XF + WF / 2, YF + 0.7, "coefficients by\nnested CV", fontsize=F0, color=st.GRAY_TEXT, ha="center", va="bottom", zorder=3, linespacing=1.05)
     for key in MEM: st.arrow(ax, (XN + WN, ny[key]), (XF, YF + HF / 2 + (ny[key] - 32.5) * 0.26), color=st.MEMBER[key], lw=0.9, ms=6, coords="data")
-    ax.text(XF + WF / 2, YF + HF + 1.0, f"fused {m['fused_correct']/2700:.3f}", fontsize=st.S_SMALL, color=st.GRAY, ha="center", va="bottom")
+    ax.text(XF + WF / 2, YF + HF + 1.0, f"fused {m['fused_correct']/2700:.3f}", fontsize=st.S_SMALL, color=st.GRAY_TEXT, ha="center", va="bottom")
     # ---- decoder
     XD, WD, HD, YD = 73.0, 14.0, 16.0, 23.0
     ax.add_patch(FancyBboxPatch((XD, YD), WD, HD, boxstyle="round,pad=0,rounding_size=0.6", fc="white", ec=st.PURPLE, lw=1.0, zorder=2))
     ax.text(XD + WD / 2, YD + HD - 0.9, "ordered\ntransition decoder", fontsize=st.S_BODY, color=st.PURPLE, ha="center", va="top", zorder=3, linespacing=1.1)
-    ax.text(XD + WD / 2, YD + HD - 7.0, "activity-script\nprior, label-free,\nper recording", fontsize=F0, color=st.GRAY, ha="center", va="top", zorder=3, linespacing=1.1)
+    ax.text(XD + WD / 2, YD + HD - 7.0, "activity-script\nprior, label-free,\nper recording", fontsize=F0, color=st.GRAY_TEXT, ha="center", va="top", zorder=3, linespacing=1.1)
     st.arrow(ax, (XF + WF, YF + HF / 2), (XD, YD + HD / 2), color=st.INK, lw=1.2, ms=9, coords="data")
     yb = 2.9; xm = XD + WD / 2
     ax.plot([XT + WT, XT + WT + 1.5, xm, xm], [ys[4] + HT / 2, yb, yb, YD - 0.3], color=st.PURPLE, lw=0.8, zorder=1, solid_joinstyle="round")
     st.arrow(ax, (xm, YD - 1.2), (xm, YD), color=st.PURPLE, lw=0.8, ms=6, coords="data")
     ax.text(xm - 1.0, yb + 0.4, "recording group, clip order", fontsize=F0, color=st.PURPLE, ha="right", va="bottom")
-    ax.text(XD + WD / 2, YD + HD + 1.0, f"decoded {D['decoder']['conditions'][0]['decoded']/2700:.3f}", fontsize=st.S_SMALL, color=st.GRAY, ha="center", va="bottom")
+    ax.text(XD + WD / 2, YD + HD + 1.0, f"decoded {D['decoder']['conditions'][0]['decoded']/2700:.3f}", fontsize=st.S_SMALL, color=st.GRAY_TEXT, ha="center", va="bottom")
     # ---- output rail: four facts a reader keeps, everything else subordinate
     XO, WO = 88.0, 11.8
     st.arrow(ax, (XD + WD, YD + HD / 2), (XO, YD + HD / 2), color=st.INK, lw=1.2, ms=9, coords="data")
@@ -138,7 +138,7 @@ def fig01_abstract():
         yy -= 13.6
     ax.text(XO + WO / 2, 5.0, "unseen people\n14th of 307 teams\n0/405 changed\non 5 GPUs", fontsize=F0, color="#C9D2E0", ha="center", va="bottom", zorder=3, linespacing=1.15)
     ax.text(XN, 0.2, "accuracies: pooled out-of-fold over 2,700 training clips of held-out subjects. private: Kaggle leaderboard, 204 clips of unseen subjects.",
-            fontsize=F0, color=st.GRAY, va="bottom")
+            fontsize=F0, color=st.GRAY_TEXT, va="bottom")
     return st.save(fig, "fig01_abstract")
 
 
@@ -172,7 +172,7 @@ def fig02_complementarity():
     for xi, p in enumerate(keep):
         ii = [MEM.index(k) for k in p["members"]]
         if len(ii) > 1: axm.plot([xi, xi], [min(ii), max(ii)], color=st.GRAY, lw=0.8, zorder=2)
-    axm.text(n - 1, 2, "other\npatterns", ha="center", va="center", fontsize=st.sz(st.S_SMALL - 1), color=st.GRAY)
+    axm.text(n - 1, 2, "other\npatterns", ha="center", va="center", fontsize=st.sz(st.S_SMALL - 1), color=st.GRAY_TEXT)
     axm.set_yticks(range(5)); axm.set_yticklabels([NICE[k] for k in MEM]); axm.set_ylim(-0.6, 4.6); axm.invert_yaxis()
     for s in axm.spines.values(): s.set_visible(False)
     axm.tick_params(axis="both", length=0); axm.set_xticks([]); axm.set_xlim(-0.6, n - 0.4)
@@ -274,20 +274,20 @@ def fig04_thermal():
         p = 100 * sname["pooled"]
         if "folds" in sname: aa.scatter([x + 0.12] * 4, [100 * f for f in sname["folds"]], s=9, color=c, alpha=0.55, zorder=3, linewidths=0)
         aa.scatter([x], [p], s=46, color=c, zorder=4, edgecolor="white", lw=0.6)
-        if x < 2: aa.annotate(f"{p:.1f}", (x, p), xytext=(-7, -2), textcoords="offset points", ha="right", va="top", fontsize=st.S_BODY, fontweight="bold", color=c)
-        else: aa.annotate(f"{p:.1f}", (x, p), xytext=(-8, -9), textcoords="offset points", ha="right", va="top", fontsize=st.S_BODY, fontweight="bold", color=c)
+        if x < 2: aa.annotate(f"{p:.1f}", (x, p), xytext=(-7, -2), textcoords="offset points", ha="right", va="top", fontsize=st.S_BODY, fontweight="bold", color=st.tc(c))
+        else: aa.annotate(f"{p:.1f}", (x, p), xytext=(-8, -9), textcoords="offset points", ha="right", va="top", fontsize=st.S_BODY, fontweight="bold", color=st.tc(c))
     aa.annotate("", (1.9, 100 * stages[2]["pooled"] + 0.4), (1.1, 100 * stages[1]["pooled"] + 0.4), arrowprops=dict(arrowstyle="-|>", color=st.ORANGE, lw=1.0, mutation_scale=8, connectionstyle="arc3,rad=-0.3"))
     aa.text(1.45, 100 * (stages[1]["pooled"] + stages[2]["pooled"]) / 2 + 3.6, "+5.6 points\n4/4 folds", fontsize=st.S_SMALL, color=st.ORANGE, ha="center", va="bottom", fontweight="bold", linespacing=1.0)
     aa.text(2.2, 100 * stages[2]["pooled"] + 3.4, "fold\nvalues", fontsize=st.sz(st.S_SMALL - 1.6), color=st.ORANGE, ha="left", va="bottom", alpha=0.8, linespacing=1.0)
     aa.set_xticks(xs); aa.set_xticklabels(["crop 128 px\n3-D CNN", "full frame 128\n3-D CNN", "full frame 224\nMViTv2-S"], fontsize=st.sz(st.S_SMALL - 0.5))
     aa.set_ylim(46.0, 69.0); aa.set_xlim(-0.5, 2.8); aa.set_ylabel("thermal member\naccuracy, OOF (%)"); st.hgrid(aa)
     aa.set_title("same camera, read at native resolution", fontsize=st.S_LABEL)
-    aa.text(0, 47.6, "fusion gain:\n0.00\nat every weight", fontsize=st.sz(st.S_SMALL - 1.2), color=st.GRAY, ha="center", va="bottom", linespacing=1.05)
-    aa.text(1, 47.6, "fusion gain:\n+0.83\nnot adopted", fontsize=st.sz(st.S_SMALL - 1.2), color=st.GRAY, ha="center", va="bottom", linespacing=1.05)
+    aa.text(0, 47.6, "fusion gain:\n0.00\nat every weight", fontsize=st.sz(st.S_SMALL - 1.2), color=st.GRAY_TEXT, ha="center", va="bottom", linespacing=1.05)
+    aa.text(1, 47.6, "fusion gain:\n+0.83\nnot adopted", fontsize=st.sz(st.S_SMALL - 1.2), color=st.GRAY_TEXT, ha="center", va="bottom", linespacing=1.05)
     aa.text(2, 47.6, "fusion gain:\n+46 clips\n+5 public", fontsize=st.sz(st.S_SMALL - 1.2), color=st.ORANGE, ha="center", va="bottom", fontweight="bold", linespacing=1.05)
     # (b) fusion gain vs weight at 224 (decoded OOF) with 128's flat zero
     w = fw["weights"]; d = [v - fw["decoded"][0] for v in fw["decoded"]]
-    af.axhline(0, color=st.GRAY, lw=1.2, zorder=2); af.text(0.41, 1.5, "128 px: 0 at\nevery weight", fontsize=st.sz(st.S_SMALL - 1.2), color=st.GRAY, ha="right", va="bottom")
+    af.axhline(0, color=st.GRAY, lw=1.2, zorder=2); af.text(0.41, 1.5, "128 px: 0 at\nevery weight", fontsize=st.sz(st.S_SMALL - 1.2), color=st.GRAY_TEXT, ha="right", va="bottom")
     af.plot(w[1:], d[1:], "-", color=st.ORANGE, lw=1.5, zorder=3); af.scatter(w[1:], d[1:], s=18, color=st.ORANGE, zorder=4)
     af.scatter([0.20], [46], s=60, facecolor="none", edgecolor=st.ORANGE, lw=1.1, zorder=5); af.annotate("+46 at w = 0.20\n(shipped 0.17)", (0.20, 46), xytext=(4, -30), textcoords="offset points", ha="center", fontsize=st.sz(st.S_SMALL - 1.2), color=st.INK, linespacing=1.0)
     af.set_xlim(0.05, 0.44); af.set_ylim(-6, 58); af.set_xticks([0.1, 0.2, 0.3, 0.4]); af.set_xlabel("thermal coefficient"); af.set_ylabel("decoded OOF gain\n(clips of 2,700)"); st.hgrid(af)
@@ -295,7 +295,7 @@ def fig04_thermal():
     # (c) insets: what the member sees
     crop, full = _thermal_insets(); st.despine_all(ai); ai.set_xlim(0, 100); ai.set_ylim(0, 100)
     ai.imshow(crop, extent=(2, 40, 30, 68), aspect="auto"); ai.imshow(full, extent=(46, 98, 27, 66), aspect="auto")
-    ai.text(21, 71, "crop 128 px", fontsize=st.sz(st.S_SMALL - 1), ha="center", va="bottom", color=st.GRAY); ai.text(72, 71, "full frame 224 px", fontsize=st.sz(st.S_SMALL - 1), ha="center", va="bottom", color=st.ORANGE)
+    ai.text(21, 71, "crop 128 px", fontsize=st.sz(st.S_SMALL - 1), ha="center", va="bottom", color=st.GRAY_TEXT); ai.text(72, 71, "full frame 224 px", fontsize=st.sz(st.S_SMALL - 1), ha="center", va="bottom", color=st.ORANGE)
     ai.text(50, 10, "objects and scene stay in view;\n320 x 240 source, nothing upsampled", fontsize=st.sz(st.S_SMALL - 1.3), ha="center", va="center", color=st.INK, linespacing=1.1)
     ai.set_title("what the member sees", fontsize=st.S_LABEL)
     st.panel_label(aa, "a", x=-0.2, y=1.02); st.panel_label(af, "b", x=-0.42, y=1.02); st.panel_label(ai, "c", x=-0.02, y=1.02)
@@ -333,8 +333,8 @@ def fig05_subjects():
         ad.plot([xx, xx], [vals.min(), vals.max()], color=c, lw=0.8, zorder=1)
         ad.add_patch(Rectangle((xx - 0.22, vals.mean() - vals.std(ddof=1)), 0.44, 2 * vals.std(ddof=1), fc=c, alpha=0.25, ec="none", zorder=2))
         ad.plot([xx - 0.3, xx + 0.3], [vals.mean()] * 2, color=c, lw=1.6, zorder=3)
-        ad.text(xx, vals.max() + 0.8, f"sd {vals.std(ddof=1):.1f}\nspread {vals.max()-vals.min():.0f}", ha="center", va="bottom", fontsize=st.sz(st.S_SMALL - 1.2), color=c, linespacing=1.0)
-        ad.text(xx, vals.min() - 0.9, lab, ha="center", va="top", fontsize=st.sz(st.S_SMALL - 1.0), color=c)
+        ad.text(xx, vals.max() + 0.8, f"sd {vals.std(ddof=1):.1f}\nspread {vals.max()-vals.min():.0f}", ha="center", va="bottom", fontsize=st.sz(st.S_SMALL - 1.2), color=st.tc(c), linespacing=1.0)
+        ad.text(xx, vals.min() - 0.9, lab, ha="center", va="top", fontsize=st.sz(st.S_SMALL - 1.0), color=st.tc(c))
     ad.set_xlim(-0.8, 1.8); ad.tick_params(axis="y", labelleft=False, length=0); ad.set_xticks([])
     for s_ in ad.spines.values(): s_.set_visible(False)
     ad.text(0.5, 0.0, "mean " + f"{100*S['person_mean_16']:.1f} to {100*S['ensemble_mean_16']:.1f}", transform=ad.transAxes, ha="center", va="bottom", fontsize=st.sz(st.S_SMALL - 1), color=st.INK, fontweight="bold")
@@ -365,7 +365,7 @@ def fig06_robustness():
     ypos = [0, 1, 2.5, 3.5, 4.5, 5.5, 6.5]
     for (lab, vals), y in zip(rows, ypos):
         for i, v in enumerate(vals):
-            if v is None: ax.text(i + 0.5, y + 0.5, "n/a", ha="center", va="center", fontsize=st.sz(st.S_SMALL - 1), color=st.GRAY); continue
+            if v is None: ax.text(i + 0.5, y + 0.5, "n/a", ha="center", va="center", fontsize=st.sz(st.S_SMALL - 1), color=st.GRAY_TEXT); continue
             ax.add_patch(Rectangle((i, y), 1, 1, fc=_cell_color(v), ec="white", lw=1.5))
             ax.text(i + 0.5, y + 0.5, f"{v:+d}" if v else "0", ha="center", va="center", fontsize=st.S_BODY, color=st.INK)
     ax.add_patch(Rectangle((0, 4.5), 6, 1, fc="none", ec=st.INK, lw=1.0, zorder=5))
@@ -373,7 +373,7 @@ def fig06_robustness():
     ax.set_yticks([y + 0.5 for y in ypos]); ax.set_yticklabels([r[0] for r in rows], fontsize=st.sz(st.S_SMALL - 0.5))
     for s_ in ax.spines.values(): s_.set_visible(False)
     ax.tick_params(length=0)
-    ax.text(0, 2.08, "one coefficient scaled, the others fixed (shipped values boxed):", fontsize=st.sz(st.S_SMALL - 1), color=st.GRAY, va="top")
+    ax.text(0, 2.08, "one coefficient scaled, the others fixed (shipped values boxed):", fontsize=st.sz(st.S_SMALL - 1), color=st.GRAY_TEXT, va="top")
     ax.text(0, 7.7, "worst case with a sensor absent: -48 clips = -1.8 points;\nany coefficient from x0.5 to x1.5: within -24 to +7 clips", fontsize=st.sz(st.S_SMALL - 1), color=st.INK, ha="left", va="top", linespacing=1.1)
     fig.text(0.02, 0.985, "Fused OOF change under perturbation (clips of 2,700)", ha="left", va="top", fontsize=st.S_TITLE, fontweight="bold")
     return st.save(fig, "fig06_robustness")
@@ -395,10 +395,10 @@ def fig07_decoder():
     for i, (lab, val, dlt, col) in enumerate(steps):
         if dlt is None:
             aw.bar(i, val - 2000, bottom=2000, color=col, width=0.62, zorder=3)
-            aw.text(i, val + 4, f"{val}", ha="center", va="bottom", fontsize=st.S_BODY, fontweight="bold", color=col)
+            aw.text(i, val + 4, f"{val}", ha="center", va="bottom", fontsize=st.S_BODY, fontweight="bold", color=st.tc(col))
         else:
             aw.bar(i, dlt, bottom=prev, color=col, alpha=0.55 if i == 1 else 0.85, width=0.62, zorder=3)
-            aw.text(i, prev + dlt + 4, f"+{dlt}", ha="center", va="bottom", fontsize=st.S_BODY, fontweight="bold", color=col)
+            aw.text(i, prev + dlt + 4, f"+{dlt}", ha="center", va="bottom", fontsize=st.S_BODY, fontweight="bold", color=st.tc(col))
             aw.plot([i - 1 + 0.31, i - 0.31], [prev, prev], color=st.GRAY, lw=0.6, ls=":", zorder=2)
         prev = val
     aw.set_ylim(2000, 2300); aw.set_xticks(x); aw.set_xticklabels([s_[0] for s_ in steps], fontsize=st.sz(st.S_SMALL - 0.5), linespacing=1.0); aw.set_ylabel("correct OOF clips (of 2,700)")
@@ -411,7 +411,7 @@ def fig07_decoder():
     for yi, nm, sh in zip(y, names, short):
         c = C[nm]; net = c["decoded"] - base; col = st.PURPLE if net > 20 else (st.GRAY if net >= 0 else st.RED)
         ac.barh(yi, c["rescues"], color=st.PURPLE, alpha=0.75, height=0.58, zorder=3); ac.barh(yi, -c["harms"], color=st.RED, alpha=0.75, height=0.58, zorder=3)
-        ac.text(c["rescues"] + 4, yi, f"net {net:+d}", va="center", ha="left", fontsize=st.S_BODY, fontweight="bold", color=col)
+        ac.text(c["rescues"] + 4, yi, f"net {net:+d}", va="center", ha="left", fontsize=st.S_BODY, fontweight="bold", color=st.tc(col))
         ac.text(-c["harms"] - 4, yi, f"{c['harms']}", va="center", ha="right", fontsize=st.S_SMALL, color=st.RED)
         ac.text(c["rescues"] - 4, yi, f"{c['rescues']}", va="center", ha="right", fontsize=st.S_SMALL, color="white")
     ac.axvline(0, color=st.INK, lw=0.7); ac.set_yticks(y); ac.set_yticklabels(short, fontsize=st.S_SMALL); ac.set_xlim(-185, 290)
@@ -491,7 +491,7 @@ def fig09_bytes():
             ax.text(X + W / 2, y + h / 2, f"{h:.1f}", ha="center", va="center", fontsize=st.S_BODY, color="white", zorder=3)
         ax.plot([X + W + 0.1, X + W + 0.6], [y + h / 2, ly], color=col, lw=0.6, zorder=1)
         ax.text(X + W + 0.7, ly + (1.6 if note else 0), lab, ha="left", va="center", fontsize=st.sz(st.S_SMALL - 0.5), color=st.INK if note else col)
-        if note: ax.text(X + W + 0.7, ly - 2.6, note, ha="left", va="center", fontsize=st.sz(st.S_SMALL - 1.4), color=st.GRAY)
+        if note: ax.text(X + W + 0.7, ly - 2.6, note, ha="left", va="center", fontsize=st.sz(st.S_SMALL - 1.4), color=st.GRAY_TEXT)
         y += h
     ax.add_patch(Rectangle((X, y), W, 100 - y, fc="none", ec=st.RED, lw=0, hatch="////", alpha=0.35, zorder=2)); ax.text(X + W / 2, y + (100 - y) / 2, f"{100-total:.1f} free", ha="center", va="center", fontsize=st.sz(st.S_SMALL - 1), color=st.RED, zorder=3)
     ax.add_patch(Rectangle((X, 0), W, 100, fc="none", ec=st.INK, lw=1.0, zorder=4))

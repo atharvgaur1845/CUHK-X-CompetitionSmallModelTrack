@@ -6,7 +6,7 @@ plotted values. Style: `figstyle.py` (one palette; Liberation Serif Bold, metric
 
 Semantic colours: person BLUE `#2E5C9E`, wrist BLUE_LIGHT `#6F97D1`, thermal ORANGE `#D9772B`,
 skeleton/IMU TEAL `#1F7F7A`, IMU forest TEAL_LIGHT `#5FB3A9`, decoder/structure PURPLE `#6B4FA0`,
-negative RED `#B4433A`, baseline GRAY `#8A929B`.
+negative RED `#B4433A`, baseline GRAY `#8A929B` (fills, markers, rules only); secondary text GRAY_TEXT `#4B535E` (2026-09-18: every grey text element moved from GRAY to this darker slate; the light grey was hard to read at 8 pt).
 
 | # | file | claim | source experiment | source artifact | exact values used | visual encoding | interpretation risk |
 |---|---|---|---|---|---|---|---|

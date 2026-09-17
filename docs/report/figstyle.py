@@ -6,7 +6,7 @@ Colour is semantic and fixed across the paper:
     video / person   BLUE      wrist (video)     BLUE_LIGHT
     skeleton / IMU   TEAL      IMU forest        TEAL_LIGHT
     thermal          ORANGE    decoder/structure PURPLE
-    negative         RED       baseline/neutral  GRAY
+    negative         RED       baseline/neutral  GRAY (fills); secondary text GRAY_TEXT
 """
 from __future__ import annotations
 from pathlib import Path
@@ -25,7 +25,8 @@ TEAL_LIGHT = "#5FB3A9"   # IMU forest
 ORANGE = "#D9772B"       # thermal
 PURPLE = "#6B4FA0"       # decoder / structure
 RED = "#B4433A"          # negative / harm
-GRAY = "#8A929B"         # baseline / reference
+GRAY = "#8A929B"         # baseline / reference (fills, markers, rules)
+GRAY_TEXT = "#4B535E"    # secondary text: dark slate, readable at 8 pt (GRAY is too light for type)
 GRAY_LIGHT = "#D6DBE1"   # light rules
 BAND = "#F3F1EC"         # warm highlight band
 PAPER = "#FBFAF7"        # warm near-white (cards only; figure background stays white)
@@ -81,6 +82,11 @@ def use() -> None:
 
 
 # ---------------------------------------------------------------- helpers
+def tc(c: str) -> str:
+    """Text colour for an element drawn in colour c: the light fill grey is replaced by the readable text grey."""
+    return GRAY_TEXT if c == GRAY else c
+
+
 def panel_label(ax, text: str, x: float = -0.02, y: float = 1.04, size: float = S_LABEL + 1) -> None:
     ax.text(x, y, text, transform=ax.transAxes, fontsize=size, fontweight="bold", ha="right", va="bottom", color=INK)
 

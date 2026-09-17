@@ -6,7 +6,7 @@ Figures: `docs/slides/figures/*.png` (300 dpi) and `*.svg` (vector), generated f
 
 Palette (use the same colours for any slide graphics): ink `#1B2A41`, person blue `#2E5C9E`,
 wrist blue `#6F97D1`, thermal orange `#D9772B`, skeleton/IMU teal `#1F7F7A`, forest teal
-`#5FB3A9`, decoder purple `#6B4FA0`, negative red `#B4433A`, gray `#8A929B`, band `#F3F1EC`.
+`#5FB3A9`, decoder purple `#6B4FA0`, negative red `#B4433A`, gray `#8A929B` (fills only), text gray `#4B535E`, band `#F3F1EC`.
 Typeface: Lato (figures), any clean sans for slides.
 
 Rule of the deck: one figure and one sentence per slide. The sentence is the title.

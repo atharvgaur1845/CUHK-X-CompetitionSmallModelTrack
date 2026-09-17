@@ -45,7 +45,8 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 > `poster.pdf`, placed with `pdfpages`), the paper (cover with graphical abstract, abstract, findings strip)
 > starts on page 2. Poster is print style: white, black bold Liberation Serif (the paper's face), no grey
 > text, sensor colours only where they carry meaning; the same file is the Most Popular asset
-> (`poster_social.png` 1080 x 1350). Title still "Five Sensors, One Model"; alternatives under discussion.
+> (`poster_social.png` 1080 x 1350). Title still "Five Sensors, One Model"; alternatives under discussion. Figure secondary text is
+> GRAY_TEXT `#4B535E` (figstyle), the light GRAY is fills only; `make_slide_figures.py` also re-exports the PNG/SVG copies.
 >
 > **Uploaded via the organisers' form 2026-09-17 (~01:00 UTC)**: the zip and `image.tar.gz` above, offline = yes,
 > registry link, checksums, notes with the residual disclosure. **Post-upload doc-only change:** affiliation
