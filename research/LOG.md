@@ -13,6 +13,27 @@ results.
 
 ---
 
+## EXP-161 — ✅ VERIFICATION PACKAGE v1 FROZEN (tag `verification-v1`, 2026-09-17 00:40 UTC): byte-identical second submission and 403/405 primary reproduced from the actual upload archives in a clean room, on five GPU generations, with the repository absent.
+
+**Artifacts.** `dist/small_AGX_verification_v1.zip` (96,688,141 B, sha256 `20a00f92…bfa2039`, 208 files, template
+layout), `dist/image.tar.gz` (3,590,141,281 B, sha256 `e3995227…34da5b`), image id `c5b0d56e147d` =
+`ghcr.io/atharvgaur1845/cuhkx-small-agx:v1`. Model unchanged: `artifacts/stage2_ship7.pth` sha `5b914543…360330`.
+
+**Evidence** (`docs/verification_logs/`): G6/G7 organisers' docker command on the laptop (`docker_laptop_rtx4060/`);
+G8 cross-GPU table (`crossgpu/`, README §7): A100/H100/H200/V100 max |Δp| ≤ 2.0e-3 video, ≤ 9.2e-5 skeleton, 0 IMU,
+0/405 fused argmax changes, CSV identical on every one; G12 Kaggle-downloaded Selected CSVs hash-match
+(`kaggle_download/`); G13 host run from the unzipped zip byte-identical; G14 two clean-room attacks from the
+archives (`final_clean/`), the second with the working repository moved aside: primary 403/405 (SM_test_0206 8
+vs 7, SM_test_0382 21 vs 22 — the disclosed prune residual), second byte-identical, data directory untouched,
+~280 s per run.
+
+**What the residual is and is not.** ~900 coefficient settings with the frozen tensors never reach 0 rows
+(`config_search_*`); the two rows are decoder near-ties (margins 0.012, 0.006) moved by the 48→20 skeleton
+prune that the 100 MB rule required. Disclosed in README §1/§7, `submission_info.yaml`, the configs, and the
+organiser email. No row was hard-coded, no target-fitting.
+
+**Rule.** Nothing under the tag changes; report/slides/publicity may.
+
 ## EXP-162 — analysis for the report (no shipped change): missing a sensor costs ≤ 1.8 points; every fusion coefficient sits on a plateau; the decoder is neutral when recording order is random, harmful only when reversed, and half its gain is the distinctness prior.
 **2026-09-16.** `code/exp162_analysis.py` (fusion harness of EXP-160, 2,700 pooled OOF, pre-decoder
 baseline 2109) and `ordered_transition_decoder.py oof --control …` on `oof_p384w_fused_rebuilt.npz`.

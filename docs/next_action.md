@@ -17,6 +17,30 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 
 ## Do this next
 
+> # ⚡ 2026-09-17 00:40 UTC — **PACKAGE FROZEN AND CLEAN-ROOM VERIFIED. Upload pending (user, form).** Tag `verification-v1`.
+>
+> **Upload these two files (in `dist/`), hashes in `dist/UPLOAD_SHA256SUMS`:**
+> - `small_AGX_verification_v1.zip` — 96,688,141 B, sha256 `20a00f926b049a602a1fd3d5f788301301333b14c1deb8d4cd816d015bfa2039`
+> - `image.tar.gz` — 3,590,141,281 B, sha256 `e399522793d82a122b1312b0cf143ad6e5c08af4cf51f829d258dc499934da5b`
+> - registry: `ghcr.io/atharvgaur1845/cuhkx-small-agx:v1`, image id `c5b0d56e147d`, digest `sha256:c5b0d56e147d…353c85` — **still private; user must set the GitHub package to public** (Packages → cuhkx-small-agx → Package settings → Change visibility).
+>
+> **Gates: all passed** (`docs/verification_logs/`): G1–G5, G10 (laptop host); G6/G7 (organisers' exact docker
+> command, `--network none`, laptop RTX 4060: primary 403/405 = the disclosed residual, second byte-identical;
+> synthetic set completes with live detection); G8 cross-GPU A100/H100/H200/V100 0/405 changes; G11 (zip
+> content); G12 (Kaggle-downloaded Selected CSVs hash-match, `kaggle_download/`); G13 (host run from the
+> unzipped zip, byte-identical); **G14 clean-room attack ×2 from the actual archives, second run with the
+> working repository moved aside** (`final_clean/README.md`). Declaration signed (Atharv), Small Model boxes ticked.
+>
+> **Rule from here: nothing under the tag changes.** README wording, report, slides, publicity may.
+>
+> **Next (after the user uploads):** Most Popular form (`docs/POPULAR_AWARD.md`); re-download the uploaded
+> files from the form's mirror on 18 Sept and hash once; then report/slides iteration (`docs/report/`,
+> `docs/slides/`, `docs/QA_BANK.md`). Organiser reply to `docs/organizer_email_2026-09-16.md` (sent 17 Sept)
+> may ask for exact-via-coefficients (config A) — the answer is in `docs/verification_logs/config_search_*`:
+> no coefficient setting reaches 0 rows; do not fit to the target file.
+>
+> ---
+>
 > # ⚡ 2026-09-16 — SELECTION STAGE (14th private, 179/204). Verification package due 18 Sept 23:59 UTC; internal freeze 17 Sept 12:00 UTC. Plan: `~/.claude/plans/you-are-planning-a-cuddly-glade.md` (master plan, approved).
 >
 > **Primary target = `sub_pkgship6.csv` (ID 56212349, private 0.87745, sha256 `f5ead899…`).** The frozen
@@ -41,13 +65,7 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 > neutral under shuffled order); report draft `docs/report/report.pdf`, deck `docs/slides/slides.pdf`,
 > `docs/QA_BANK.md`, `docs/POPULAR_AWARD.md`.
 >
-> **Blocked on the user:** send `docs/organizer_email_2026-09-16.md`; confirm the Kaggle "Selected" pair;
-> install nvidia-container-toolkit (G6/G14 on the laptop); Docker Hub/GHCR login + repo name; team names,
-> emails, affiliation (`TODO-TEAM` in `package/README.md`, `package/manifest.yaml`, report, slides); sign
-> the declaration in `package/declarations/`.
->
-> **Then:** cross-GPU table (G8) → README §7 → rebuild package → freeze (`git tag verification-v1`) →
-> registry push → zip + checksums → clean-room attack (G14, `tools/independent_compare.py`) → upload.
+> (superseded by the 17 Sept block above: all of it was done.)
 >
 > ---
 >
