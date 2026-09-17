@@ -88,9 +88,13 @@ Visual: `fig06_robustness`.
 - consequence: any re-weighting moves at most 8 of the 405 test rows
 Threat: "did you fit the weights to the leaderboard?" No: nested CV; and the plateau means it would not matter.
 
-## 11. What did not work, and why that is the result
+## 11a. What we tried (one glance)
+**Seven families of levers; three crossed out, four adopted, all by the same statistical bar.**
+Visual: `slide_what_we_tried` (slide-only figure, `make_slide_figures.py`). Read the crosses first, then the checks. Say the numbers only if asked; they are on the slide in small type.
+
+## 11b. What did not work, and why that is the result
 **We tested the obvious routes; capacity was not the bottleneck.**
-Visual: `fig08_landscape`.
+Visual: `fig08_landscape` (the same levers placed on one axis, at the level each was measured).
 - larger backbones (VideoMAE-B -1.8, Swin3D-T -9.8), a foundation teacher (V-JEPA 2, -29), distillation (student 157 public vs 167), soups (-2.4), TTA (-4 fused), self-training (member up, fusion down), object detector (AUC 0.50), verifier (-0.84), twin pooling (-4 decoded)
 - the adopted levers: resolution, a new view read correctly, prior-space fusion, recording structure
 Threat: "why so many failures?" They are the map; each was measured against a 2 SE bar and recorded.

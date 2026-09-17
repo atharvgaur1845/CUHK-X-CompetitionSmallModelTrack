@@ -114,7 +114,7 @@ def fig01_abstract():
     ax.text(XF + WF / 2, YF + HF - 7.0, r"$\sum_i w_i \log p_i$", fontsize=st.S_LABEL + 2, color=st.INK, ha="center", va="top", zorder=3)
     ax.text(XF + WF / 2, YF + 0.7, "coefficients by\nnested CV", fontsize=F0, color=st.GRAY, ha="center", va="bottom", zorder=3, linespacing=1.05)
     for key in MEM: st.arrow(ax, (XN + WN, ny[key]), (XF, YF + HF / 2 + (ny[key] - 32.5) * 0.26), color=st.MEMBER[key], lw=0.9, ms=6, coords="data")
-    ax.text(XF + WF / 2, YF + HF + 1.2, f"fused {m['fused_correct']/2700:.3f}", fontsize=st.S_LABEL, color=st.INK, ha="center", va="bottom")
+    ax.text(XF + WF / 2, YF + HF + 1.0, f"fused {m['fused_correct']/2700:.3f}", fontsize=st.S_SMALL, color=st.GRAY, ha="center", va="bottom")
     # ---- decoder
     XD, WD, HD, YD = 73.0, 14.0, 16.0, 23.0
     ax.add_patch(FancyBboxPatch((XD, YD), WD, HD, boxstyle="round,pad=0,rounding_size=0.6", fc="white", ec=st.PURPLE, lw=1.0, zorder=2))
@@ -125,17 +125,18 @@ def fig01_abstract():
     ax.plot([XT + WT, XT + WT + 1.5, xm, xm], [ys[4] + HT / 2, yb, yb, YD - 0.3], color=st.PURPLE, lw=0.8, zorder=1, solid_joinstyle="round")
     st.arrow(ax, (xm, YD - 1.2), (xm, YD), color=st.PURPLE, lw=0.8, ms=6, coords="data")
     ax.text(xm - 1.0, yb + 0.4, "recording group, clip order", fontsize=F0, color=st.PURPLE, ha="right", va="bottom")
-    ax.text(XD + WD / 2, YD + HD + 1.2, f"decoded {D['decoder']['conditions'][0]['decoded']/2700:.3f}", fontsize=st.S_LABEL, color=st.PURPLE, ha="center", va="bottom")
-    # ---- output card
+    ax.text(XD + WD / 2, YD + HD + 1.0, f"decoded {D['decoder']['conditions'][0]['decoded']/2700:.3f}", fontsize=st.S_SMALL, color=st.GRAY, ha="center", va="bottom")
+    # ---- output rail: four facts a reader keeps, everything else subordinate
     XO, WO = 88.0, 11.8
     st.arrow(ax, (XD + WD, YD + HD / 2), (XO, YD + HD / 2), color=st.INK, lw=1.2, ms=9, coords="data")
     ax.add_patch(FancyBboxPatch((XO, 3.6), WO, 57.0, boxstyle="round,pad=0,rounding_size=0.8", fc=st.INK, ec="none", zorder=2))
-    rows = [("40", "activities", st.S_HUGE), ("96.4 MB", "one file", st.S_BIG), ("unseen", "subjects", st.S_BIG), ("0.877", "private,\n14th of 307", st.S_BIG + 5), ("0/405", "changed on\n5 GPUs", st.S_BIG)]
-    yy = 59.6
+    rows = [("5", "sensors", st.S_HUGE + 4), ("40", "activities", st.S_HUGE + 4), ("96 MB", "one file", st.S_BIG + 1), ("0.877", "private score", st.S_BIG + 4)]
+    yy = 59.2
     for big, small, sz_ in rows:
         ax.text(XO + WO / 2, yy, big, fontsize=sz_, color="white", ha="center", va="top", zorder=3)
-        ax.text(XO + WO / 2, yy - sz_ * 0.16 - 0.6, small, fontsize=F0, color="#C9D2E0", ha="center", va="top", zorder=3, linespacing=1.05)
-        yy -= 10.4 + (1.8 if "\n" in small else 0)
+        ax.text(XO + WO / 2, yy - sz_ * 0.16 - 0.8, small, fontsize=st.S_SMALL, color="#C9D2E0", ha="center", va="top", zorder=3)
+        yy -= 13.6
+    ax.text(XO + WO / 2, 5.0, "unseen people\n14th of 307 teams\n0/405 changed\non 5 GPUs", fontsize=F0, color="#C9D2E0", ha="center", va="bottom", zorder=3, linespacing=1.15)
     ax.text(XN, 0.2, "accuracies: pooled out-of-fold over 2,700 training clips of held-out subjects. private: Kaggle leaderboard, 204 clips of unseen subjects.",
             fontsize=F0, color=st.GRAY, va="bottom")
     return st.save(fig, "fig01_abstract")
