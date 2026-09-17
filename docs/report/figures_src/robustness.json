@@ -1,0 +1,88 @@
+{
+ "source": "EXP-162 (a) and (b): code/exp162_analysis.py, pre-decoder fused OOF, baseline 2109/2700",
+ "baseline": 2109,
+ "missing": {
+  "members": [
+   "person",
+   "wrist",
+   "thermal",
+   "skeleton",
+   "imu"
+  ],
+  "constant_posterior": [
+   -48,
+   -29,
+   -11,
+   -27,
+   -13
+  ],
+  "removed_w0": [
+   -48,
+   -25,
+   -12,
+   -23,
+   -11
+  ]
+ },
+ "coefficients": {
+  "names": [
+   "person",
+   "wrist",
+   "thermal",
+   "skeleton",
+   "imu",
+   "prior"
+  ],
+  "scales": [
+   0.5,
+   0.75,
+   1.0,
+   1.25,
+   1.5
+  ],
+  "fused": {
+   "person": [
+    2085,
+    2102,
+    2109,
+    2114,
+    2102
+   ],
+   "wrist": [
+    2102,
+    2111,
+    2109,
+    2109,
+    2107
+   ],
+   "thermal": [
+    2113,
+    2116,
+    2109,
+    2107,
+    2105
+   ],
+   "skeleton": [
+    2100,
+    2104,
+    2109,
+    2107,
+    2100
+   ],
+   "imu": [
+    2105,
+    2109,
+    2109,
+    2107,
+    2105
+   ],
+   "prior": [
+    2109,
+    2110,
+    2109,
+    2108,
+    2111
+   ]
+  }
+ }
+}

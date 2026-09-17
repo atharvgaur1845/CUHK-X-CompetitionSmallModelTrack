@@ -1,0 +1,232 @@
+{
+ "source": "research/LOG.md, one row per lever; delta in accuracy points at the stated level",
+ "adoption_bar_member_points": 1.64,
+ "bar_note": "seed sd 1.16 (EXP-120a) -> paired sd 1.64; bar = 1.64 on a 4-fold mean; system-level changes were judged on the paired fold delta (t >= 2) and on rowdiff readability",
+ "levers": [
+  {
+   "name": "MViTv2-S vs R(2+1)D IG-65M",
+   "lane": "backbone",
+   "level": "member",
+   "delta": 2.42,
+   "verdict": "adopted",
+   "exp": "EXP-103",
+   "note": "p = 0.0016"
+  },
+  {
+   "name": "224 px + MViT recipe vs 128 px CNN",
+   "lane": "resolution",
+   "level": "member",
+   "delta": 7.5,
+   "verdict": "adopted",
+   "exp": "EXP-102/103",
+   "note": "0.640 to 0.715"
+  },
+  {
+   "name": "person 288 px",
+   "lane": "resolution",
+   "level": "member",
+   "delta": 1.23,
+   "verdict": "adopted",
+   "exp": "EXP-154",
+   "note": "4/4 folds"
+  },
+  {
+   "name": "person 384 px",
+   "lane": "resolution",
+   "level": "system",
+   "delta": 0.7407407407407407,
+   "verdict": "adopted",
+   "exp": "EXP-154",
+   "note": "+20 fused clips"
+  },
+  {
+   "name": "thermal 224 full frame",
+   "lane": "input view",
+   "level": "member",
+   "delta": 5.62,
+   "verdict": "adopted",
+   "exp": "EXP-139",
+   "note": "4/4 folds"
+  },
+  {
+   "name": "thermal in fusion",
+   "lane": "input view",
+   "level": "system",
+   "delta": 1.7037037037037037,
+   "verdict": "adopted",
+   "exp": "EXP-139",
+   "note": "+46 decoded clips"
+  },
+  {
+   "name": "nested-CV re-weighting",
+   "lane": "fusion",
+   "level": "system",
+   "delta": 0.5555555555555556,
+   "verdict": "adopted",
+   "exp": "EXP-154",
+   "note": "+15 clips"
+  },
+  {
+   "name": "ordered transition decoder",
+   "lane": "structure",
+   "level": "system",
+   "delta": 4.851851851851852,
+   "verdict": "adopted",
+   "exp": "EXP-125/162",
+   "note": "+131 clips"
+  },
+  {
+   "name": "soft distinctness",
+   "lane": "structure",
+   "level": "system",
+   "delta": 1.0,
+   "verdict": "adopted",
+   "exp": "EXP-125",
+   "note": "+27 clips, 4/4"
+  },
+  {
+   "name": "VideoMAE-B (86.7 M)",
+   "lane": "backbone",
+   "level": "member",
+   "delta": -1.8,
+   "verdict": "rejected",
+   "exp": "EXP-115",
+   "note": "0/4 folds"
+  },
+  {
+   "name": "Swin3D-T",
+   "lane": "backbone",
+   "level": "member",
+   "delta": -9.82,
+   "verdict": "rejected",
+   "exp": "EXP-104",
+   "note": "0.617 vs 0.715, fold 2"
+  },
+  {
+   "name": "V-JEPA 2 ViT-L frozen teacher",
+   "lane": "training signal",
+   "level": "member",
+   "delta": -29.3,
+   "verdict": "rejected",
+   "exp": "EXP-135",
+   "note": "0.419 vs 0.712"
+  },
+  {
+   "name": "layer-wise LR decay",
+   "lane": "backbone",
+   "level": "member",
+   "delta": 0.245,
+   "verdict": "rejected",
+   "exp": "EXP-112",
+   "note": "2/4 folds, sd 1.79"
+  },
+  {
+   "name": "person 448 px",
+   "lane": "resolution",
+   "level": "member",
+   "delta": -0.81,
+   "verdict": "rejected",
+   "exp": "EXP-160",
+   "note": "fusion -17 clips"
+  },
+  {
+   "name": "wrist 288 px",
+   "lane": "resolution",
+   "level": "member",
+   "delta": -1.36,
+   "verdict": "rejected",
+   "exp": "EXP-154",
+   "note": "3/4 folds negative"
+  },
+  {
+   "name": "full-frame IR+depth 224",
+   "lane": "input view",
+   "level": "member",
+   "delta": -4.98,
+   "verdict": "rejected",
+   "exp": "EXP-143",
+   "note": "0.662 vs 0.712; fusion +8 at best"
+  },
+  {
+   "name": "COCO object channel",
+   "lane": "input view",
+   "level": "signal",
+   "delta": 0.0,
+   "verdict": "no signal",
+   "exp": "EXP-134",
+   "note": "hand-held AUC 0.50"
+  },
+  {
+   "name": "oracle distillation (member)",
+   "lane": "training signal",
+   "level": "member",
+   "delta": 4.91,
+   "verdict": "rejected",
+   "exp": "EXP-122/127",
+   "note": "student alone 157 public, fused 165 vs 167"
+  },
+  {
+   "name": "transductive self-training",
+   "lane": "training signal",
+   "level": "system",
+   "delta": -0.29542097488921715,
+   "verdict": "rejected",
+   "exp": "EXP-156",
+   "note": "member +1.38, fusion -2 of 677 (fold 2)"
+  },
+  {
+   "name": "temporal TTA (both views)",
+   "lane": "inference time",
+   "level": "system",
+   "delta": -0.14814814814814814,
+   "verdict": "rejected",
+   "exp": "EXP-146",
+   "note": "members +0.5/+0.9, fusion -4"
+  },
+  {
+   "name": "seed soup",
+   "lane": "inference time",
+   "level": "member",
+   "delta": -2.39,
+   "verdict": "rejected",
+   "exp": "EXP-148",
+   "note": "4/4 folds negative"
+  },
+  {
+   "name": "pair verifier",
+   "lane": "inference time",
+   "level": "system",
+   "delta": -0.84,
+   "verdict": "rejected",
+   "exp": "EXP-147",
+   "note": "on 2,372 decidable clips"
+  },
+  {
+   "name": "per-group logit centering",
+   "lane": "inference time",
+   "level": "system",
+   "delta": 0.18518518518518517,
+   "verdict": "rejected",
+   "exp": "EXP-137",
+   "note": "+5 decoded clips"
+  },
+  {
+   "name": "twin pooling",
+   "lane": "structure",
+   "level": "system",
+   "delta": -0.14814814814814814,
+   "verdict": "rejected",
+   "exp": "EXP-157",
+   "note": "+1 pre-decoder, -4 decoded"
+  },
+  {
+   "name": "subject alignment",
+   "lane": "structure",
+   "level": "signal",
+   "delta": 0.0,
+   "verdict": "no signal",
+   "exp": "EXP-133/137",
+   "note": "purity 0.34"
+  }
+ ]
+}

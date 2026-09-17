@@ -1,0 +1,20 @@
+{
+ "source": "research/artifacts/stage2_ship7.pth manifest.json and zip entry sizes (compressed)",
+ "total_file_bytes": 96369921,
+ "by_branch_bytes": {
+  "skeleton": 18929973,
+  "video": 64789691,
+  "detector": 10296321,
+  "windows": 7369,
+  "imu": 1584327
+ },
+ "other_bytes": 178680,
+ "sum_entries": 95786361,
+ "labels": {
+  "video": "3 x MViTv2-S, 5-bit codes",
+  "skeleton": "20-member skeleton/IMU ensemble, int8",
+  "detector": "YOLO11n + YOLO11n-pose, fp16",
+  "imu": "IMU ExtraTrees, tensors",
+  "windows": "405 crop windows"
+ }
+}

@@ -33,6 +33,15 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 >
 > **Rule from here: nothing under the tag changes.** README wording, report, slides, publicity may.
 >
+> **Report v2 (2026-09-17, after upload).** `docs/report/report.tex` rebuilt around 11 scripted vector
+> figures (`figstyle.py`, `figdata.py` -> `figures_src/*.json`, `generate_all_figures.py`); 7 pages, page 1 =
+> graphical abstract + abstract + four key findings; `FIGURE_AUDIT.md` lists every plotted number and its
+> EXP id. Figure numbers are the shipped-stage recomputation (LOO -48/-25/-23/-12/-11, unique rescues
+> 61/52/68/73/34, oracle 2399), not the earlier-stage EXP-140/113 values. LOSO comparison is the paired
+> 16-subject one (sd 6.4 -> 5.4, spread 23 -> 21; the 18-subject person sd 6.9 / spread 28 is stated in the
+> caption). No em dashes. Slides: user builds them from `docs/slides/SLIDE_CONTENT.md` + `docs/slides/figures/`
+> (PNG 300 dpi + SVG of every report figure); `docs/slides/slides.tex` is the old draft and is superseded.
+>
 > **Uploaded via the organisers' form 2026-09-17 (~01:00 UTC)**: the zip and `image.tar.gz` above, offline = yes,
 > registry link, checksums, notes with the residual disclosure. **Post-upload doc-only change:** affiliation
 > corrected to "BITS Pilani, K K Birla Goa Campus" in `package/README.md`, `package/manifest.yaml`, report,

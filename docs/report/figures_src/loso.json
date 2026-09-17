@@ -1,0 +1,80 @@
+{
+ "source": "research/LOG.md EXP-141 (person view, 18 LOSO fits) and EXP-145 (shipped ensemble, 16 subjects covered by the skeleton OOF)",
+ "person": {
+  "user21": 0.6015,
+  "user24": 0.74843,
+  "user3": 0.65217,
+  "user16": 0.75269,
+  "user6": 0.65672,
+  "user18": 0.75281,
+  "user23": 0.65909,
+  "user2": 0.75449,
+  "user8": 0.66061,
+  "user9": 0.76796,
+  "user1": 0.69128,
+  "user5": 0.78,
+  "user20": 0.69182,
+  "user17": 0.79518,
+  "user22": 0.69792,
+  "user4": 0.80597,
+  "user7": 0.71196,
+  "user19": 0.88172
+ },
+ "ensemble": {
+  "user23": 0.66667,
+  "user4": 0.79104,
+  "user3": 0.7205,
+  "user22": 0.80208,
+  "user6": 0.72139,
+  "user16": 0.82258,
+  "user1": 0.74497,
+  "user24": 0.83019,
+  "user8": 0.74545,
+  "user2": 0.83234,
+  "user7": 0.77174,
+  "user17": 0.8494,
+  "user9": 0.77901,
+  "user19": 0.87634,
+  "user20": 0.77987,
+  "user18": 0.7809
+ },
+ "shared_subjects_sorted_by_person": [
+  "user3",
+  "user6",
+  "user23",
+  "user8",
+  "user1",
+  "user20",
+  "user22",
+  "user7",
+  "user24",
+  "user16",
+  "user18",
+  "user2",
+  "user9",
+  "user17",
+  "user4",
+  "user19"
+ ],
+ "person_only_subjects": [
+  "user21",
+  "user5"
+ ],
+ "summary": {
+  "person_mean_18": 0.7256844444444445,
+  "person_sd_18": 0.06890468883748659,
+  "person_spread_18": 0.2802199999999999,
+  "person_mean_16": 0.73005125,
+  "person_sd_16": 0.06430992394905573,
+  "ensemble_mean_16": 0.782154375,
+  "ensemble_sd_16": 0.05416910521305788,
+  "ensemble_spread_16": 0.20967000000000002,
+  "paired_delta_mean_16": 0.052103125,
+  "paired_delta_min": -0.014929999999999999,
+  "paired_delta_max": 0.10416000000000003,
+  "logged": {
+   "person": "mean 0.72568, sd 0.06890 (17 df), spread 28.0 pts, SE 8-subject draw 2.44",
+   "ensemble": "mean 0.78215, sd 0.05417 (15 df), spread 20.97, SE 1.92"
+  }
+ }
+}

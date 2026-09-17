@@ -1,0 +1,71 @@
+{
+ "source": "EXP-088/113 (128-px cropped thermal through r2plus1d_18), EXP-120b (128-px full frame), EXP-139 (224-px full frame through the MViTv2-S recipe), EXP-140 (public)",
+ "stages": [
+  {
+   "name": "crop 128 px, r2plus1d",
+   "pooled": 0.544,
+   "fusion": "0.00 at every weight 0.05-0.35 (OOF, EXP-088/113)"
+  },
+  {
+   "name": "full frame 128 px, r2plus1d",
+   "pooled": 0.568,
+   "folds": [
+    0.58354,
+    0.56511,
+    0.55828,
+    0.56508
+   ],
+   "fusion": "+0.83 over 4 paired folds, not adopted (EXP-120b)"
+  },
+  {
+   "name": "full frame 224 px, MViTv2-S",
+   "pooled": 0.627,
+   "folds": [
+    0.66216,
+    0.63759,
+    0.60583,
+    0.59112
+   ],
+   "fusion": "+46 of 2,700 through the decoder at w = 0.20; +5 public clips (172 vs 167)"
+  }
+ ],
+ "fusion_224_vs_weight": {
+  "weights": [
+   0.0,
+   0.1,
+   0.15,
+   0.2,
+   0.3,
+   0.4
+  ],
+  "decoded": [
+   2184,
+   2225,
+   2226,
+   2230,
+   2229,
+   2218
+  ],
+  "harms": [
+   90,
+   72,
+   72,
+   66,
+   63,
+   60
+  ],
+  "rescues": [
+   232,
+   227,
+   225,
+   225,
+   226,
+   237
+  ]
+ },
+ "public": {
+  "before": 167,
+  "after": 172,
+  "of": 201
+ }
+}

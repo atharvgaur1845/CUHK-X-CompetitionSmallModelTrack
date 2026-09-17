@@ -1,0 +1,368 @@
+{
+ "source": "shipped fusion on the 2,700 pooled OOF clips (same harness as members.json); a cell is (subject, true, predicted)",
+ "errors": 591,
+ "errors_in_repeated_cells": 214,
+ "repeated_cells": 60,
+ "subject_pair_cells": 56,
+ "one_directional_pair_cells": 52,
+ "subjects": [
+  {
+   "user": "user1",
+   "clips": 149,
+   "errors": 44,
+   "errors_in_repeated_cells": 13,
+   "acc": 0.7046979865771812
+  },
+  {
+   "user": "user2",
+   "clips": 167,
+   "errors": 30,
+   "errors_in_repeated_cells": 3,
+   "acc": 0.8203592814371258
+  },
+  {
+   "user": "user3",
+   "clips": 161,
+   "errors": 43,
+   "errors_in_repeated_cells": 19,
+   "acc": 0.7329192546583851
+  },
+  {
+   "user": "user4",
+   "clips": 134,
+   "errors": 29,
+   "errors_in_repeated_cells": 9,
+   "acc": 0.7835820895522388
+  },
+  {
+   "user": "user6",
+   "clips": 201,
+   "errors": 60,
+   "errors_in_repeated_cells": 32,
+   "acc": 0.7014925373134329
+  },
+  {
+   "user": "user7",
+   "clips": 184,
+   "errors": 37,
+   "errors_in_repeated_cells": 15,
+   "acc": 0.7989130434782609
+  },
+  {
+   "user": "user8",
+   "clips": 165,
+   "errors": 38,
+   "errors_in_repeated_cells": 13,
+   "acc": 0.7696969696969697
+  },
+  {
+   "user": "user9",
+   "clips": 181,
+   "errors": 36,
+   "errors_in_repeated_cells": 17,
+   "acc": 0.8011049723756906
+  },
+  {
+   "user": "user16",
+   "clips": 186,
+   "errors": 34,
+   "errors_in_repeated_cells": 10,
+   "acc": 0.8172043010752689
+  },
+  {
+   "user": "user17",
+   "clips": 166,
+   "errors": 29,
+   "errors_in_repeated_cells": 13,
+   "acc": 0.8253012048192772
+  },
+  {
+   "user": "user18",
+   "clips": 178,
+   "errors": 39,
+   "errors_in_repeated_cells": 6,
+   "acc": 0.7808988764044944
+  },
+  {
+   "user": "user19",
+   "clips": 186,
+   "errors": 28,
+   "errors_in_repeated_cells": 16,
+   "acc": 0.8494623655913979
+  },
+  {
+   "user": "user20",
+   "clips": 159,
+   "errors": 34,
+   "errors_in_repeated_cells": 20,
+   "acc": 0.7861635220125787
+  },
+  {
+   "user": "user22",
+   "clips": 192,
+   "errors": 35,
+   "errors_in_repeated_cells": 10,
+   "acc": 0.8177083333333334
+  },
+  {
+   "user": "user23",
+   "clips": 132,
+   "errors": 45,
+   "errors_in_repeated_cells": 6,
+   "acc": 0.6590909090909091
+  },
+  {
+   "user": "user24",
+   "clips": 159,
+   "errors": 30,
+   "errors_in_repeated_cells": 12,
+   "acc": 0.8113207547169812
+  }
+ ],
+ "top_pairs": [
+  {
+   "a": 21,
+   "b": 22,
+   "name_a": "21_Read_documents",
+   "name_b": "22_Turn_pages",
+   "total": 32,
+   "per_subject": {
+    "user16": [
+     4,
+     6
+    ],
+    "user3": [
+     5,
+     3
+    ],
+    "user4": [
+     3,
+     0
+    ],
+    "user6": [
+     3,
+     0
+    ],
+    "user9": [
+     4,
+     0
+    ],
+    "user20": [
+     0,
+     4
+    ]
+   }
+  },
+  {
+   "a": 12,
+   "b": 13,
+   "name_a": "12_Sweep_the_floor",
+   "name_b": "13_Mop_the_floor",
+   "total": 19,
+   "per_subject": {
+    "user18": [
+     3,
+     0
+    ],
+    "user20": [
+     3,
+     4
+    ],
+    "user2": [
+     0,
+     3
+    ],
+    "user4": [
+     0,
+     3
+    ],
+    "user9": [
+     0,
+     3
+    ]
+   }
+  },
+  {
+   "a": 24,
+   "b": 26,
+   "name_a": "24_Use_a_mobile_phone",
+   "name_b": "26_Play_games",
+   "total": 14,
+   "per_subject": {
+    "user24": [
+     3,
+     0
+    ],
+    "user19": [
+     0,
+     4
+    ],
+    "user9": [
+     0,
+     7
+    ]
+   }
+  },
+  {
+   "a": 6,
+   "b": 37,
+   "name_a": "6_Drink_water",
+   "name_b": "37_Take_medicine",
+   "total": 10,
+   "per_subject": {
+    "user6": [
+     4,
+     0
+    ],
+    "user19": [
+     0,
+     3
+    ],
+    "user9": [
+     0,
+     3
+    ]
+   }
+  },
+  {
+   "a": 6,
+   "b": 7,
+   "name_a": "6_Drink_water",
+   "name_b": "7_Eat_food",
+   "total": 9,
+   "per_subject": {
+    "user20": [
+     3,
+     3
+    ],
+    "user3": [
+     3,
+     0
+    ]
+   }
+  },
+  {
+   "a": 8,
+   "b": 9,
+   "name_a": "8_Take_and_use_tableware",
+   "name_b": "9_Pour_drinks",
+   "total": 9,
+   "per_subject": {
+    "user3": [
+     5,
+     0
+    ],
+    "user17": [
+     0,
+     4
+    ]
+   }
+  },
+  {
+   "a": 8,
+   "b": 20,
+   "name_a": "8_Take_and_use_tableware",
+   "name_b": "20_Check_the_time",
+   "total": 9,
+   "per_subject": {
+    "user7": [
+     3,
+     0
+    ],
+    "user6": [
+     0,
+     3
+    ],
+    "user8": [
+     0,
+     3
+    ]
+   }
+  },
+  {
+   "a": 17,
+   "b": 18,
+   "name_a": "17_Tap_the_keyboard",
+   "name_b": "18_Write",
+   "total": 9,
+   "per_subject": {
+    "user1": [
+     3,
+     0
+    ],
+    "user20": [
+     0,
+     3
+    ],
+    "user6": [
+     0,
+     3
+    ]
+   }
+  },
+  {
+   "a": 8,
+   "b": 10,
+   "name_a": "8_Take_and_use_tableware",
+   "name_b": "10_Stir_drinks",
+   "total": 8,
+   "per_subject": {
+    "user6": [
+     8,
+     0
+    ]
+   }
+  },
+  {
+   "a": 8,
+   "b": 11,
+   "name_a": "8_Take_and_use_tableware",
+   "name_b": "11_Peel_fruits",
+   "total": 7,
+   "per_subject": {
+    "user6": [
+     3,
+     0
+    ],
+    "user8": [
+     0,
+     4
+    ]
+   }
+  },
+  {
+   "a": 0,
+   "b": 4,
+   "name_a": "0_Wash_face",
+   "name_b": "4_Wipe_hands",
+   "total": 6,
+   "per_subject": {
+    "user8": [
+     6,
+     0
+    ]
+   }
+  },
+  {
+   "a": 4,
+   "b": 14,
+   "name_a": "4_Wipe_hands",
+   "name_b": "14_Wipe_bowls",
+   "total": 6,
+   "per_subject": {
+    "user17": [
+     3,
+     0
+    ],
+    "user19": [
+     3,
+     0
+    ]
+   }
+  }
+ ],
+ "logged": {
+  "EXP-132 (champion fusion, 658 errors)": "229/658 = 34.8% in repeated cells; 70 subject-pair cells, 55 one-directional",
+  "EXP-157 twins": "of 187 twin positions with >= 1 wrong twin, 41% have every twin wrong and 68% of those share the identical wrong label"
+ }
+}

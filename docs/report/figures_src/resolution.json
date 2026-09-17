@@ -1,0 +1,60 @@
+{
+ "person": {
+  "source": "EXP-154 (224/288/384) and EXP-160 (448), pooled member OOF, 2,700 clips",
+  "res": [
+   224,
+   288,
+   384,
+   448
+  ],
+  "acc": [
+   0.71444,
+   0.72963,
+   0.73333,
+   0.72519
+  ],
+  "notes": {
+   "224->288": "+1.23, 4/4 folds",
+   "288->384": "384 alone beats every multi-resolution combination, +20 fused clips vs 224",
+   "384->448": "member -0.81 (4-fold mean), fusion -17/2700 pre-decoder, t = -2.02"
+  }
+ },
+ "wrist": {
+  "source": "EXP-154, pooled member OOF",
+  "res": [
+   224,
+   288
+  ],
+  "acc": [
+   0.72,
+   0.7064
+  ],
+  "fold_delta_224_to_288": [
+   0.25,
+   -2.46,
+   -2.91,
+   -0.31
+  ],
+  "mean_delta": -1.36
+ },
+ "thermal": {
+  "source": "EXP-154",
+  "res": [
+   224,
+   288
+  ],
+  "note": "a wash: fold 2 -1.99, fold 3 +2.14; frames are 320x240 native"
+ },
+ "geometry": {
+  "ir_frame": [
+   640,
+   480
+  ],
+  "person_box_px": "about 224-480",
+  "wrist_box_px": "about 96 (minimum side)",
+  "thermal_frame": [
+   320,
+   240
+  ]
+ }
+}

@@ -1,0 +1,80 @@
+{
+ "abstract_clip": {
+  "activity": "30_Do_jumping_jacks",
+  "user": "user2",
+  "trial": "5-1-1",
+  "base": "/home/atharv/Desktop/projects/KAggle /CUHK-X-CompetitionSmallModelTrack/Small-Model-Track/Training/data/HAR/data"
+ },
+ "thermal_clip": {
+  "activity": "9_Pour_drinks",
+  "user": "user2",
+  "trial": "2-1-1",
+  "base": "/home/atharv/Desktop/projects/KAggle /CUHK-X-CompetitionSmallModelTrack/Small-Model-Track/Training/data/HAR/data"
+ },
+ "h36m_bones": [
+  [
+   0,
+   1
+  ],
+  [
+   1,
+   2
+  ],
+  [
+   2,
+   3
+  ],
+  [
+   0,
+   4
+  ],
+  [
+   4,
+   5
+  ],
+  [
+   5,
+   6
+  ],
+  [
+   0,
+   7
+  ],
+  [
+   7,
+   8
+  ],
+  [
+   8,
+   9
+  ],
+  [
+   9,
+   10
+  ],
+  [
+   8,
+   11
+  ],
+  [
+   11,
+   12
+  ],
+  [
+   12,
+   13
+  ],
+  [
+   8,
+   14
+  ],
+  [
+   14,
+   15
+  ],
+  [
+   15,
+   16
+  ]
+ ]
+}

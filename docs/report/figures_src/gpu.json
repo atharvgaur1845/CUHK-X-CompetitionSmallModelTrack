@@ -1,0 +1,57 @@
+{
+ "source": "docs/verification_logs/crossgpu/*/compare_vs_laptop.txt (EXP-159, G8) and docs/verification_logs/docker_laptop_rtx4060 (G6), final_clean (G14)",
+ "reference": "RTX 4060 laptop, torch 2.12+cu130, the run that produced the submitted file",
+ "rows": [
+  {
+   "gpu": "RTX 4060",
+   "toolchain": "reference",
+   "dp_video": 0.0,
+   "dp_skel": 0.0,
+   "argmax_changes": 0,
+   "csv": "identical",
+   "network": "off",
+   "container": "docker"
+  },
+  {
+   "gpu": "A100",
+   "toolchain": "torch 2.7.1",
+   "dp_video": 0.0016,
+   "dp_skel": 4.4e-05,
+   "argmax_changes": 0,
+   "csv": "identical",
+   "network": "off",
+   "container": "native"
+  },
+  {
+   "gpu": "H100",
+   "toolchain": "image",
+   "dp_video": 0.002,
+   "dp_skel": 4.3e-05,
+   "argmax_changes": 0,
+   "csv": "identical",
+   "network": "off",
+   "container": "apptainer"
+  },
+  {
+   "gpu": "H200",
+   "toolchain": "image",
+   "dp_video": 0.002,
+   "dp_skel": 4.3e-05,
+   "argmax_changes": 0,
+   "csv": "identical",
+   "network": "off",
+   "container": "apptainer"
+  },
+  {
+   "gpu": "V100",
+   "toolchain": "image",
+   "dp_video": 0.0017,
+   "dp_skel": 9.2e-05,
+   "argmax_changes": 0,
+   "csv": "identical",
+   "network": "off",
+   "container": "apptainer"
+  }
+ ],
+ "note": "dp = max absolute posterior difference vs the reference over 405 clips x 40 classes; video = max over person/wrist/thermal; IMU forest exact (0)."
+}

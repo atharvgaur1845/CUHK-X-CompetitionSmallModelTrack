@@ -1,0 +1,37 @@
+{
+ "source": "EXP-162 (c): ordered_transition_decoder.py oof --control, baseline pre-decoder 2109/2700",
+ "baseline": 2109,
+ "conditions": [
+  {
+   "name": "intact order (shipped)",
+   "decoded": 2240,
+   "rescues": 187,
+   "harms": 56
+  },
+  {
+   "name": "shuffled within groups",
+   "decoded": 2118,
+   "rescues": 114,
+   "harms": 105
+  },
+  {
+   "name": "reversed order",
+   "decoded": 2055,
+   "rescues": 88,
+   "harms": 142
+  },
+  {
+   "name": "uniform transitions (distinctness prior only)",
+   "decoded": 2164,
+   "rescues": 82,
+   "harms": 27
+  },
+  {
+   "name": "permuted class labels",
+   "decoded": 2092,
+   "rescues": 82,
+   "harms": 99
+  }
+ ],
+ "public": "+3 to +5 clips on the public leaderboard (EXP-125/155)"
+}

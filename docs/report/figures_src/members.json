@@ -1,0 +1,382 @@
+{
+ "source": "shipped members' OOF posteriors (research/artifacts/oof_*.npz), fusion of code/exp162_analysis.py; 2,700 pooled OOF clips",
+ "weights": {
+  "person": 0.23585,
+  "wrist": 0.18065,
+  "thermal": 0.17,
+  "skeleton": 0.33199999999999996,
+  "imu": 0.29669999999999996,
+  "prior": 0.25
+ },
+ "fused_correct": 2109,
+ "oracle_any_member": 2399,
+ "all_wrong": 301,
+ "member_alone": {
+  "person": 1980,
+  "wrist": 1944,
+  "thermal": 1711,
+  "skeleton": 1668,
+  "imu": 1017
+ },
+ "unique_rescues": {
+  "person": 61,
+  "wrist": 52,
+  "thermal": 68,
+  "skeleton": 73,
+  "imu": 34
+ },
+ "leave_one_out_delta": {
+  "person": -48,
+  "wrist": -25,
+  "thermal": -12,
+  "skeleton": -23,
+  "imu": -11
+ },
+ "patterns": [
+  {
+   "pattern": "11111",
+   "members": [
+    "person",
+    "wrist",
+    "thermal",
+    "skeleton",
+    "imu"
+   ],
+   "n": 646,
+   "fused_correct": 646
+  },
+  {
+   "pattern": "11110",
+   "members": [
+    "person",
+    "wrist",
+    "thermal",
+    "skeleton"
+   ],
+   "n": 495,
+   "fused_correct": 495
+  },
+  {
+   "pattern": "00000",
+   "members": [],
+   "n": 301,
+   "fused_correct": 8
+  },
+  {
+   "pattern": "11100",
+   "members": [
+    "person",
+    "wrist",
+    "thermal"
+   ],
+   "n": 187,
+   "fused_correct": 183
+  },
+  {
+   "pattern": "11010",
+   "members": [
+    "person",
+    "wrist",
+    "skeleton"
+   ],
+   "n": 116,
+   "fused_correct": 112
+  },
+  {
+   "pattern": "11011",
+   "members": [
+    "person",
+    "wrist",
+    "skeleton",
+    "imu"
+   ],
+   "n": 115,
+   "fused_correct": 115
+  },
+  {
+   "pattern": "11000",
+   "members": [
+    "person",
+    "wrist"
+   ],
+   "n": 113,
+   "fused_correct": 103
+  },
+  {
+   "pattern": "00010",
+   "members": [
+    "skeleton"
+   ],
+   "n": 73,
+   "fused_correct": 16
+  },
+  {
+   "pattern": "00100",
+   "members": [
+    "thermal"
+   ],
+   "n": 68,
+   "fused_correct": 8
+  },
+  {
+   "pattern": "11101",
+   "members": [
+    "person",
+    "wrist",
+    "thermal",
+    "imu"
+   ],
+   "n": 68,
+   "fused_correct": 68
+  },
+  {
+   "pattern": "10000",
+   "members": [
+    "person"
+   ],
+   "n": 61,
+   "fused_correct": 30
+  },
+  {
+   "pattern": "01000",
+   "members": [
+    "wrist"
+   ],
+   "n": 52,
+   "fused_correct": 18
+  },
+  {
+   "pattern": "10110",
+   "members": [
+    "person",
+    "thermal",
+    "skeleton"
+   ],
+   "n": 43,
+   "fused_correct": 42
+  },
+  {
+   "pattern": "10100",
+   "members": [
+    "person",
+    "thermal"
+   ],
+   "n": 36,
+   "fused_correct": 30
+  },
+  {
+   "pattern": "01100",
+   "members": [
+    "wrist",
+    "thermal"
+   ],
+   "n": 34,
+   "fused_correct": 26
+  },
+  {
+   "pattern": "00001",
+   "members": [
+    "imu"
+   ],
+   "n": 34,
+   "fused_correct": 1
+  },
+  {
+   "pattern": "00110",
+   "members": [
+    "thermal",
+    "skeleton"
+   ],
+   "n": 32,
+   "fused_correct": 16
+  },
+  {
+   "pattern": "11001",
+   "members": [
+    "person",
+    "wrist",
+    "imu"
+   ],
+   "n": 29,
+   "fused_correct": 29
+  },
+  {
+   "pattern": "01010",
+   "members": [
+    "wrist",
+    "skeleton"
+   ],
+   "n": 25,
+   "fused_correct": 21
+  },
+  {
+   "pattern": "10010",
+   "members": [
+    "person",
+    "skeleton"
+   ],
+   "n": 24,
+   "fused_correct": 20
+  },
+  {
+   "pattern": "01110",
+   "members": [
+    "wrist",
+    "thermal",
+    "skeleton"
+   ],
+   "n": 23,
+   "fused_correct": 23
+  },
+  {
+   "pattern": "10111",
+   "members": [
+    "person",
+    "thermal",
+    "skeleton",
+    "imu"
+   ],
+   "n": 19,
+   "fused_correct": 19
+  },
+  {
+   "pattern": "10011",
+   "members": [
+    "person",
+    "skeleton",
+    "imu"
+   ],
+   "n": 16,
+   "fused_correct": 16
+  },
+  {
+   "pattern": "00101",
+   "members": [
+    "thermal",
+    "imu"
+   ],
+   "n": 16,
+   "fused_correct": 6
+  },
+  {
+   "pattern": "01101",
+   "members": [
+    "wrist",
+    "thermal",
+    "imu"
+   ],
+   "n": 13,
+   "fused_correct": 13
+  },
+  {
+   "pattern": "01111",
+   "members": [
+    "wrist",
+    "thermal",
+    "skeleton",
+    "imu"
+   ],
+   "n": 12,
+   "fused_correct": 12
+  },
+  {
+   "pattern": "00111",
+   "members": [
+    "thermal",
+    "skeleton",
+    "imu"
+   ],
+   "n": 11,
+   "fused_correct": 10
+  },
+  {
+   "pattern": "00011",
+   "members": [
+    "skeleton",
+    "imu"
+   ],
+   "n": 10,
+   "fused_correct": 2
+  },
+  {
+   "pattern": "01001",
+   "members": [
+    "wrist",
+    "imu"
+   ],
+   "n": 8,
+   "fused_correct": 6
+  },
+  {
+   "pattern": "10101",
+   "members": [
+    "person",
+    "thermal",
+    "imu"
+   ],
+   "n": 8,
+   "fused_correct": 8
+  },
+  {
+   "pattern": "01011",
+   "members": [
+    "wrist",
+    "skeleton",
+    "imu"
+   ],
+   "n": 8,
+   "fused_correct": 5
+  },
+  {
+   "pattern": "10001",
+   "members": [
+    "person",
+    "imu"
+   ],
+   "n": 4,
+   "fused_correct": 2
+  }
+ ],
+ "by_k_members_correct": {
+  "0": {
+   "n": 301,
+   "fused_correct": 8
+  },
+  "1": {
+   "n": 288,
+   "fused_correct": 73
+  },
+  "2": {
+   "n": 302,
+   "fused_correct": 232
+  },
+  "3": {
+   "n": 454,
+   "fused_correct": 441
+  },
+  "4": {
+   "n": 709,
+   "fused_correct": 709
+  },
+  "5": {
+   "n": 646,
+   "fused_correct": 646
+  }
+ },
+ "logged_earlier_stage": {
+  "EXP-140 leave-one-out at the 224-px stage, thermal 0.15": {
+   "person": -17,
+   "skeleton": -16,
+   "thermal": -31,
+   "imu": -2,
+   "wrist": -53
+  },
+  "EXP-113 unique rescues, champion + thermal-128": {
+   "person": 45,
+   "wrist": 50,
+   "skeleton": 42,
+   "imu": 37,
+   "thermal": 35
+  }
+ }
+}
