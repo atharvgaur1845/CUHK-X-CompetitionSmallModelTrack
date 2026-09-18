@@ -149,21 +149,21 @@ def s01_hero(step: int):
 # ----------------------------------------------------------------------------------------------- s02 layers
 def s02_layers():
     fig, ax, W = ss.canvas(2.5, 2.5)            # W = 100
-    crop = A["depth"][12:478, 80:250]; h = 40.0; w = h * crop.shape[1] / crop.shape[0]; x0, y0 = 38 - w / 2, 30.0
+    crop = A["depth"][12:478, 50:270]; h = 34.0; w = h * crop.shape[1] / crop.shape[0]; x0, y0 = 38 - w / 2, 33.0
     ax.imshow(crop, extent=(x0, x0 + w, y0, y0 + h), aspect="auto", zorder=3, interpolation="bilinear")
     ax.add_patch(Rectangle((x0, y0), w, h, fc="none", ec=INK, lw=0.8, zorder=4))
     # the ordinary camera that is not there: a faint outline, crossed out, behind the layers
-    cx0, cy0 = 87.0, 84.0
-    ax.add_patch(FancyBboxPatch((cx0 - 9, cy0 - 5.5), 18, 11, boxstyle="round,pad=0,rounding_size=1.5", fc="none", ec=GRAY, lw=1.2, alpha=0.45, zorder=1))
+    cx0, cy0 = 89.0, 86.0
+    ax.add_patch(FancyBboxPatch((cx0 - 8, cy0 - 5), 16, 10, boxstyle="round,pad=0,rounding_size=1.5", fc="none", ec=GRAY, lw=1.2, alpha=0.45, zorder=1))
     ax.add_patch(Rectangle((cx0 - 5, cy0 + 5.5), 7, 2.2, fc="none", ec=GRAY, lw=1.2, alpha=0.45, zorder=1))
     ax.add_patch(Circle((cx0, cy0), 3.5, fc="none", ec=GRAY, lw=1.2, alpha=0.45, zorder=1)); ax.add_patch(Circle((cx0, cy0), 1.6, fc="none", ec=GRAY, lw=0.8, alpha=0.45, zorder=1))
-    ax.plot([cx0 - 11, cx0 + 11], [cy0 - 8, cy0 + 8], color=RED, lw=1.6, alpha=0.5, zorder=1.1); ax.plot([cx0 - 11, cx0 + 11], [cy0 + 8, cy0 - 8], color=RED, lw=1.6, alpha=0.5, zorder=1.1)
+    ax.plot([cx0 - 9, cx0 + 9], [cy0 - 7, cy0 + 7], color=RED, lw=1.6, alpha=0.5, zorder=1.1); ax.plot([cx0 - 9, cx0 + 9], [cy0 + 7, cy0 - 7], color=RED, lw=1.6, alpha=0.5, zorder=1.1)
     ss.text(ax, cx0, cy0 - 10.5, "no ordinary\ncamera", 7.5, GRAY_TEXT, ha="center", va="top", linespacing=1.05)
     layers = [("ir", "IR + DEPTH"), ("thermal", "THERMAL"), ("skeleton", "SKELETON"), ("imu", "WRIST IMU"), ("radar", "RADAR")]
     for i, (key, name) in enumerate(layers):
-        off = 4.8 * (i + 1)
+        off = 6.0 * (i + 1)
         ax.add_patch(FancyBboxPatch((x0 - off, y0 - off), w + 2 * off, h + 2 * off, boxstyle="round,pad=0,rounding_size=2.0", fc="none", ec=SENSOR[key], lw=1.6, zorder=2))
-        ss.text(ax, x0 - off + 2.4, y0 + h + off - 0.7, name, 7.5, SENSOR[key], ha="left", va="top")
+        ss.text(ax, x0 - off + 2.6, y0 + h + off - 0.9, name, 7.5, SENSOR[key], ha="left", va="top")
     return ss.save(fig, "s02_layers")
 
 

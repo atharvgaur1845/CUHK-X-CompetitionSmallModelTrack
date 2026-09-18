@@ -116,10 +116,10 @@ Scored on those new people, on reproducibility and on efficiency: cross-subject 
 \column{0.66\textwidth}\sensorvisual[9.7cm]{s08_atlas.pdf}
 \column{0.33\textwidth}
 \vspace{0.1cm}
-\heronum[26]{\nWorstMissing}{CLIPS: worst single-sensor loss (\nWorstMissingPts\ points, the body view)}
-\vspace{0.35cm}
-\heronum[18]{\nCoefMin\ TO \nCoefMax}{all coefficient perturbations, $\times$0.5 to $\times$1.5}
-\vspace{0.3cm}
+\heronum[26]{\nWorstMissing\ CLIPS}{worst single-sensor loss: the body view, \nWorstMissingPts\ points}\par
+\vspace{0.6cm}
+\heronum[18]{\nCoefMin\ TO \nCoefMax}{all coefficient perturbations, $\times$0.5 to $\times$1.5}\par
+\vspace{0.5cm}
 {\fontsize{7.5}{9}\selectfont\color{graytext}any re-weighting moves at most 8 of the 405 test rows\par}
 \end{columns}
 \vspace{-0.1cm}
@@ -241,7 +241,7 @@ person (body) & \wPerson\\ wrist (hands) & \wWrist\\ thermal (heat) & \wThermal\
 \column{0.2\textwidth}\heronumc[20]{20}{MEMBERS}
 \column{0.2\textwidth}\heronumc[20]{5}{FAMILIES $\times$ 4 FOLDS}
 \column{0.2\textwidth}\heronumc[20]{\nSkelMB\ MB}{INT8, ONE TENSOR SET}
-\column{0.36\textwidth}{\fontsize{7.5}{9}\selectfont\color{graytext}adaptive-graph ST-GCN and ST-GCN on joints; a temporal CNN on joint, velocity and bone features; two temporal CNNs on the inertial units (rotation-invariant features; gravity-aligned world frame, no absolute orientation)\par}
+\column{0.36\textwidth}{\fontsize{7.5}{9}\selectfont\color{graytext}families: two ST-GCNs on the joints; a temporal CNN on joint, velocity and bone features; two temporal CNNs on the inertial units\par}
 \end{columns}
 \talk{The posture specialist is not one model but twenty: five families, each trained on four subject-grouped folds, on the skeleton track and the inertial units you see here. Stored at int8 it is 18.9 megabytes, a fifth of the budget.}{Twenty small models on the skeleton and inertial streams, 18.9 MB.}{Why an ensemble here and single models for video?}{The skeleton members are small, so twenty of them cost 19 MB, and their fold diversity is what makes the ensemble's posterior calibrated enough to fuse; a video member is 21.6 MB each, so there the budget buys views, not seeds.}
 \end{frame}
