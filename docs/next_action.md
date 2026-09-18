@@ -44,6 +44,7 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 > pdflatex/Helvetica fallback until `texlive-luatex` is installed), 13 core + 8 backup slides, figures `s01..s11` from
 > `make_slide_figures.py` (same JSON tables + real clip frames), numbers injected from `gen/numbers.tex`, notes in the
 > `\talk` blocks -> `SPEAKER_NOTES.md` / `slides_notes.pdf`, audit `SLIDE_AUDIT.md`. Build: `bash docs/slides/build.sh`.
+> **Report v2.3 (2026-09-18, formatting):** bold skim-path through the text (method, results, limits readable from the bold alone; reading guide under the findings strip), 12/10.5 pt bold left headings with fixed equal gaps, blue clickable section/figure/table links + PDF bookmarks, centred Abstract heading, author line + small email line, widow/orphan control, Figs. 9 and 10 on a float page so Sec. VIII starts with its body; poster header centred with larger question + italic subtitle. Still 9 pages.
 > **Report v2.2 (2026-09-18):** 9 pages; page 1 is the one-page poster (`docs/poster/make_poster.py` ->
 > `poster.pdf`, placed with `pdfpages`), the paper (cover with graphical abstract, abstract, findings strip)
 > starts on page 2. Poster is print style: white, black bold Liberation Serif (the paper's face), no grey

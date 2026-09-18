@@ -90,11 +90,18 @@ def mark(x, y, ok, s=0.75, lw=1.8):
 
 
 # ================================================================== LEVEL 1: title (2 seconds)
-T(4, 124.2, "FIVE SENSORS.", 32, BLACK, SERIF, va="top", ha="left")
-T(4, 117.9, "ONE DECISION.", 32, st.BLUE, SERIF, va="top", ha="left")
-T(96, 124.0, "Can a machine recognise everyday\nactivities without an ordinary camera?", 11, BLACK, SANS, va="top", ha="right", linespacing=1.25)
-T(96, 118.9, "Multimodal activity recognition under a 100 MB constraint", 8, BLACK, SANS, va="top", ha="right")
-rule(113.0, lw=2.0); rule(112.4, lw=0.5)
+# one centred line, two colours: measure both halves, then place them so the whole line is centred
+fig.canvas.draw(); _r = fig.canvas.get_renderer(); _inv = ax.transData.inverted()
+def _width(txt, size, family, style="normal"):
+    t = ax.text(0, 0, txt, fontsize=size, fontfamily=family, fontweight="bold", fontstyle=style); bb = t.get_window_extent(_r); t.remove()
+    return _inv.transform((bb.x1, 0))[0] - _inv.transform((bb.x0, 0))[0]
+TS, GAP = 30, 2.2
+w1, w2 = _width("FIVE SENSORS.", TS, SERIF), _width("ONE DECISION.", TS, SERIF); x0 = 50 - (w1 + GAP + w2) / 2
+T(x0, 124.0, "FIVE SENSORS.", TS, BLACK, SERIF, va="top", ha="left")
+T(x0 + w1 + GAP, 124.0, "ONE DECISION.", TS, st.BLUE, SERIF, va="top", ha="left")
+T(50, 117.8, "Can a machine recognise everyday activities without an ordinary camera?", 14, BLACK, SANS, va="top", ha="center")
+ax.text(50, 114.8, "Multimodal activity recognition under a 100 MB constraint", fontsize=11.5, color=BLACK, fontfamily=SANS, fontweight="bold", fontstyle="italic", va="top", ha="center", zorder=6)
+rule(112.0, lw=2.0); rule(111.4, lw=0.5)
 
 # ================================================================== LEVEL 2: one person, five ways of seeing (5 seconds)
 PX0, PX1, PY0, PY1 = 42.0, 58.0, 70.0, 104.0            # the person: the depth frame (no face is needed, or shown)
@@ -141,11 +148,11 @@ for j, (nm, lab) in enumerate(names):
 T(LX_R + LW / 2, LY0 + 0.8, "|acceleration| over the clip", 7.5, BLACK, SANS, ha="center", va="bottom")
 connector((LX_R, 75.0), (PX1, 75.0), COL["imu"])
 # --- top centre: radar, a temporal trail (height of every detection against time)
-RX0, RX1, RY0, RY1 = 36.0, 64.0, 105.0, 111.6
+RX0, RX1, RY0, RY1 = 29.0, 71.0, 104.9, 110.5
 panel(RX0, RY0, RX1 - RX0, RY1 - RY0, fc=st.BAND); lens_label(RX0 + 1.2, RY1 - 1.3, "radar", "RADAR")
-T(RX1 - 1.0, RY0 + 0.6, "every detection: height against time", 7.5, BLACK, SANS, ha="right", va="bottom")
+T(RX1 - 1.0, RY1 - 1.3, "every detection: height against time", 7.5, BLACK, SANS, ha="right", va="center")
 R = A["radar"]; t = (R.frame - R.frame.min()) / (R.frame.max() - R.frame.min()); z = R.z.clip(-1.0, 1.3)
-px = RX0 + 1.2 + t * (RX1 - RX0 - 2.4); pz = RY0 + 2.1 + (z - z.min()) / (z.max() - z.min()) * (RY1 - RY0 - 4.4)
+px = RX0 + 1.2 + t * (RX1 - RX0 - 2.4); pz = RY0 + 0.6 + (z - z.min()) / (z.max() - z.min()) * (RY1 - RY0 - 3.2)
 ax.scatter(px, pz, s=2.5 + (R.snr - R.snr.min()) / (R.snr.max() - R.snr.min()) * 9, c=t, cmap=matplotlib.colors.LinearSegmentedColormap.from_list("v", ["#C9B8E0", st.PURPLE]), zorder=3, linewidths=0, alpha=0.95)
 connector((50, RY0), (50, PY1), COL["radar"])
 
