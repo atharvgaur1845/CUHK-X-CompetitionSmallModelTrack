@@ -11,14 +11,14 @@
 % ============================================================ 1  HERO
 \begin{frame}[plain]
 \begin{tikzpicture}[remember picture, overlay]
-  \node[anchor=north west, inner sep=0] at ([xshift=0.6cm, yshift=-0.35cm]current page.north west) {\latoblack\fontsize{24}{24}\selectfont\color{ink}FIVE SENSORS.};
-  \node[anchor=north west, inner sep=0] at ([xshift=0.6cm, yshift=-1.25cm]current page.north west) {\latoblack\fontsize{24}{24}\selectfont\color{blue}ONE DECISION.};
-  \node[anchor=north east, inner sep=0, align=right] at ([xshift=-0.6cm, yshift=-0.42cm]current page.north east) {\fontsize{10}{12}\selectfont\bfseries\color{ink}Can a machine recognise everyday activities\\without an ordinary camera?};
+  \node[anchor=north west, inner sep=0] at ([xshift=0.6cm, yshift=-0.35cm]current page.north west) {\latoblack\fontsize{22}{22}\selectfont\color{ink}FIVE SENSORS.};
+  \node[anchor=north west, inner sep=0] at ([xshift=0.6cm, yshift=-1.25cm]current page.north west) {\latoblack\fontsize{22}{22}\selectfont\color{blue}ONE DECISION.};
+  \node[anchor=north east, inner sep=0, align=right] at ([xshift=-0.6cm, yshift=-0.42cm]current page.north east) {\fontsize{9.5}{11.5}\selectfont\bfseries\color{ink}Can a machine recognise everyday activities\\without an ordinary camera?};
   \node[anchor=north east, inner sep=0] at ([xshift=-0.6cm, yshift=-1.4cm]current page.north east) {\begin{tabular}{@{}r@{}}\fontsize{7}{8.5}\selectfont\color{graytext}Multimodal activity recognition under a 100 MB constraint\\\fontsize{7}{8.5}\selectfont\color{graytext}CUHK-X Challenge 2026\quad$\cdot$\quad Small Model Track\quad$\cdot$\quad Team AGX\end{tabular}};
-  \node[anchor=north, inner sep=0] at ([yshift=-2.1cm]current page.north) {\includegraphics[width=14cm]{s01_hero.pdf}};
+  \node[anchor=north, inner sep=0] at ([yshift=-2.25cm]current page.north) {\includegraphics[width=14cm]{s01_hero.pdf}};
   \node[anchor=south, inner sep=0] at ([yshift=0.5cm]current page.south) {%
     \begin{tabular}{@{}c@{\hspace{1.1cm}}c@{\hspace{1.1cm}}c@{\hspace{1.1cm}}c@{}}
-      {\latoblack\fontsize{17}{17}\selectfont\fClasses} & {\latoblack\fontsize{17}{17}\selectfont\nTotalMB\,MB} & {\latoblack\fontsize{17}{17}\selectfont\fPrivate} & {\latoblack\fontsize{17}{17}\selectfont UNSEEN}\\[1pt]
+      {\latoblack\fontsize{15}{15}\selectfont\fClasses} & {\latoblack\fontsize{15}{15}\selectfont\nTotalMB\,MB} & {\latoblack\fontsize{15}{15}\selectfont\fPrivate} & {\latoblack\fontsize{15}{15}\selectfont UNSEEN}\\[1pt]
       {\fontsize{7}{8}\selectfont\color{graytext}\bfseries ACTIVITIES} & {\fontsize{7}{8}\selectfont\color{graytext}\bfseries ONE FILE} & {\fontsize{7}{8}\selectfont\color{graytext}\bfseries PRIVATE SCORE} & {\fontsize{7}{8}\selectfont\color{graytext}\bfseries PEOPLE AT TEST TIME}\\
     \end{tabular}};
   \node[anchor=south, inner sep=0] at ([yshift=0.16cm]current page.south) {\fontsize{6.5}{7}\selectfont\color{graytext}\fRank th of \fTeams\ teams\quad$\cdot$\quad 0 / \fTestClips\ predictions changed across \nGpus\ tested GPU generations\quad$\cdot$\quad no network at inference};
@@ -34,12 +34,12 @@
 \column{0.58\textwidth}
 \vspace{0.1cm}
 \begin{columns}[T]
-\column{0.30\linewidth}\heronum[26]{\fClasses}{ACTIVITIES}
-\column{0.30\linewidth}\heronum[26]{\fTrainSubjects}{TRAINING SUBJECTS}
-\column{0.40\linewidth}\heronum[26]{\fBudget\,MB}{MAXIMUM, ONE FILE}
+\column{0.30\linewidth}\heronum[22]{\fClasses}{ACTIVITIES}
+\column{0.30\linewidth}\heronum[22]{\fTrainSubjects}{TRAINING SUBJECTS}
+\column{0.40\linewidth}\heronum[22]{\fBudget\,MB}{MAXIMUM, ONE FILE}
 \end{columns}
 \vspace{0.45cm}
-{\latoblack\fontsize{13}{15}\selectfont Generalise to people the model has never seen.\par}
+{\latoblack\fontsize{11.5}{13.5}\selectfont Generalise to people the model has never seen.\par}
 \vspace{0.35cm}
 {\fontsize{8.5}{11}\selectfont\color{graytext}
 \fTrainClips\ training clips from \fTrainSubjects\ people; \fTestClips\ test clips from 4 unseen people.\\[3pt]
@@ -57,9 +57,9 @@ Scored on those new people, on reproducibility and on efficiency: cross-subject 
 \centering\sensorvisual[14.8cm]{s03_field.pdf}
 \vspace{0.05cm}
 \begin{columns}[T]
-\column{0.34\textwidth}\heronum[22]{\nOracle\ / 2,700}{correct for at least one specialist (\nOracleAcc)}
-\column{0.30\textwidth}\vspace{0.05cm}{\latoblack\fontsize{12}{14}\selectfont Different sensors make different mistakes.\par}
-\column{0.34\textwidth}\raggedleft{\fontsize{8}{9}\selectfont\color{graytext}\bfseries REMOVE ANY ONE MEMBER\par}{\latoblack\fontsize{18}{18}\selectfont\color{red}$-$\nLooMin\ TO $-$\nLooMax\ CLIPS\par}{\fontsize{7.5}{9}\selectfont\color{graytext}every specialist is load-bearing\par}
+\column{0.34\textwidth}\heronum[20]{\nOracle\ / 2,700}{correct for at least one specialist (\nOracleAcc)}
+\column{0.30\textwidth}\vspace{0.05cm}{\latoblack\fontsize{10.5}{12.5}\selectfont Different sensors make different mistakes.\par}
+\column{0.34\textwidth}\raggedleft{\fontsize{7.5}{9}\selectfont\color{graytext}\bfseries REMOVE ANY ONE MEMBER\par}{\latoblack\fontsize{15}{15}\selectfont\color{red}$-$\nLooMin\ TO $-$\nLooMax\ CLIPS\par}{\fontsize{7.5}{9}\selectfont\color{graytext}every specialist is load-bearing\par}
 \end{columns}
 \talk{Each square here is one held-out clip. Navy: all five specialists get it right. Grey: some do. The coloured stripe is the interesting part: 288 clips that exactly one specialist gets right, and every colour is there. The skeleton alone rescues 73, thermal 68, the body view 61, the hands 52, even the motion forest 34. Add them up and at least one specialist is right on 2,399 of 2,700 clips, 0.889, while the best single one is at 0.733. The information is in the members; the problem is selecting it. And removing any member costs the fusion between 11 and 48 clips.}{Different sensors make different mistakes, so the union is far larger than any one of them.}{Why keep the weakest member, the forest at 0.377?}{It is the only member right on 34 clips, removing it costs 11, and its paired per-subject effect is neutral at worst; it also costs 1.6 MB.}
 \end{frame}
@@ -76,16 +76,16 @@ Scored on those new people, on reproducibility and on efficiency: cross-subject 
 \takeaway{Resolution helps the body crop up to 384 px and hurts the wrist crop already at 288 px; the difference is what one input pixel contains.}
 \centering\sensorvisual[15.4cm]{s05_resolution.pdf}
 \vspace{0.05cm}
-{\latoblack\fontsize{11}{12}\selectfont Resolution pays where the crop contains real detail.\par}
+{\latoblack\fontsize{10}{11}\selectfont Resolution pays where the crop contains real detail.\par}
 \talk{The person crop climbs from 0.714 at 224 pixels to 0.733 at 384, four folds out of four, and falls back at 448. The wrist crop does the opposite: from 224 to 288 it loses 1.36 points, three folds out of four. The reason is on the right. A person box spans 224 to 480 source pixels, so a 384-pixel input samples detail the frame really has. A wrist box is about 96 source pixels, so at 288 each source pixel becomes nine input pixels of interpolation. More pixels, no more information.}{Resolution is crop-dependent: it pays where the crop contains real detail.}{Did you test beyond 384?}{Yes: 448 is measured, minus 0.81 on the member and minus 17 fused clips with t = minus 2.0; not shipped.}
 \end{frame}
 
 % ============================================================ 6  THERMAL
 \begin{frame}{THERMAL WAS USELESS. UNTIL WE READ IT CORRECTLY.}
 \takeaway{The same camera, three recipes: a 128 px person crop, the 128 px full frame, the 224 px full frame through the video recipe.}
-\centering\sensorvisual[15.6cm]{s06_thermal.pdf}
+\centering\sensorvisual[15.2cm]{s06_thermal.pdf}
 \vspace{0.02cm}
-{\latoblack\fontsize{14}{15}\selectfont SAME SENSOR. DIFFERENT WAY OF READING IT.\par}
+{\latoblack\fontsize{12}{13}\selectfont SAME SENSOR. DIFFERENT WAY OF READING IT.\par}
 \talk{Thermal is the dataset paper's strongest single sensor, yet our first thermal member, a 128-pixel person crop through a 3-D CNN, scored 0.544 and added exactly nothing in fusion at any weight. Reading the full frame at 128 pixels gave 0.568, still not adopted. Reading the full frame at 224 pixels through the same MViTv2-S recipe as the video members gave 0.627, plus 5.6 points on four folds out of four, and for the first time thermal helped the system: 46 more decoded clips out of 2,700 and 5 more public clips. The camera never changed. The 320 by 240 frame is read near-natively, and the objects and the room stay in view.}{Thermal became a contributing sensor when it was read at native resolution with the objects in view.}{Why was it useless before, if the sensor is strong?}{Wrong recipe for the sensor: cropping removed the objects that define most classes, and 128 pixels threw away most of the frame. Decorrelation alone did not make it useful; accuracy did.}
 \end{frame}
 
@@ -96,11 +96,11 @@ Scored on those new people, on reproducibility and on efficiency: cross-subject 
 \column{0.70\textwidth}\sensorvisual[11.3cm]{s07_subjects.pdf}
 \column{0.29\textwidth}
 \vspace{0.1cm}
-\heronum[20]{\nLosoPersonMean\ $\rightarrow$ \nLosoEnsMean}{mean accuracy over \nLosoN\ held-out subjects}
+\heronum[18]{\nLosoPersonMean\ $\rightarrow$ \nLosoEnsMean}{mean accuracy over \nLosoN\ held-out subjects}
 \vspace{0.2cm}
-\heronum[14]{sd \nLosoPersonSd\ $\rightarrow$ \nLosoEnsSd}{the subjects become more alike}
+\heronum[12.5]{sd \nLosoPersonSd\ $\rightarrow$ \nLosoEnsSd}{the subjects become more alike}
 \vspace{0.2cm}
-\heronum[14]{spread \nLosoPersonSpread\ $\rightarrow$ \nLosoEnsSpread}{points, hardest to easiest person}
+\heronum[12.5]{spread \nLosoPersonSpread\ $\rightarrow$ \nLosoEnsSpread}{points, hardest to easiest person}
 \vspace{0.2cm}
 \resultbadge{\nLosoUp\ / \nLosoN\ subjects improve}\par
 \vspace{0.25cm}
@@ -116,14 +116,14 @@ Scored on those new people, on reproducibility and on efficiency: cross-subject 
 \column{0.66\textwidth}\sensorvisual[9.7cm]{s08_atlas.pdf}
 \column{0.33\textwidth}
 \vspace{0.1cm}
-\heronum[30]{\nWorstMissing}{CLIPS: worst single-sensor loss (\nWorstMissingPts\ points, the body view)}
+\heronum[26]{\nWorstMissing}{CLIPS: worst single-sensor loss (\nWorstMissingPts\ points, the body view)}
 \vspace{0.35cm}
-\heronum[22]{\nCoefMin\ TO \nCoefMax}{all coefficient perturbations, $\times$0.5 to $\times$1.5}
+\heronum[18]{\nCoefMin\ TO \nCoefMax}{all coefficient perturbations, $\times$0.5 to $\times$1.5}
 \vspace{0.3cm}
 {\fontsize{7.5}{9}\selectfont\color{graytext}any re-weighting moves at most 8 of the 405 test rows\par}
 \end{columns}
 \vspace{-0.1cm}
-{\latoblack\fontsize{12}{13}\selectfont THE FUSION SITS ON A PLATEAU, NOT A PEAK.\par}
+{\latoblack\fontsize{10.5}{12}\selectfont THE FUSION SITS ON A PLATEAU, NOT A PEAK.\par}
 \talk{This is a reliability test, not an ablation for its own sake. Remove any sensor at inference, the way the pipeline really handles a missing stream, and the worst case is the body view: 48 clips of 2,700, 1.8 points. Thermal and the forest cost eleven to twelve. Scale any fusion coefficient by half or by one and a half, and the fused accuracy stays within minus 24 to plus 7 clips, under one percent. No sensor is a single point of failure and the coefficients are on a plateau.}{No single point of failure; the coefficients sit on a plateau.}{Did you fit the weights to the leaderboard?}{No: nested cross-validation inside the folds; and the plateau shows it would not matter, at most 8 of 405 rows move under any re-weighting.}
 \end{frame}
 
@@ -141,7 +141,7 @@ Scored on those new people, on reproducibility and on efficiency: cross-subject 
 \takeaway{Every lever measured against the same bar: paired folds, two standard errors (seed sd 1.16 points). Red was rejected, blue adopted.}
 \centering\sensorvisual[14.2cm]{s10_levers.pdf}
 \vspace{0.05cm}
-{\latoblack\fontsize{11}{12}\selectfont The bottleneck was not simply model capacity.\par}
+{\latoblack\fontsize{10}{11}\selectfont The bottleneck was not simply model capacity.\par}
 \talk{We tried the obvious things first. More capacity: VideoMAE-B with 87 million parameters lost 1.8 points on zero of four folds, Swin3D-T lost 9.8, a V-JEPA 2 teacher was 29 points behind. More training tricks: layer-wise decay was noise, distillation and self-training helped a member and hurt the fusion. More test-time tricks: temporal augmentation, seed soups, a pair verifier, all negative or unreadable. Resolution was mixed, and that is the honest version: 288 and 384 on the body helped, 448 and the wrist step did not. What worked was a different kind of information: a new sensor view, fusing in the right space, and the structure of the recording.}{More of the same did not help; a different kind of information did.}{Isn't MViTv2-S itself a capacity upgrade?}{It replaced a similar-sized 3-D CNN, plus 2.4 points at 34 million parameters; the larger models above it all lost. Capacity beyond that point overfits 2,281 training clips.}
 \end{frame}
 
@@ -150,7 +150,7 @@ Scored on those new people, on reproducibility and on efficiency: cross-subject 
 \takeaway{The budget was an architectural constraint, not a compression exercise: which members to keep, at which precision, with both detectors inside.}
 \centering\sensorvisual[14.6cm]{s11_container.pdf}
 \begin{columns}[T]
-\column{0.34\textwidth}\heronum[26]{\nTotalMB\ MB}{every inference-time weight inside}
+\column{0.34\textwidth}\heronum[22]{\nTotalMB\ MB}{every inference-time weight inside}
 \column{0.64\textwidth}\vspace{0.05cm}\callout{Video 5-bit, ensemble int8, detectors fp16. \textbf{int8 detectors moved 150 of 405 crop windows}, so they stay fp16; int5 video cost one public clip against int6.}
 \end{columns}
 \talk{The container is the 100-megabyte rule. Three video models at five-bit weight codes take 64.8 megabytes, two thirds of it. The skeleton and inertial ensemble, pruned from 48 members to 20 and stored at int8, takes 18.9. Both detectors, 10.3 megabytes at fp16, plus the forest, the crop windows and the manifest. 96.37 megabytes, 3.6 to spare. Two decisions were measured, not assumed: five-bit video cost one public clip against six-bit, recovered elsewhere; and quantising the detectors to int8 would have moved 150 of 405 crop windows, so they stayed at fp16.}{Everything the system needs at inference lives in one 96.37 MB file, and every byte was a measured trade-off.}{Where are the detectors?}{Inside the file, fp16, 10.3 MB; the 405 crop windows are stored too, so the Kaggle run is reproduced exactly, and new data goes through the live detectors.}
@@ -164,13 +164,13 @@ Scored on those new people, on reproducibility and on efficiency: cross-subject 
 {\fontsize{7.5}{9}\selectfont\color{graytext}\bfseries ONE COMMAND\par}\vspace{3pt}
 \colorbox{ink}{\parbox{\dimexpr\linewidth-2\fboxsep\relax}{\color{white}\ttfamily\bfseries\fontsize{8}{10}\selectfont bash inference.sh <data> <out.csv>}}
 \vspace{0.3cm}
-\heronum[16]{\fTimeCluster}{for all \fTestClips\ clips on an A100; \fTimeLaptop\ on a laptop RTX 4060; peak GPU memory \fPeakGpu\ GB}
+\heronum[13]{\fTimeCluster}{for all \fTestClips\ clips on an A100; \fTimeLaptop\ on a laptop RTX 4060; peak GPU memory \fPeakGpu\ GB}
 \column{0.50\textwidth}
 \centering{\fontsize{7.5}{9.5}\selectfont\input{gen/verification_compact.tex}\par}
 \column{0.26\textwidth}
-{\latoblack\fontsize{11}{12.5}\selectfont NUMERICAL DRIFT EXISTS.\par THE DECISION DOES NOT MOVE.\par}
+{\latoblack\fontsize{10}{11.5}\selectfont NUMERICAL DRIFT EXISTS.\par THE DECISION DOES NOT MOVE.\par}
 \vspace{0.3cm}
-\heronum[24]{0 / \fTestClips}{predictions changed on \nGpus\ GPU generations; posteriors drift up to \nMaxDrift}
+\heronum[20]{0 / \fTestClips}{predictions changed on \nGpus\ GPU generations; posteriors drift up to \nMaxDrift}
 \end{columns}
 \vspace{0.35cm}
 \centering\okbadge{NETWORK OFF}\quad\okbadge{READ-ONLY DATA}\quad\okbadge{HOSTILE TESTS}\quad\okbadge{CLEAN ROOM $\times$2}\par
@@ -183,14 +183,14 @@ Scored on those new people, on reproducibility and on efficiency: cross-subject 
 {\setbeamercolor{background canvas}{bg=ink}\setbeamercolor{normal text}{fg=white}
 \begin{frame}[plain]
 \begin{tikzpicture}[remember picture, overlay]
-  \node[anchor=north west, inner sep=0] at ([xshift=0.8cm, yshift=-0.8cm]current page.north west) {\latoblack\fontsize{30}{30}\selectfont\color{white}FIVE SENSORS.};
-  \node[anchor=north west, inner sep=0] at ([xshift=0.8cm, yshift=-1.95cm]current page.north west) {\latoblack\fontsize{30}{30}\selectfont\color{bluelight}ONE DECISION.};
+  \node[anchor=north west, inner sep=0] at ([xshift=0.8cm, yshift=-0.9cm]current page.north west) {\latoblack\fontsize{27}{27}\selectfont\color{white}FIVE SENSORS.};
+  \node[anchor=north west, inner sep=0] at ([xshift=0.8cm, yshift=-1.95cm]current page.north west) {\latoblack\fontsize{27}{27}\selectfont\color{bluelight}ONE DECISION.};
   \node[anchor=north west, inner sep=0] at ([xshift=0.8cm, yshift=-3.55cm]current page.north west) {%
     \begin{tabular}{@{}l@{\hspace{1.0cm}}l@{\hspace{1.0cm}}l@{\hspace{1.0cm}}l@{}}
-      {\latoblack\fontsize{24}{24}\selectfont\color{white}\fClasses} & {\latoblack\fontsize{24}{24}\selectfont\color{white}\nTotalMB\,MB} & {\latoblack\fontsize{24}{24}\selectfont\color{white}\fPrivate} & {\latoblack\fontsize{24}{24}\selectfont\color{white}UNSEEN}\\[2pt]
+      {\latoblack\fontsize{21}{21}\selectfont\color{white}\fClasses} & {\latoblack\fontsize{21}{21}\selectfont\color{white}\nTotalMB\,MB} & {\latoblack\fontsize{21}{21}\selectfont\color{white}\fPrivate} & {\latoblack\fontsize{21}{21}\selectfont\color{white}UNSEEN}\\[2pt]
       {\fontsize{8}{9}\selectfont\color{graylight}\bfseries ACTIVITIES} & {\fontsize{8}{9}\selectfont\color{graylight}\bfseries ONE FILE} & {\fontsize{8}{9}\selectfont\color{graylight}\bfseries PRIVATE, \fRank th OF \fTeams} & {\fontsize{8}{9}\selectfont\color{graylight}\bfseries PEOPLE}\\
     \end{tabular}};
-  \node[anchor=north west, inner sep=0] at ([xshift=0.8cm, yshift=-5.35cm]current page.north west) {\begin{tabular}{@{}l@{}}\latoblack\fontsize{17}{19}\selectfont\color{white}THE NEXT GAIN IS MORE SUBJECTS,\\\latoblack\fontsize{17}{19}\selectfont\color{white}NOT MORE MODEL.\end{tabular}};
+  \node[anchor=north west, inner sep=0] at ([xshift=0.8cm, yshift=-5.35cm]current page.north west) {\begin{tabular}{@{}l@{}}\latoblack\fontsize{15}{17}\selectfont\color{white}THE NEXT GAIN IS MORE SUBJECTS,\\\latoblack\fontsize{15}{17}\selectfont\color{white}NOT MORE MODEL.\end{tabular}};
   \node[anchor=south east, inner sep=0] at ([xshift=-0.8cm, yshift=0.75cm]current page.south east) {\latoblack\fontsize{14}{14}\selectfont\color{white}Team AGX};
   \node[anchor=south east, inner sep=0] at ([xshift=-0.8cm, yshift=0.35cm]current page.south east) {\fontsize{7.5}{8}\selectfont\color{graylight}CUHK-X Challenge 2026\quad$\cdot$\quad Small Model Track\quad$\cdot$\quad Atharv, BITS Pilani, K K Birla Goa Campus};
   \node[anchor=south west, inner sep=0] at ([xshift=0.8cm, yshift=0.4cm]current page.south west) {\begin{tikzpicture}[x=0.55cm, y=0.55cm]\foreach \c/\i in {blue/0, bluelight/1, orange/2, teal/3, seagreen/4}{\fill[\c] (0, 2.0-0.5*\i) circle (0.11); \draw[\c, line width=1.8pt] (0.12, 2.0-0.5*\i) .. controls (1.3, 2.0-0.5*\i) and (1.6, 1.0) .. (2.6, 1.0);}\draw[white, line width=2.6pt] (2.6, 1.0) -- (4.2, 1.0);\draw[white, line width=2.6pt, -{Triangle[length=2.4mm, width=2.4mm]}] (4.2, 1.0) -- (5.0, 1.0);\end{tikzpicture}};

@@ -59,8 +59,8 @@ def lens_label(ax, x, y, key, name, size=8):
 
 
 def lens_ir(ax, x, y, w, h):
-    ss.panel(ax, x, y, w, h); lens_label(ax, x + 1.5, y + h - 2.2, "ir", "IR + DEPTH")
-    ch = h - 8.0; cw = ch * 0.737
+    ss.panel(ax, x, y, w, h); lens_label(ax, x + 1.8, y + h - 5.2, "ir", "IR + DEPTH")
+    ch = h - 11.5; cw = ch * 0.737
     if 2 * cw + 1.0 <= w - 3.0:   # both channels side by side
         cx = x + (w - 2 * cw - 1.0) / 2; cy = y + 2.0
         ax.imshow(A["ir"][12:478, 50:393], cmap="gray", vmin=0, vmax=1, extent=(cx, cx + cw, cy, cy + ch), aspect="auto", zorder=3)
@@ -71,38 +71,38 @@ def lens_ir(ax, x, y, w, h):
 
 
 def lens_thermal(ax, x, y, w, h):
-    ss.panel(ax, x, y, w, h); lens_label(ax, x + 1.5, y + h - 2.2, "thermal", "THERMAL")
-    th = A["thermal"][:, 20:210]; ch = h - 8.0; cw = ch * th.shape[1] / th.shape[0]; cx = x + (w - cw) / 2; cy = y + 2.0
+    ss.panel(ax, x, y, w, h); lens_label(ax, x + 1.8, y + h - 5.2, "thermal", "THERMAL")
+    th = A["thermal"][:, 20:210]; ch = h - 11.5; cw = ch * th.shape[1] / th.shape[0]; cx = x + (w - cw) / 2; cy = y + 2.0
     ax.imshow(th, extent=(cx, cx + cw, cy, cy + ch), aspect="auto", zorder=3)
 
 
 def lens_skeleton(ax, x, y, w, h):
-    ss.panel(ax, x, y, w, h, fc=BAND); lens_label(ax, x + 1.5, y + h - 2.2, "skeleton", "SKELETON")
-    k = A["skel"]; X, Z = k[:, 0], k[:, 2]; sh = h - 8.5; sc = sh / (Z.max() - Z.min()); cx, cy = x + w / 2, y + 2.5
+    ss.panel(ax, x, y, w, h, fc=BAND); lens_label(ax, x + 1.8, y + h - 5.2, "skeleton", "SKELETON")
+    k = A["skel"]; X, Z = k[:, 0], k[:, 2]; sh = h - 12.0; sc = sh / (Z.max() - Z.min()); cx, cy = x + w / 2, y + 2.5
     for a, b in A["bones"]:
         ax.plot([cx + (X[a] - X.mean()) * sc, cx + (X[b] - X.mean()) * sc], [cy + (Z[a] - Z.min()) * sc, cy + (Z[b] - Z.min()) * sc], color=TEAL, lw=2.2, solid_capstyle="round", zorder=3)
     ax.scatter(cx + (X - X.mean()) * sc, cy + (Z - Z.min()) * sc, s=14, color=TEAL, zorder=4, linewidths=0.6, edgecolors="white")
 
 
 def lens_imu(ax, x, y, w, h):
-    ss.panel(ax, x, y, w, h, fc=BAND); lens_label(ax, x + 1.5, y + h - 2.2, "imu", "WRIST IMU")
+    ss.panel(ax, x, y, w, h, fc=BAND); lens_label(ax, x + 1.8, y + h - 5.2, "imu", "WRIST IMU")
     names = [("WTLA", "L wrist"), ("WTRA", "R wrist"), ("WTC(", "chest"), ("WTLL", "L ankle"), ("WTRL", "R ankle")]
-    gx0, gx1, gy0, gy1 = x + 1.5, x + w - 9.5, y + 2.0, y + h - 5.0; rowh = (gy1 - gy0) / 5
+    narrow = w < 40; gx0, gx1, gy0, gy1 = x + 1.5, x + w - (1.5 if narrow else 9.5), y + 2.0, y + h - 8.5; rowh = (gy1 - gy0) / 5
     for j, (nm, lab) in enumerate(names):
         v = A["imu"][nm]; v = (v - v.min()) / max(v.max() - v.min(), 1e-6); xx = np.linspace(gx0, gx1, len(v)); base = gy1 - (j + 1) * rowh
-        yy = base + v * rowh * 1.35
+        yy = base + v * rowh * (1.05 if narrow else 1.35)
         ax.fill_between(xx, base, yy, color=TEAL_LIGHT, alpha=0.35 if j < 2 else 0.18, lw=0, zorder=3)
         ax.plot(xx, yy, color=TEAL_LIGHT if j < 2 else TEAL, lw=1.4 if j < 2 else 0.8, zorder=3.1, solid_capstyle="round")
-        ss.text(ax, gx1 + 0.8, base + 0.2, lab, 7.5, INK, ha="left", va="bottom")
+        if not narrow: ss.text(ax, gx1 + 0.8, base + 0.2, lab, 7.5, INK, ha="left", va="bottom")
 
 
 def lens_radar(ax, x, y, w, h):
-    ss.panel(ax, x, y, w, h, fc=BAND); lens_label(ax, x + 1.5, y + h - 2.0, "radar", "RADAR")
+    ss.panel(ax, x, y, w, h, fc=BAND); lens_label(ax, x + 1.8, y + h - 4.6, "radar", "RADAR")
     R = A["radar"]; t = (R.frame - R.frame.min()) / (R.frame.max() - R.frame.min()); z = R.z.clip(-1.0, 1.3)
-    px = x + 1.2 + t * (w - 2.4); pz = y + 1.0 + (z - z.min()) / (z.max() - z.min()) * (h - 5.0)
+    px = x + 1.2 + t * (w - 2.4); pz = y + 1.0 + (z - z.min()) / (z.max() - z.min()) * (h - 7.5)
     cmap = plt.matplotlib.colors.LinearSegmentedColormap.from_list("v", ["#C9B8E0", PURPLE])
     ax.scatter(px, pz, s=1.5 + (R.snr - R.snr.min()) / (R.snr.max() - R.snr.min()) * 6, c=t, cmap=cmap, zorder=3, linewidths=0, alpha=0.95)
-    if w > 70: ss.text(ax, x + w - 1.2, y + h - 2.0, "height of every detection against time", 7.5, INK, ha="right", va="center")
+    if w > 70: ss.text(ax, x + w - 1.2, y + h - 4.6, "height of every detection against time", 7.5, INK, ha="right", va="center")
 
 
 def connector(ax, p0, p1, color, lw=0.9):
@@ -141,8 +141,8 @@ def s01_hero(step: int):
         connector(ax, (LXL + LW, 74), (px0, 74), BLUE); connector(ax, (LXL + LW, 25), (px0, 25), TEAL)
         connector(ax, (LXR, 74), (px1, 74), ORANGE); connector(ax, (LXR, 25), (px1, 25), TEAL_LIGHT)
     if step >= 3:
-        ss.text(ax, 146, 97.5, "FIVE SPECIALISTS", 9, INK, ha="center", va="top")
-        stream(ax, 146, [84, 67, 50, 33, 16], 190, 220, 238, 50, r=4.0, dec_size=11.5)
+        ss.text(ax, 152, 95.5, "FIVE SPECIALISTS", 9, INK, ha="center", va="top")
+        stream(ax, 152, [84, 67, 50, 33, 16], 192, 221, 238, 50, r=4.0, dec_size=11.5)
     return ss.save(fig, "s01_hero")
 
 
@@ -263,7 +263,7 @@ def s06_thermal():
     crop = im.crop((70, 0, 210, 140)).resize((128, 128), Image.BILINEAR)                                            # a 128-px person crop (illustrative box)
     full128 = im.resize((171, 128), Image.BILINEAR); full224 = im.resize((299, 224), Image.BILINEAR)
     fig, ax, W = ss.canvas(6.3, 2.35)           # W = 268
-    H = 60.0; y0 = 33.0; xs = [6.0, 88.0, 190.0]; labels = ["128 px crop, 3-D CNN", "128 px full frame, 3-D CNN", "224 px full frame, MViTv2-S"]
+    H = 57.0; y0 = 34.0; xs = [7.0, 84.0, 183.0]; labels = ["128 px crop, 3-D CNN", "128 px full frame, 3-D CNN", "224 px full frame, MViTv2-S"]
     cols = [GRAY_TEXT, GRAY_TEXT, ORANGE]
     for x, img, s_, lab, col in zip(xs, [crop, full128, full224], st_, labels, cols):
         w = H * img.size[0] / img.size[1]
@@ -276,10 +276,10 @@ def s06_thermal():
     fus = ["fusion gain: 0.00 at every weight", "fusion gain: +0.83, not adopted", "+46 decoded clips, +5 public clips"]
     for x, img, f_, col in zip(xs, [crop, full128, full224], fus, cols):
         w = H * img.size[0] / img.size[1]; ss.text(ax, x + w / 2, y0 - 25.5, f_, 8.5, col if col == ORANGE else INK, ha="center", va="top")
-    ss.arrow(ax, (65.0, 60), (86.0, 60), color=GRAY_TEXT, lw=2.5, ms=14); ss.arrow(ax, (168.5, 60), (188.0, 60), color=ORANGE, lw=3.5, ms=18)
+    ss.arrow(ax, (66.0, 60), (82.0, 60), color=GRAY_TEXT, lw=2.5, ms=14); ss.arrow(ax, (162.0, 60), (181.0, 60), color=ORANGE, lw=3.5, ms=18)
     gain = 100 * np.mean(np.array(st_[2]["folds"]) - np.array(st_[1]["folds"]))
-    ss.text(ax, 178.0, 64.0, f"+{gain:.1f}", 17, ORANGE, ha="center", va="bottom", weight="black"); ss.text(ax, 178.0, 56.0, "points\n4 of 4 folds", 7.5, ORANGE, ha="center", va="top", linespacing=1.05)
-    ss.text(ax, 75.5, 64.0, f"+{100*(st_[1]['pooled']-st_[0]['pooled']):.1f}", 12, GRAY_TEXT, ha="center", va="bottom", weight="black")
+    ss.text(ax, 171.5, 63.5, f"+{gain:.1f}", 15, ORANGE, ha="center", va="bottom", weight="black"); ss.text(ax, 171.5, 56.5, "points\n4 of 4 folds", 7.5, ORANGE, ha="center", va="top", linespacing=1.05)
+    ss.text(ax, 74.0, 63.5, f"+{100*(st_[1]['pooled']-st_[0]['pooled']):.1f}", 12, GRAY_TEXT, ha="center", va="bottom", weight="black")
     return ss.save(fig, "s06_thermal")
 
 
