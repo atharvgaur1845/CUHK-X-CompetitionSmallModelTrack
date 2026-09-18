@@ -5,7 +5,7 @@ Each slide: a 15 to 40 s script, the one sentence to land, the likely expert cha
 
 ## 1. HERO: FIVE SENSORS. ONE DECISION.
 
-**Script.** This is one training clip, jumping jacks, seen by the depth camera. No face is recorded. [click] The same instant reaches the system through five different lenses: infrared and depth, thermal, a tracked skeleton, wrist and body inertial units, and radar. [click] Five small specialists each read one of those streams; their votes are fused, the order of the recording adds context, and out comes one decision: jumping jacks. Forty activities, one 96-megabyte file, people the model has never seen, 0.877 on the private leaderboard, and the same 405 predictions on every GPU we tested.
+**Script.** This is one training clip, jumping jacks, seen by the depth camera. No face is recorded. The same instant reaches the system through five different lenses: infrared and depth, thermal, a tracked skeleton, wrist and body inertial units, and radar. Five small specialists each read one of those streams; their votes are fused, the order of the recording adds context, and out comes one decision: jumping jacks. Forty activities, one 96-megabyte file, people the model has never seen, 0.877 on the private leaderboard, and the same 405 predictions on every GPU we tested.
 
 **One sentence.** One human action, seen five ways, fused into one decision by a system that fits in 96 MB.
 
@@ -38,7 +38,7 @@ Each slide: a 15 to 40 s script, the one sentence to land, the likely expert cha
 
 ## 4. FIVE SPECIALISTS. ONE DECISION.
 
-**Script.** Here is the whole system in one motion. The body view and the hand view are two MViTv2-S video models on the infrared and depth crops; the heat view is the same architecture on the thermal full frame; posture is a twenty-member skeleton and inertial ensemble; motion is a small tree forest on wrist statistics. [click] Their posteriors are combined as a weighted sum of log-probabilities, the coefficients chosen by nested cross-validation, which takes 2,700 held-out clips from 0.733 for the best member to 0.781. Then the ordered transition decoder uses the order of a recording session, which the radar timestamps give us, to reach 0.830.
+**Script.** Here is the whole system in one motion. The body view and the hand view are two MViTv2-S video models on the infrared and depth crops; the heat view is the same architecture on the thermal full frame; posture is a twenty-member skeleton and inertial ensemble; motion is a small tree forest on wrist statistics. Their posteriors are combined as a weighted sum of log-probabilities, the coefficients chosen by nested cross-validation, which takes 2,700 held-out clips from 0.733 for the best member to 0.781. Then the ordered transition decoder uses the order of a recording session, which the radar timestamps give us, to reach 0.830.
 
 **One sentence.** Complementary small specialists plus the structure of the recording, not model size.
 
@@ -93,7 +93,7 @@ Each slide: a 15 to 40 s script, the one sentence to land, the likely expert cha
 
 ## 9. THE RECORDING ITSELF KNOWS SOMETHING.
 
-**Script.** The fused argmax gets 2,109 clips right. [click] The first thing the recording tells us is that its activities are distinct: a soft penalty on repeating a label within a session adds 55. [click] The second is the scripted order: a first-order transition model over classes, fitted on training metadata, adds 76 more through beam search. [click] That is 2,240, plus 131 clips, and the same decoder gave plus three to five clips on the public leaderboard. The controls on the right are what make this science rather than a trick: shuffle the order within sessions and the gain is plus 9, neutral; reverse it and it is minus 54; permute the class labels and it is minus 17. The decoder is reading structure, not memorising label frequencies.
+**Script.** The fused argmax gets 2,109 clips right. The first thing the recording tells us is that its activities are distinct: a soft penalty on repeating a label within a session adds 55. The second is the scripted order: a first-order transition model over classes, fitted on training metadata, adds 76 more through beam search. That is 2,240, plus 131 clips, and the same decoder gave plus three to five clips on the public leaderboard. The controls on the right are what make this science rather than a trick: shuffle the order within sessions and the gain is plus 9, neutral; reverse it and it is minus 54; permute the class labels and it is minus 17. The decoder is reading structure, not memorising label frequencies.
 
 **One sentence.** Recording structure carries measurable information, and the controls show it is structure, not memorisation.
 
@@ -115,7 +115,7 @@ Each slide: a 15 to 40 s script, the one sentence to land, the likely expert cha
 
 ## 11. WE FIT AN ENTIRE SYSTEM INTO 100 MB.
 
-**Script.** The container is the 100-megabyte rule. [click] Three video models at five-bit weight codes take 64.8 megabytes, two thirds of it. [click] The skeleton and inertial ensemble, pruned from 48 members to 20 and stored at int8, takes 18.9. [click] Both detectors, 10.3 megabytes at fp16, plus the forest, the crop windows and the manifest. [click] 96.37 megabytes, 3.6 to spare. Two decisions were measured, not assumed: five-bit video cost one public clip against six-bit, recovered elsewhere; and quantising the detectors to int8 would have moved 150 of 405 crop windows, so they stayed at fp16.
+**Script.** The container is the 100-megabyte rule. Three video models at five-bit weight codes take 64.8 megabytes, two thirds of it. The skeleton and inertial ensemble, pruned from 48 members to 20 and stored at int8, takes 18.9. Both detectors, 10.3 megabytes at fp16, plus the forest, the crop windows and the manifest. 96.37 megabytes, 3.6 to spare. Two decisions were measured, not assumed: five-bit video cost one public clip against six-bit, recovered elsewhere; and quantising the detectors to int8 would have moved 150 of 405 crop windows, so they stayed at fp16.
 
 **One sentence.** Everything the system needs at inference lives in one 96.37 MB file, and every byte was a measured trade-off.
 
@@ -179,7 +179,18 @@ Each slide: a 15 to 40 s script, the one sentence to land, the likely expert cha
 **Answer.** Adding members to the video slot is a measured graveyard: four person folds and one person plus one wrist both reach the same public score; the budget is better spent on a new view than on a fifth copy of an old one.
 
 
-## 17. B4  THE FULL EXPERIMENT LANDSCAPE
+## 17. B3b  THE SKELETON / IMU ENSEMBLE
+
+**Script.** The posture specialist is not one model but twenty: five families, each trained on four subject-grouped folds, on the skeleton track and the inertial units you see here. Stored at int8 it is 18.9 megabytes, a fifth of the budget.
+
+**One sentence.** Twenty small models on the skeleton and inertial streams, 18.9 MB.
+
+**Likely challenge.** Why an ensemble here and single models for video?
+
+**Answer.** The skeleton members are small, so twenty of them cost 19 MB, and their fold diversity is what makes the ensemble's posterior calibrated enough to fuse; a video member is 21.6 MB each, so there the budget buys views, not seeds.
+
+
+## 18. B4  THE FULL EXPERIMENT LANDSCAPE
 
 **Script.** Everything from slide 10 plus the levers that did not fit there: the backbone change, the full-frame IR duplicate, the COCO object probe, twin pooling, subject alignment.
 
@@ -190,7 +201,7 @@ Each slide: a 15 to 40 s script, the one sentence to land, the likely expert cha
 **Answer.** They are the map; each was measured against a two-standard-error bar and recorded with its experiment id in the log.
 
 
-## 18. B5  SUBJECT-LEVEL DETAIL
+## 19. B5  SUBJECT-LEVEL DETAIL
 
 **Script.** The same slope pairs with the distribution strip, and the standard error of an eight-subject draw, which falls from 2.4 to 1.9 points.
 
@@ -201,7 +212,7 @@ Each slide: a 15 to 40 s script, the one sentence to land, the likely expert cha
 **Answer.** Minus 1.5 and minus 0.5 points are inside seed noise of 1.16 per model; the paired mean delta is plus 5.2.
 
 
-## 19. B6  DECODER CONTROLS
+## 20. B6  DECODER CONTROLS
 
 **Script.** The decoder's gain decomposed and its controls with rescued and harmed counts: intact 187 rescued, 56 harmed; shuffled 114 and 105; reversed 88 and 142; permuted 82 and 99.
 
@@ -212,7 +223,7 @@ Each slide: a 15 to 40 s script, the one sentence to land, the likely expert cha
 **Answer.** Without a session key the decoder is off by construction and the system returns the fused argmax, 0.781 OOF instead of 0.830.
 
 
-## 20. B7  THE PACKAGE
+## 21. B7  THE PACKAGE
 
 **Script.** What the organisers received and how it was checked: the archive, the image, fourteen gates ending in a clean-room run from the uploaded files with a comparer that shares no code with the package.
 
@@ -223,7 +234,7 @@ Each slide: a 15 to 40 s script, the one sentence to land, the likely expert cha
 **Answer.** Crop windows are gated by a content fingerprint: a clip whose frames match the Kaggle clip uses the stored window, anything else goes through the live detectors; caches are per-run and wiped.
 
 
-## 21. B8  LIMITATIONS AND DISCLOSURE
+## 22. B8  LIMITATIONS AND DISCLOSURE
 
 **Script.** Where the errors are and why they are hard: they cluster by subject and by confusable object classes, read versus turn pages, sweep versus mop. The disclosure on the primary submission is here in full.
 

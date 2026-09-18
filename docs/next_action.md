@@ -40,8 +40,8 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 > 61/52/68/73/34, oracle 2399), not the earlier-stage EXP-140/113 values. LOSO comparison is the paired
 > 16-subject one (sd 6.4 -> 5.4, spread 23 -> 21; the 18-subject person sd 6.9 / spread 28 is stated in the
 > caption). No em dashes.
-> **Deck v3 (2026-09-18):** `docs/slides/slides.tex` + `style.tex` (custom 16:9 Beamer, poster identity, Lato via LuaLaTeX,
-> pdflatex/Helvetica fallback until `texlive-luatex` is installed), 13 core + 8 backup slides, figures `s01..s11` from
+> **Deck v3.1 (2026-09-18):** `docs/slides/slides.tex` + `style.tex` (custom 16:9 Beamer, poster identity, Lato via LuaLaTeX),
+> 13 core + 9 backup slides, every page a single final state (no overlays), figures `s01..s11` from
 > `make_slide_figures.py` (same JSON tables + real clip frames), numbers injected from `gen/numbers.tex`, notes in the
 > `\talk` blocks -> `SPEAKER_NOTES.md` / `slides_notes.pdf`, audit `SLIDE_AUDIT.md`. Build: `bash docs/slides/build.sh`.
 > **Report v2.3 (2026-09-18, formatting):** bold skim-path through the text (method, results, limits readable from the bold alone; reading guide under the findings strip), 12/10.5 pt bold left headings with fixed equal gaps, blue clickable section/figure/table links + PDF bookmarks, centred Abstract heading, author line + small email line, widow/orphan control, Figs. 9 and 10 on a float page so Sec. VIII starts with its body; poster header centred with larger question + italic subtitle. Still 9 pages.

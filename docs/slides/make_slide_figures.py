@@ -143,15 +143,22 @@ def s01_hero(step: int):
     if step >= 3:
         ss.text(ax, 146, 97.5, "FIVE SPECIALISTS", 9, INK, ha="center", va="top")
         stream(ax, 146, [84, 67, 50, 33, 16], 190, 220, 238, 50, r=4.0, dec_size=11.5)
-    return ss.save(fig, f"s01_hero_{step}")
+    return ss.save(fig, "s01_hero")
 
 
 # ----------------------------------------------------------------------------------------------- s02 layers
 def s02_layers():
     fig, ax, W = ss.canvas(2.5, 2.5)            # W = 100
-    crop = A["depth"][12:478, 80:250]; h = 40.0; w = h * crop.shape[1] / crop.shape[0]; x0, y0 = 50 - w / 2, 30.0
+    crop = A["depth"][12:478, 80:250]; h = 40.0; w = h * crop.shape[1] / crop.shape[0]; x0, y0 = 38 - w / 2, 30.0
     ax.imshow(crop, extent=(x0, x0 + w, y0, y0 + h), aspect="auto", zorder=3, interpolation="bilinear")
     ax.add_patch(Rectangle((x0, y0), w, h, fc="none", ec=INK, lw=0.8, zorder=4))
+    # the ordinary camera that is not there: a faint outline, crossed out, behind the layers
+    cx0, cy0 = 87.0, 84.0
+    ax.add_patch(FancyBboxPatch((cx0 - 9, cy0 - 5.5), 18, 11, boxstyle="round,pad=0,rounding_size=1.5", fc="none", ec=GRAY, lw=1.2, alpha=0.45, zorder=1))
+    ax.add_patch(Rectangle((cx0 - 5, cy0 + 5.5), 7, 2.2, fc="none", ec=GRAY, lw=1.2, alpha=0.45, zorder=1))
+    ax.add_patch(Circle((cx0, cy0), 3.5, fc="none", ec=GRAY, lw=1.2, alpha=0.45, zorder=1)); ax.add_patch(Circle((cx0, cy0), 1.6, fc="none", ec=GRAY, lw=0.8, alpha=0.45, zorder=1))
+    ax.plot([cx0 - 11, cx0 + 11], [cy0 - 8, cy0 + 8], color=RED, lw=1.6, alpha=0.5, zorder=1.1); ax.plot([cx0 - 11, cx0 + 11], [cy0 + 8, cy0 - 8], color=RED, lw=1.6, alpha=0.5, zorder=1.1)
+    ss.text(ax, cx0, cy0 - 10.5, "no ordinary\ncamera", 7.5, GRAY_TEXT, ha="center", va="top", linespacing=1.05)
     layers = [("ir", "IR + DEPTH"), ("thermal", "THERMAL"), ("skeleton", "SKELETON"), ("imu", "WRIST IMU"), ("radar", "RADAR")]
     for i, (key, name) in enumerate(layers):
         off = 4.8 * (i + 1)
@@ -166,8 +173,9 @@ def s03_field():
     by_k = m["by_k_members_correct"]; u = m["unique_rescues"]
     fig, ax, W = ss.canvas(6.3, 2.0)            # W = 315
     cols, rows, pitch = 75, 36, 2.3; fx, fy = 3.0, 7.0
-    order = [("all five", INK, by_k["5"]["n"]), ("two to four", GRAY_LIGHT, by_k["2"]["n"] + by_k["3"]["n"] + by_k["4"]["n"])]
-    order += [(NAMES[k], MEMBER[k], u[k]) for k in ("skeleton", "thermal", "person", "wrist", "imu")] + [("none", "#E9C9C5", by_k["0"]["n"])]
+    navy = lambda a: (0.106, 0.165, 0.255, a)
+    order = [("all five", INK, by_k["5"]["n"]), ("four", navy(0.72), by_k["4"]["n"]), ("three", navy(0.52), by_k["3"]["n"]), ("two", navy(0.34), by_k["2"]["n"])]
+    order += [(NAMES[k], MEMBER[k], u[k]) for k in ("skeleton", "thermal", "person", "wrist", "imu")] + [("none", GRAY_LIGHT, by_k["0"]["n"])]
     assert sum(n for _, _, n in order) == 2700
     i = 0; bands = []
     for lab, col, n in order:
@@ -177,11 +185,12 @@ def s03_field():
         bands.append((lab, col, n, fx + (start / rows) * pitch, fx + (i / rows) * pitch))
     top = fy + rows * pitch
     # band labels above the field (two levels so they never collide)
-    for j, (lab, col, n, xa, xb) in enumerate(bands[:2]):
-        ss.text(ax, (xa + xb) / 2, top + 1.2, f"{lab}: {n:,}", 8, INK if col != GRAY_LIGHT else GRAY_TEXT, ha="center", va="bottom")
-    xa, xb = bands[2][3], bands[6][4]; ss.text(ax, (xa + xb) / 2, top + 1.2, "only one: 288", 8, INK, ha="center", va="bottom")
-    ax.plot([xa, xb], [top + 0.6, top + 0.6], color=INK, lw=0.8)
-    lab, col, n, xa, xb = bands[-1]; ss.text(ax, (xa + xb) / 2 + 1.0, top + 5.6, f"{lab}: {n}", 8, GRAY_TEXT, ha="center", va="bottom"); ax.plot([(xa + xb) / 2, (xa + xb) / 2], [top + 0.6, top + 5.2], color=GRAY, lw=0.6)
+    b = bands
+    ss.text(ax, (b[0][3] + b[0][4]) / 2, top + 1.2, f"all five: {b[0][2]:,}", 8, INK, ha="center", va="bottom")
+    ss.text(ax, (b[1][3] + b[3][4]) / 2, top + 1.2, f"four {b[1][2]:,}  |  three {b[2][2]:,}  |  two {b[3][2]:,}", 8, INK, ha="center", va="bottom")
+    xa, xb = b[4][3], b[8][4]; ss.text(ax, (xa + xb) / 2, top + 5.6, "only one: 288", 8, INK, ha="center", va="bottom")
+    ax.plot([xa, xb], [top + 0.6, top + 0.6], color=INK, lw=0.8); ax.plot([(xa + xb) / 2, (xa + xb) / 2], [top + 0.6, top + 5.2], color=INK, lw=0.6)
+    lab, col, n, xa, xb = b[-1]; ss.text(ax, (xa + xb) / 2, top + 1.2, f"none: {n}", 8, GRAY_TEXT, ha="center", va="bottom")
     # breakdown of the only-one band, right of the field
     bx = fx + cols * pitch + 8.0; ss.text(ax, bx, top + 1.2, "right for exactly one specialist", 8, INK, ha="left", va="bottom")
     yy = top - 4.5
@@ -189,7 +198,7 @@ def s03_field():
         ax.add_patch(Rectangle((bx, yy - 2.2), 4.4, 4.4, fc=MEMBER[k], ec="none", zorder=3))
         ss.text(ax, bx + 6.5, yy, f"{u[k]}", 12, INK, ha="left", va="center", weight="black"); ss.text(ax, bx + 20.0, yy, f"{NAMES[k]} only", 8.5, INK, ha="left", va="center"); yy -= 9.6
     ss.text(ax, bx, yy - 1.0, f"nobody: {by_k['0']['n']} of 2,700", 8, GRAY_TEXT, ha="left", va="center")
-    ss.text(ax, fx, 1.8, "each square is one held-out training clip (2,700), coloured by which specialists classify it correctly", 7.5, GRAY_TEXT, ha="left", va="bottom")
+    ss.text(ax, fx, 1.8, "each square is one held-out clip (2,700): navy = how many specialists are right (five to two), a colour = exactly one, gray = none", 7.5, GRAY_TEXT, ha="left", va="bottom")
     return ss.save(fig, "s03_field")
 
 
@@ -209,7 +218,7 @@ def s04_converge(step: int):
         ss.text(ax, xd, 97.5, "FIVE SPECIALISTS", 9, INK, ha="center", va="top")
         badges = [(140, 74, f"{m['fused_correct']/2700:.3f}", "fused, OOF"), (190, 74, f"{dec/2700:.3f}", "decoded, OOF")]
         stream(ax, xd, ys, 140, 190, 214, 50, r=5.0, dec_size=12, badges=badges, eq=True)
-    return ss.save(fig, f"s04_converge_{step}")
+    return ss.save(fig, "s04_converge")
 
 
 # ----------------------------------------------------------------------------------------------- s05 resolution
@@ -254,7 +263,7 @@ def s06_thermal():
     crop = im.crop((70, 0, 210, 140)).resize((128, 128), Image.BILINEAR)                                            # a 128-px person crop (illustrative box)
     full128 = im.resize((171, 128), Image.BILINEAR); full224 = im.resize((299, 224), Image.BILINEAR)
     fig, ax, W = ss.canvas(6.3, 2.35)           # W = 268
-    H = 56.0; y0 = 34.0; xs = [8.0, 90.0, 189.0]; labels = ["128 px crop, 3-D CNN", "128 px full frame, 3-D CNN", "224 px full frame, MViTv2-S"]
+    H = 60.0; y0 = 33.0; xs = [6.0, 88.0, 190.0]; labels = ["128 px crop, 3-D CNN", "128 px full frame, 3-D CNN", "224 px full frame, MViTv2-S"]
     cols = [GRAY_TEXT, GRAY_TEXT, ORANGE]
     for x, img, s_, lab, col in zip(xs, [crop, full128, full224], st_, labels, cols):
         w = H * img.size[0] / img.size[1]
@@ -262,22 +271,22 @@ def s06_thermal():
         ax.imshow(np.asarray(img), extent=(x, x + w, y0, y0 + H), aspect="auto", zorder=3, interpolation="nearest")
         ax.add_patch(Rectangle((x, y0), w, H, fc="none", ec=INK, lw=0.8, zorder=4))
         ss.text(ax, x + w / 2, y0 + H + 2.0, lab, 8.5, INK, ha="center", va="bottom")
-        ss.text(ax, x + w / 2, y0 - 3.5, f"{s_['pooled']:.3f}", 22, col, ha="center", va="top", weight="black")
-        ss.text(ax, x + w / 2, y0 - 19.0, "member accuracy, OOF", 7.5, GRAY_TEXT, ha="center", va="top")
+        ss.text(ax, x + w / 2, y0 - 3.0, f"{s_['pooled']:.3f}", 25, col, ha="center", va="top", weight="black")
+        ss.text(ax, x + w / 2, y0 - 20.5, "member accuracy, OOF", 7.5, GRAY_TEXT, ha="center", va="top")
     fus = ["fusion gain: 0.00 at every weight", "fusion gain: +0.83, not adopted", "+46 decoded clips, +5 public clips"]
     for x, img, f_, col in zip(xs, [crop, full128, full224], fus, cols):
-        w = H * img.size[0] / img.size[1]; ss.text(ax, x + w / 2, y0 - 24.0, f_, 8, col if col == ORANGE else INK, ha="center", va="top")
-    ss.arrow(ax, (67.0, 58), (87.0, 58), color=GRAY_TEXT, lw=2.5, ms=14); ss.arrow(ax, (168.0, 58), (186.0, 58), color=ORANGE, lw=3.5, ms=18)
+        w = H * img.size[0] / img.size[1]; ss.text(ax, x + w / 2, y0 - 25.5, f_, 8.5, col if col == ORANGE else INK, ha="center", va="top")
+    ss.arrow(ax, (65.0, 60), (86.0, 60), color=GRAY_TEXT, lw=2.5, ms=14); ss.arrow(ax, (168.5, 60), (188.0, 60), color=ORANGE, lw=3.5, ms=18)
     gain = 100 * np.mean(np.array(st_[2]["folds"]) - np.array(st_[1]["folds"]))
-    ss.text(ax, 177.0, 62.0, f"+{gain:.1f}", 15, ORANGE, ha="center", va="bottom", weight="black"); ss.text(ax, 177.0, 54.0, "points\n4 of 4 folds", 7.5, ORANGE, ha="center", va="top", linespacing=1.05)
-    ss.text(ax, 77.0, 62.0, f"+{100*(st_[1]['pooled']-st_[0]['pooled']):.1f}", 12, GRAY_TEXT, ha="center", va="bottom", weight="black")
+    ss.text(ax, 178.0, 64.0, f"+{gain:.1f}", 17, ORANGE, ha="center", va="bottom", weight="black"); ss.text(ax, 178.0, 56.0, "points\n4 of 4 folds", 7.5, ORANGE, ha="center", va="top", linespacing=1.05)
+    ss.text(ax, 75.5, 64.0, f"+{100*(st_[1]['pooled']-st_[0]['pooled']):.1f}", 12, GRAY_TEXT, ha="center", va="bottom", weight="black")
     return ss.save(fig, "s06_thermal")
 
 
 # ----------------------------------------------------------------------------------------------- s07 subjects
 def s07_subjects():
     L = D["loso"]; subs = L["shared_subjects_sorted_by_person"]; pv = np.array([100 * L["person"][s] for s in subs]); ev = np.array([100 * L["ensemble"][s] for s in subs])
-    fig = plt.figure(figsize=(4.4, 2.55)); ax = fig.add_axes([0.11, 0.24, 0.72, 0.70]); x = np.arange(len(subs))
+    fig = plt.figure(figsize=(5.0, 2.7)); ax = fig.add_axes([0.1, 0.23, 0.76, 0.72]); x = np.arange(len(subs))
     for i in range(len(subs)):
         up = ev[i] >= pv[i]; ax.plot([i, i], [pv[i], ev[i]], color=GREEN if up else RED, lw=2.2, zorder=2, solid_capstyle="round")
     ax.scatter(x, pv, s=34, color=GRAY, zorder=3, label="person view alone", linewidths=0)
@@ -296,18 +305,18 @@ def s07_subjects():
 # ----------------------------------------------------------------------------------------------- s08 atlas
 def s08_atlas():
     R = D["robustness"]; base = R["baseline"]; mem = R["missing"]["members"]; scales = R["coefficients"]["scales"]
-    fig = plt.figure(figsize=(4.2, 2.45)); ax = fig.add_axes([0.17, 0.2, 0.81, 0.6]); ax.set_xlim(0, 7.3); ax.set_ylim(0, 5); ax.axis("off")
+    fig = plt.figure(figsize=(4.6, 2.7)); ax = fig.add_axes([0.17, 0.2, 0.81, 0.6]); ax.set_xlim(0, 7.3); ax.set_ylim(0, 5); ax.axis("off")
     cols_x = [0.0] + [1.3 + i for i in range(5)]
     def cell_color(v):
-        a = min(abs(v) / 48.0, 1.0); return (0.706, 0.263, 0.227, 0.12 + 0.75 * a) if v < 0 else ((0.18, 0.36, 0.62, 0.15 + 0.6 * a) if v > 0 else (1, 1, 1, 1))
+        a = min(abs(v) / 48.0, 1.0); return (0.706, 0.263, 0.227, 0.12 + 0.75 * a) if v < 0 else ((0.24, 0.545, 0.353, 0.18 + 0.6 * a) if v > 0 else (0.953, 0.945, 0.925, 1))
     for i, mname in enumerate(mem):
         y = 4 - i; vals = [R["missing"]["removed_w0"][i]] + [R["coefficients"]["fused"][mname][j] - base for j in range(5)]
         for xc, v in zip(cols_x, vals):
             ax.add_patch(Rectangle((xc, y), 1, 1, fc=cell_color(v), ec="white", lw=1.2, zorder=2))
-            ax.text(xc + 0.5, y + 0.5, f"{v:+d}" if v else "0", ha="center", va="center", fontsize=9, color=INK if abs(v) < 30 else "white", fontweight="bold", zorder=3)
-        ax.text(-0.15, y + 0.5, NAMES[mname], ha="right", va="center", fontsize=8.5, color=MEMBER[mname], fontweight="bold")
+            ax.text(xc + 0.5, y + 0.5, f"{v:+d}" if v else "0", ha="center", va="center", fontsize=10, color=INK if abs(v) < 30 else "white", fontweight="bold", zorder=3)
+        ax.text(-0.15, y + 0.5, NAMES[mname].upper(), ha="right", va="center", fontsize=9, color=MEMBER[mname], fontweight="bold")
     ax.add_patch(Rectangle((cols_x[3], 0), 1, 5, fc="none", ec=INK, lw=1.4, zorder=4))
-    ax.text(0.5, 5.15, "sensor\nabsent", ha="center", va="bottom", fontsize=8, color=INK, fontweight="bold", linespacing=1.05)
+    ax.text(0.5, 5.15, "ABSENT", ha="center", va="bottom", fontsize=8.5, color=INK, fontweight="bold")
     for xc, s_ in zip(cols_x[1:], scales): ax.text(xc + 0.5, 5.15, f"x{s_:g}", ha="center", va="bottom", fontsize=8.5, color=INK, fontweight="bold")
     ax.text(cols_x[3] + 0.5, 6.0, "one coefficient scaled, the others fixed", ha="center", va="bottom", fontsize=8, color=GRAY_TEXT, fontweight="bold")
     ax.text(3.65, -0.35, f"change in fused OOF clips (of 2,700) vs the shipped baseline {base:,}\nboxed column = the shipped setting", ha="center", va="top", fontsize=7.5, color=GRAY_TEXT, fontweight="bold", linespacing=1.1)
@@ -332,6 +341,7 @@ def s09_waterfall(step: int):
     aw.set_xticks(range(4)); aw.set_xticklabels([s[0] for s in steps], fontsize=8); aw.set_xlim(-0.6, 3.6); aw.set_ylim(ymin, 2290)
     aw.set_ylabel("correct OOF clips", fontsize=8.5); aw.tick_params(axis="y", labelsize=8); aw.grid(axis="y", color=GRAY_LIGHT, lw=0.5); aw.set_axisbelow(True)
     aw.set_title(f"{base/2700*100:.1f} % to {intact/2700*100:.1f} %: +{intact-base} clips", fontsize=10, pad=6)
+    if step >= 4: aw.text(3, ymin + 6, f"{intact/2700*100:.1f} %", ha="center", va="bottom", fontsize=10, color="white", fontweight="bold", zorder=4)
     ctrl = [("intact (shipped)", intact - base, PURPLE), ("shuffled order", C["shuffled within groups"]["decoded"] - base, GRAY), ("permuted labels", C["permuted class labels"]["decoded"] - base, RED), ("reversed order", C["reversed order"]["decoded"] - base, RED)]
     if step >= 4:
         for i, (lab, v, col) in enumerate(ctrl):
@@ -341,7 +351,7 @@ def s09_waterfall(step: int):
         ac.set_title("CONTROLS: structure removed", fontsize=10, pad=6)
     else:
         ac.axis("off")
-    return ss.save(fig, f"s09_waterfall_{step}")
+    return ss.save(fig, "s09_waterfall")
 
 
 # ----------------------------------------------------------------------------------------------- s10 levers
@@ -393,7 +403,9 @@ def s11_container(step: int):
             if key == "video":
                 for j in range(3): ax.add_patch(Rectangle((x + j * size / 3 * k, Y0), size / 3 * k, H, fc=col, ec="white", lw=1.2, zorder=3))
             else: ax.add_patch(Rectangle((x, Y0), size * k, H, fc=col, ec="white", lw=1.2, zorder=3))
-            if size > 5: ss.text(ax, x + size * k / 2, Y0 + H / 2, f"{size:.1f} MB", 11 if size > 15 else 9, "white", ha="center", va="center", weight="black")
+            if key == "video":
+                for j in range(3): ss.text(ax, x + (j + 0.5) * size / 3 * k, Y0 + H / 2, f"{size/3:.1f} MB", 11, "white", ha="center", va="center", weight="black")
+            elif size > 5: ss.text(ax, x + size * k / 2, Y0 + H / 2, f"{size:.1f} MB", 11 if size > 15 else 9, "white", ha="center", va="center", weight="black")
             if key == "video": ss.text(ax, x + size * k / 2, Y0 - 4.5, lab, 8.5, INK, ha="center", va="top")
             elif key == "skeleton": ss.text(ax, x + size * k / 2, Y0 + H + 2.5, "skeleton/IMU ensemble, int8", 8.5, INK, ha="center", va="bottom")
             elif key == "detector": ss.text(ax, x + size * k / 2, Y0 - 4.5, lab, 8.5, INK, ha="center", va="top")
@@ -404,9 +416,30 @@ def s11_container(step: int):
     if step >= 4:
         free = 100 - x_mb if (x_mb := (x - X0) / k) else 0
         ax.add_patch(Rectangle((x, Y0), free * k, H, fc="none", ec=RED, lw=0, hatch="////", alpha=0.35, zorder=3))
-        ss.text(ax, X0 + 100 * k, Y0 + H + 2.5, f"{free:.1f} free", 8, RED, ha="right", va="bottom")
-    ss.text(ax, X0, 2.0, "every inference-time weight, both detectors and the 405 crop windows, in one file", 7.5, GRAY_TEXT, ha="left", va="bottom")
-    return ss.save(fig, f"s11_container_{step}")
+        ss.text(ax, x + free * k / 2, Y0 + H / 2, f"{free:.1f} MB margin", 8, RED, ha="center", va="center", rotation=90)
+    ss.text(ax, X0, 2.0, f"{mb(by['video']):.1f} + {mb(by['skeleton']):.1f} + {mb(by['detector']):.1f} + {mb(by['imu']):.1f} + {other:.1f} = {total:.2f} MB: every inference-time weight, both detectors and the 405 crop windows, in one file", 7.5, GRAY_TEXT, ha="left", va="bottom")
+    return ss.save(fig, "s11_container")
+
+
+# ----------------------------------------------------------------------------------------------- s12 ensemble (backup)
+def s12_ensemble():
+    fig, ax, W = ss.canvas(6.3, 2.6)            # W = 242
+    # the skeleton of the apex frame, large
+    k = A["skel"]; X, Z = k[:, 0], k[:, 2]; sh = 74.0; sc = sh / (Z.max() - Z.min()); cx, cy = 34.0, 10.0
+    for a, b in A["bones"]:
+        ax.plot([cx + (X[a] - X.mean()) * sc, cx + (X[b] - X.mean()) * sc], [cy + (Z[a] - Z.min()) * sc, cy + (Z[b] - Z.min()) * sc], color=TEAL, lw=4.0, solid_capstyle="round", zorder=3)
+    ax.scatter(cx + (X - X.mean()) * sc, cy + (Z - Z.min()) * sc, s=60, color=TEAL, zorder=4, linewidths=1.2, edgecolors="white")
+    ss.text(ax, cx, 88.0, "SKELETON", 10, TEAL, ha="center", va="bottom"); ss.text(ax, cx, 3.0, "17 joints in 3-D, frame 18 of the clip", 7.5, GRAY_TEXT, ha="center", va="bottom")
+    # the five inertial units over the whole clip, large ridgeline
+    names = [("WTLA", "left wrist"), ("WTRA", "right wrist"), ("WTC(", "chest"), ("WTLL", "left ankle"), ("WTRL", "right ankle")]
+    gx0, gx1, gy0, gy1 = 78.0, 200.0, 10.0, 84.0; rowh = (gy1 - gy0) / 5
+    for j, (nm, lab) in enumerate(names):
+        v = A["imu"][nm]; v = (v - v.min()) / max(v.max() - v.min(), 1e-6); xx = np.linspace(gx0, gx1, len(v)); base = gy1 - (j + 1) * rowh; yy = base + v * rowh * 1.35
+        ax.fill_between(xx, base, yy, color=TEAL_LIGHT, alpha=0.35 if j < 2 else 0.18, lw=0, zorder=3)
+        ax.plot(xx, yy, color=TEAL_LIGHT if j < 2 else TEAL, lw=2.0 if j < 2 else 1.2, zorder=3.1, solid_capstyle="round")
+        ss.text(ax, gx1 + 2.0, base + 0.5, lab, 8.5, INK, ha="left", va="bottom")
+    ss.text(ax, (gx0 + gx1) / 2, 88.0, "FIVE INERTIAL UNITS", 10, TEAL_LIGHT, ha="center", va="bottom"); ss.text(ax, (gx0 + gx1) / 2, 3.0, "|acceleration| over the six-second clip, one row per unit", 7.5, GRAY_TEXT, ha="center", va="bottom")
+    return ss.save(fig, "s12_ensemble")
 
 
 # ----------------------------------------------------------------------------------------------- numbers -> LaTeX
@@ -443,16 +476,17 @@ def write_gen():
             dv = "reference" if r_["dp_video"] == 0 else f"{r_['dp_video']:.1e}".replace("e-0", "e-"); dk = "" if r_["dp_video"] == 0 else f" / {r_['dp_skel']:.1e}".replace("e-0", "e-")
             f.write(f"\\vrow{{{r_['gpu']}}}{{{r_['container']}}}{{{dv}{dk}}}{{{r_['argmax_changes']} / 405}}{{{r_['csv']}}}\n")
         f.write("\\bottomrule\\end{tabular}\n")
+    with open(GEN / "verification_compact.tex", "w") as f:   # slide 12: GPU, drift, predictions, CSV
+        f.write("% generated by make_slide_figures.py from gpu.json; do not edit\n\\begin{tabular}{@{}l l c c@{}}\\toprule\n")
+        f.write("\\textbf{GPU} & \\textbf{posterior drift} & \\textbf{predictions} & \\textbf{CSV}\\\\\n & {\\color{graytext}video / skeleton} & {\\color{graytext}changed} & \\\\\\midrule\n")
+        for r_ in G["rows"]:
+            dv = "reference" if r_["dp_video"] == 0 else f"{r_['dp_video']:.1e}".replace("e-0", "e-"); dk = "" if r_["dp_video"] == 0 else f" / {r_['dp_skel']:.1e}".replace("e-0", "e-")
+            f.write(f"\\vrowc{{{r_['gpu']}}}{{{dv}{dk}}}{{{r_['argmax_changes']} / 405}}{{{r_['csv'].upper()}}}\n")
+        f.write("\\bottomrule\\end{tabular}\n")
     print("gen:", sorted(p.name for p in GEN.glob("*.tex")), len(n), "numbers")
 
 
 if __name__ == "__main__":
-    for s in (1, 2, 3): s01_hero(s)
-    s02_layers(); s03_field()
-    for s in (1, 2): s04_converge(s)
-    s05_resolution(); s06_thermal(); s07_subjects(); s08_atlas()
-    for s in (1, 2, 3, 4): s09_waterfall(s)
-    s10_levers()
-    for s in (1, 2, 3, 4): s11_container(s)
-    write_gen()
+    s01_hero(3); s02_layers(); s03_field(); s04_converge(2); s05_resolution(); s06_thermal(); s07_subjects(); s08_atlas()
+    s09_waterfall(4); s10_levers(); s11_container(4); s12_ensemble(); write_gen()
     print("figures:", sorted(p.name for p in ss.OUT.glob("s*.pdf")))

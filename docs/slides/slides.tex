@@ -15,7 +15,7 @@
   \node[anchor=north west, inner sep=0] at ([xshift=0.6cm, yshift=-1.25cm]current page.north west) {\latoblack\fontsize{24}{24}\selectfont\color{blue}ONE DECISION.};
   \node[anchor=north east, inner sep=0, align=right] at ([xshift=-0.6cm, yshift=-0.42cm]current page.north east) {\fontsize{10}{12}\selectfont\bfseries\color{ink}Can a machine recognise everyday activities\\without an ordinary camera?};
   \node[anchor=north east, inner sep=0] at ([xshift=-0.6cm, yshift=-1.4cm]current page.north east) {\begin{tabular}{@{}r@{}}\fontsize{7}{8.5}\selectfont\color{graytext}Multimodal activity recognition under a 100 MB constraint\\\fontsize{7}{8.5}\selectfont\color{graytext}CUHK-X Challenge 2026\quad$\cdot$\quad Small Model Track\quad$\cdot$\quad Team AGX\end{tabular}};
-  \node[anchor=north, inner sep=0] at ([yshift=-2.1cm]current page.north) {\only<1>{\includegraphics[width=14cm]{s01_hero_1.pdf}}\only<2>{\includegraphics[width=14cm]{s01_hero_2.pdf}}\only<3>{\includegraphics[width=14cm]{s01_hero_3.pdf}}};
+  \node[anchor=north, inner sep=0] at ([yshift=-2.1cm]current page.north) {\includegraphics[width=14cm]{s01_hero.pdf}};
   \node[anchor=south, inner sep=0] at ([yshift=0.5cm]current page.south) {%
     \begin{tabular}{@{}c@{\hspace{1.1cm}}c@{\hspace{1.1cm}}c@{\hspace{1.1cm}}c@{}}
       {\latoblack\fontsize{17}{17}\selectfont\fClasses} & {\latoblack\fontsize{17}{17}\selectfont\nTotalMB\,MB} & {\latoblack\fontsize{17}{17}\selectfont\fPrivate} & {\latoblack\fontsize{17}{17}\selectfont UNSEEN}\\[1pt]
@@ -23,14 +23,14 @@
     \end{tabular}};
   \node[anchor=south, inner sep=0] at ([yshift=0.16cm]current page.south) {\fontsize{6.5}{7}\selectfont\color{graytext}\fRank th of \fTeams\ teams\quad$\cdot$\quad 0 / \fTestClips\ predictions changed across \nGpus\ tested GPU generations\quad$\cdot$\quad no network at inference};
 \end{tikzpicture}
-\talk{This is one training clip, jumping jacks, seen by the depth camera. No face is recorded. [click] The same instant reaches the system through five different lenses: infrared and depth, thermal, a tracked skeleton, wrist and body inertial units, and radar. [click] Five small specialists each read one of those streams; their votes are fused, the order of the recording adds context, and out comes one decision: jumping jacks. Forty activities, one 96-megabyte file, people the model has never seen, 0.877 on the private leaderboard, and the same 405 predictions on every GPU we tested.}{One human action, seen five ways, fused into one decision by a system that fits in 96 MB.}{Why five sensors instead of one good camera?}{Because the task forbids an ordinary camera, and because, as slide 3 shows, the five streams make different mistakes: 2,399 of 2,700 held-out clips are right for at least one specialist, and no single one reaches 0.75.}
+\talk{This is one training clip, jumping jacks, seen by the depth camera. No face is recorded. The same instant reaches the system through five different lenses: infrared and depth, thermal, a tracked skeleton, wrist and body inertial units, and radar. Five small specialists each read one of those streams; their votes are fused, the order of the recording adds context, and out comes one decision: jumping jacks. Forty activities, one 96-megabyte file, people the model has never seen, 0.877 on the private leaderboard, and the same 405 predictions on every GPU we tested.}{One human action, seen five ways, fused into one decision by a system that fits in 96 MB.}{Why five sensors instead of one good camera?}{Because the task forbids an ordinary camera, and because, as slide 3 shows, the five streams make different mistakes: 2,399 of 2,700 held-out clips are right for at least one specialist, and no single one reaches 0.75.}
 \end{frame}
 
 % ============================================================ 2  THE PROBLEM
 \begin{frame}{WHAT IF THE CAMERA NEVER SAW YOUR FACE?}
 \takeaway{Recognise forty everyday activities from sensors that cannot identify anyone, for people the model has never seen, with the whole system in one file of at most 100 MB.}
 \begin{columns}[T]
-\column{0.40\textwidth}\centering\sensorvisual[5.9cm]{s02_layers.pdf}
+\column{0.42\textwidth}\centering\sensorvisual[6.2cm]{s02_layers.pdf}
 \column{0.58\textwidth}
 \vspace{0.1cm}
 \begin{columns}[T]
@@ -42,9 +42,11 @@
 {\latoblack\fontsize{13}{15}\selectfont Generalise to people the model has never seen.\par}
 \vspace{0.35cm}
 {\fontsize{8.5}{11}\selectfont\color{graytext}
-\fTrainClips\ training clips from \fTrainSubjects\ people; \fTestClips\ test clips from 4 unseen people; a further held-out set of new people is scored by the organisers.\\[3pt]
+\fTrainClips\ training clips from \fTrainSubjects\ people; \fTestClips\ test clips from 4 unseen people.\\[3pt]
 Infrared + depth, thermal, 17-joint skeleton, five inertial units, radar. No RGB camera anywhere in the data.\\[3pt]
-Scored on accuracy, on those new people, on reproducibility and on efficiency: cross-subject robustness is worth more than the leaderboard.\par}
+Scored on those new people, on reproducibility and on efficiency: cross-subject robustness is worth more than the leaderboard.\par}
+\vspace{0.15cm}
+{\fontsize{7.5}{9}\selectfont\color{graytext}\bfseries \fTestClips\ test clips\quad$\cdot$\quad unseen people\quad$\cdot$\quad additional held-out subjects\par}
 \end{columns}
 \talk{The setting is a home or a care room where an ordinary camera is unwelcome, because identity must not be recorded. So the sensors are ones that see a body, heat, joints and motion, not a face. The catch is threefold: forty fine-grained activities, only eighteen people to learn from, and a single file of at most 100 megabytes. And the score that matters most is measured on people the model has never seen.}{Privacy-preserving sensors, unseen people, a 100 MB budget: the constraints define the problem.}{Isn't an infrared camera just a camera?}{It is a body-shaped image, not a face-resolving one, and the depth channel we lead with carries no identity at all; the benchmark's definition of privacy-preserving is the organisers', and every stream we use is one they provide.}
 \end{frame}
@@ -57,7 +59,7 @@ Scored on accuracy, on those new people, on reproducibility and on efficiency: c
 \begin{columns}[T]
 \column{0.34\textwidth}\heronum[22]{\nOracle\ / 2,700}{correct for at least one specialist (\nOracleAcc)}
 \column{0.30\textwidth}\vspace{0.05cm}{\latoblack\fontsize{12}{14}\selectfont Different sensors make different mistakes.\par}
-\column{0.34\textwidth}\callout{\textbf{Remove any one member:} the fusion loses \textbf{\nLooMin\ to \nLooMax\ clips}. Every specialist is load-bearing.}
+\column{0.34\textwidth}\raggedleft{\fontsize{8}{9}\selectfont\color{graytext}\bfseries REMOVE ANY ONE MEMBER\par}{\latoblack\fontsize{18}{18}\selectfont\color{red}$-$\nLooMin\ TO $-$\nLooMax\ CLIPS\par}{\fontsize{7.5}{9}\selectfont\color{graytext}every specialist is load-bearing\par}
 \end{columns}
 \talk{Each square here is one held-out clip. Navy: all five specialists get it right. Grey: some do. The coloured stripe is the interesting part: 288 clips that exactly one specialist gets right, and every colour is there. The skeleton alone rescues 73, thermal 68, the body view 61, the hands 52, even the motion forest 34. Add them up and at least one specialist is right on 2,399 of 2,700 clips, 0.889, while the best single one is at 0.733. The information is in the members; the problem is selecting it. And removing any member costs the fusion between 11 and 48 clips.}{Different sensors make different mistakes, so the union is far larger than any one of them.}{Why keep the weakest member, the forest at 0.377?}{It is the only member right on 34 clips, removing it costs 11, and its paired per-subject effect is neutral at worst; it also costs 1.6 MB.}
 \end{frame}
@@ -65,8 +67,8 @@ Scored on accuracy, on those new people, on reproducibility and on efficiency: c
 % ============================================================ 4  THE CORE IDEA
 \begin{frame}{FIVE SPECIALISTS. ONE DECISION.}
 \takeaway{Each specialist reads the stream it is built for; a prior-corrected log-linear sum fuses their votes; the recording's order adds context.}
-\centering\only<1>{\sensorvisual[15.4cm]{s04_converge_1.pdf}}\only<2>{\sensorvisual[15.4cm]{s04_converge_2.pdf}}
-\talk{Here is the whole system in one motion. The body view and the hand view are two MViTv2-S video models on the infrared and depth crops; the heat view is the same architecture on the thermal full frame; posture is a twenty-member skeleton and inertial ensemble; motion is a small tree forest on wrist statistics. [click] Their posteriors are combined as a weighted sum of log-probabilities, the coefficients chosen by nested cross-validation, which takes 2,700 held-out clips from 0.733 for the best member to 0.781. Then the ordered transition decoder uses the order of a recording session, which the radar timestamps give us, to reach 0.830.}{Complementary small specialists plus the structure of the recording, not model size.}{Why fuse in log space with a prior correction?}{The video members are trained with a prior-corrected loss and emit uniform-prior posteriors, the skeleton ensemble emits train-prior posteriors; we divide the latter by the prior before summing. Getting the direction wrong cost four points on an early submission: 0.587 versus 0.627.}
+\centering\sensorvisual[15.4cm]{s04_converge.pdf}
+\talk{Here is the whole system in one motion. The body view and the hand view are two MViTv2-S video models on the infrared and depth crops; the heat view is the same architecture on the thermal full frame; posture is a twenty-member skeleton and inertial ensemble; motion is a small tree forest on wrist statistics. Their posteriors are combined as a weighted sum of log-probabilities, the coefficients chosen by nested cross-validation, which takes 2,700 held-out clips from 0.733 for the best member to 0.781. Then the ordered transition decoder uses the order of a recording session, which the radar timestamps give us, to reach 0.830.}{Complementary small specialists plus the structure of the recording, not model size.}{Why fuse in log space with a prior correction?}{The video members are trained with a prior-corrected loss and emit uniform-prior posteriors, the skeleton ensemble emits train-prior posteriors; we divide the latter by the prior before summing. Getting the direction wrong cost four points on an early submission: 0.587 versus 0.627.}
 \end{frame}
 
 % ============================================================ 5  RESOLUTION
@@ -81,9 +83,9 @@ Scored on accuracy, on those new people, on reproducibility and on efficiency: c
 % ============================================================ 6  THERMAL
 \begin{frame}{THERMAL WAS USELESS. UNTIL WE READ IT CORRECTLY.}
 \takeaway{The same camera, three recipes: a 128 px person crop, the 128 px full frame, the 224 px full frame through the video recipe.}
-\centering\sensorvisual[15.4cm]{s06_thermal.pdf}
-\vspace{0.05cm}
-{\latoblack\fontsize{11}{12}\selectfont Same sensor. Different way of reading it.\par}
+\centering\sensorvisual[15.6cm]{s06_thermal.pdf}
+\vspace{0.02cm}
+{\latoblack\fontsize{14}{15}\selectfont SAME SENSOR. DIFFERENT WAY OF READING IT.\par}
 \talk{Thermal is the dataset paper's strongest single sensor, yet our first thermal member, a 128-pixel person crop through a 3-D CNN, scored 0.544 and added exactly nothing in fusion at any weight. Reading the full frame at 128 pixels gave 0.568, still not adopted. Reading the full frame at 224 pixels through the same MViTv2-S recipe as the video members gave 0.627, plus 5.6 points on four folds out of four, and for the first time thermal helped the system: 46 more decoded clips out of 2,700 and 5 more public clips. The camera never changed. The 320 by 240 frame is read near-natively, and the objects and the room stay in view.}{Thermal became a contributing sensor when it was read at native resolution with the objects in view.}{Why was it useless before, if the sensor is strong?}{Wrong recipe for the sensor: cropping removed the objects that define most classes, and 128 pixels threw away most of the frame. Decorrelation alone did not make it useful; accuracy did.}
 \end{frame}
 
@@ -91,8 +93,8 @@ Scored on accuracy, on those new people, on reproducibility and on efficiency: c
 \begin{frame}{THE REAL TEST IS THE PERSON YOU'VE NEVER SEEN.}
 \takeaway{Leave one training subject out, fit the rest, score the held-out person: the person view alone against the shipped ensemble, paired on \nLosoN\ subjects.}
 \begin{columns}[T]
-\column{0.64\textwidth}\sensorvisual[10.2cm]{s07_subjects.pdf}
-\column{0.35\textwidth}
+\column{0.70\textwidth}\sensorvisual[11.3cm]{s07_subjects.pdf}
+\column{0.29\textwidth}
 \vspace{0.1cm}
 \heronum[20]{\nLosoPersonMean\ $\rightarrow$ \nLosoEnsMean}{mean accuracy over \nLosoN\ held-out subjects}
 \vspace{0.2cm}
@@ -111,25 +113,27 @@ Scored on accuracy, on those new people, on reproducibility and on efficiency: c
 \begin{frame}{WHAT HAPPENS WHEN A SENSOR DISAPPEARS?}
 \takeaway{The frozen fusion under two kinds of damage: a sensor absent, or one coefficient scaled by half to one and a half; every cell is the change in fused OOF clips.}
 \begin{columns}[T]
-\column{0.60\textwidth}\sensorvisual[9.5cm]{s08_atlas.pdf}
-\column{0.39\textwidth}
+\column{0.66\textwidth}\sensorvisual[9.7cm]{s08_atlas.pdf}
+\column{0.33\textwidth}
 \vspace{0.1cm}
-\heronum[22]{\nWorstMissing\ clips}{worst single-sensor loss, of 2,700 (\nWorstMissingPts\ points): the body view}
+\heronum[30]{\nWorstMissing}{CLIPS: worst single-sensor loss (\nWorstMissingPts\ points, the body view)}
+\vspace{0.35cm}
+\heronum[22]{\nCoefMin\ TO \nCoefMax}{all coefficient perturbations, $\times$0.5 to $\times$1.5}
 \vspace{0.3cm}
-\heronum[22]{\nCoefMin\ to \nCoefMax}{every coefficient scaled $\times$0.5 to $\times$1.5, within $\pm$1\,\% of the baseline}
-\vspace{0.3cm}
-\callout{Consequence: any re-weighting moves at most 8 of the 405 test rows. The coefficients sit on a plateau, not a peak; they were never fitted to the leaderboard.}
+{\fontsize{7.5}{9}\selectfont\color{graytext}any re-weighting moves at most 8 of the 405 test rows\par}
 \end{columns}
+\vspace{-0.1cm}
+{\latoblack\fontsize{12}{13}\selectfont THE FUSION SITS ON A PLATEAU, NOT A PEAK.\par}
 \talk{This is a reliability test, not an ablation for its own sake. Remove any sensor at inference, the way the pipeline really handles a missing stream, and the worst case is the body view: 48 clips of 2,700, 1.8 points. Thermal and the forest cost eleven to twelve. Scale any fusion coefficient by half or by one and a half, and the fused accuracy stays within minus 24 to plus 7 clips, under one percent. No sensor is a single point of failure and the coefficients are on a plateau.}{No single point of failure; the coefficients sit on a plateau.}{Did you fit the weights to the leaderboard?}{No: nested cross-validation inside the folds; and the plateau shows it would not matter, at most 8 of 405 rows move under any re-weighting.}
 \end{frame}
 
 % ============================================================ 9  STRUCTURE
 \begin{frame}{THE RECORDING ITSELF KNOWS SOMETHING.}
 \takeaway{A recording session is a script of distinct activities in a fixed order; the decoder uses that order, learned from training metadata only, never from test labels.}
-\centering\only<1>{\sensorvisual[15.4cm]{s09_waterfall_1.pdf}}\only<2>{\sensorvisual[15.4cm]{s09_waterfall_2.pdf}}\only<3>{\sensorvisual[15.4cm]{s09_waterfall_3.pdf}}\only<4>{\sensorvisual[15.4cm]{s09_waterfall_4.pdf}}
+\centering\sensorvisual[15.4cm]{s09_waterfall.pdf}
 \vspace{0.05cm}
-{\fontsize{8.5}{10}\selectfont\color{graytext}Label-free and neutral without structure: shuffle the order and the gain is \nShuffled; reverse it, \nReversed; permute the class labels, \nPermuted.\par}
-\talk{The fused argmax gets 2,109 clips right. [click] The first thing the recording tells us is that its activities are distinct: a soft penalty on repeating a label within a session adds 55. [click] The second is the scripted order: a first-order transition model over classes, fitted on training metadata, adds 76 more through beam search. [click] That is 2,240, plus 131 clips, and the same decoder gave plus three to five clips on the public leaderboard. The controls on the right are what make this science rather than a trick: shuffle the order within sessions and the gain is plus 9, neutral; reverse it and it is minus 54; permute the class labels and it is minus 17. The decoder is reading structure, not memorising label frequencies.}{Recording structure carries measurable information, and the controls show it is structure, not memorisation.}{You are exploiting the recording order.}{It is label-free, fitted on training metadata only, and neutral when the order is absent: a clip without a radar key simply gets the fused argmax.}
+{\fontsize{8.5}{10}\selectfont\color{graytext}Label-free, and neutral without structure: shuffled \nShuffled, reversed \nReversed, permuted labels \nPermuted.\par}
+\talk{The fused argmax gets 2,109 clips right. The first thing the recording tells us is that its activities are distinct: a soft penalty on repeating a label within a session adds 55. The second is the scripted order: a first-order transition model over classes, fitted on training metadata, adds 76 more through beam search. That is 2,240, plus 131 clips, and the same decoder gave plus three to five clips on the public leaderboard. The controls on the right are what make this science rather than a trick: shuffle the order within sessions and the gain is plus 9, neutral; reverse it and it is minus 54; permute the class labels and it is minus 17. The decoder is reading structure, not memorising label frequencies.}{Recording structure carries measurable information, and the controls show it is structure, not memorisation.}{You are exploiting the recording order.}{It is label-free, fitted on training metadata only, and neutral when the order is absent: a clip without a radar key simply gets the fused argmax.}
 \end{frame}
 
 % ============================================================ 10  WHAT FAILED
@@ -144,34 +148,34 @@ Scored on accuracy, on those new people, on reproducibility and on efficiency: c
 % ============================================================ 11  100 MB
 \begin{frame}{WE FIT AN ENTIRE SYSTEM INTO 100 MB.}
 \takeaway{The budget was an architectural constraint, not a compression exercise: which members to keep, at which precision, with both detectors inside.}
-\centering\only<1>{\sensorvisual[14.6cm]{s11_container_1.pdf}}\only<2>{\sensorvisual[14.6cm]{s11_container_2.pdf}}\only<3>{\sensorvisual[14.6cm]{s11_container_3.pdf}}\only<4>{\sensorvisual[14.6cm]{s11_container_4.pdf}}
+\centering\sensorvisual[14.6cm]{s11_container.pdf}
 \begin{columns}[T]
-\column{0.28\textwidth}\heronum[24]{\nTotalMB\ MB}{one file, every inference-time weight}
-\column{0.70\textwidth}\vspace{0.05cm}\callout{Video 5-bit, ensemble int8, detectors fp16. \textbf{int8 detectors moved 150 of 405 crop windows}, so they stay fp16; int5 video cost one public clip against int6.}
+\column{0.34\textwidth}\heronum[26]{\nTotalMB\ MB}{every inference-time weight inside}
+\column{0.64\textwidth}\vspace{0.05cm}\callout{Video 5-bit, ensemble int8, detectors fp16. \textbf{int8 detectors moved 150 of 405 crop windows}, so they stay fp16; int5 video cost one public clip against int6.}
 \end{columns}
-\talk{The container is the 100-megabyte rule. [click] Three video models at five-bit weight codes take 64.8 megabytes, two thirds of it. [click] The skeleton and inertial ensemble, pruned from 48 members to 20 and stored at int8, takes 18.9. [click] Both detectors, 10.3 megabytes at fp16, plus the forest, the crop windows and the manifest. [click] 96.37 megabytes, 3.6 to spare. Two decisions were measured, not assumed: five-bit video cost one public clip against six-bit, recovered elsewhere; and quantising the detectors to int8 would have moved 150 of 405 crop windows, so they stayed at fp16.}{Everything the system needs at inference lives in one 96.37 MB file, and every byte was a measured trade-off.}{Where are the detectors?}{Inside the file, fp16, 10.3 MB; the 405 crop windows are stored too, so the Kaggle run is reproduced exactly, and new data goes through the live detectors.}
+\talk{The container is the 100-megabyte rule. Three video models at five-bit weight codes take 64.8 megabytes, two thirds of it. The skeleton and inertial ensemble, pruned from 48 members to 20 and stored at int8, takes 18.9. Both detectors, 10.3 megabytes at fp16, plus the forest, the crop windows and the manifest. 96.37 megabytes, 3.6 to spare. Two decisions were measured, not assumed: five-bit video cost one public clip against six-bit, recovered elsewhere; and quantising the detectors to int8 would have moved 150 of 405 crop windows, so they stayed at fp16.}{Everything the system needs at inference lives in one 96.37 MB file, and every byte was a measured trade-off.}{Where are the detectors?}{Inside the file, fp16, 10.3 MB; the 405 crop windows are stored too, so the Kaggle run is reproduced exactly, and new data goes through the live detectors.}
 \end{frame}
 
 % ============================================================ 12  REPRODUCIBILITY
 \begin{frame}{AND IT ACTUALLY RUNS.}
 \takeaway{One command, no network, data read-only, verified from the uploaded archives in a clean room, on \nGpus\ GPU generations.}
 \begin{columns}[T]
-\column{0.58\textwidth}
-{\fontsize{7.5}{9}\selectfont\color{graytext}\bfseries ONE COMMAND\par}\vspace{2pt}
-\colorbox{ink}{\parbox{\dimexpr\linewidth-2\fboxsep\relax}{\color{white}\ttfamily\bfseries\fontsize{9}{11}\selectfont bash inference.sh <data\_dir> <out.csv>}}
-\vspace{0.25cm}
-{\fontsize{8}{10}\selectfont\input{gen/verification.tex}\par}
-\vspace{0.2cm}
-\okbadge{network OFF}\ \okbadge{read-only data}\ \okbadge{hostile synthetic tests}\ \okbadge{clean-room reproduction $\times$2}
-\column{0.40\textwidth}
-{\latoblack\fontsize{11.5}{13}\selectfont NUMERICAL DRIFT EXISTS.\par THE DECISION DOES NOT MOVE.\par}
+\column{0.22\textwidth}
+{\fontsize{7.5}{9}\selectfont\color{graytext}\bfseries ONE COMMAND\par}\vspace{3pt}
+\colorbox{ink}{\parbox{\dimexpr\linewidth-2\fboxsep\relax}{\color{white}\ttfamily\bfseries\fontsize{8}{10}\selectfont bash inference.sh <data> <out.csv>}}
 \vspace{0.3cm}
-\heronum[20]{0 / \fTestClips}{predictions changed on \nGpus\ GPU generations; posteriors drift up to \nMaxDrift}\par
+\heronum[16]{\fTimeCluster}{for all \fTestClips\ clips on an A100; \fTimeLaptop\ on a laptop RTX 4060; peak GPU memory \fPeakGpu\ GB}
+\column{0.50\textwidth}
+\centering{\fontsize{7.5}{9.5}\selectfont\input{gen/verification_compact.tex}\par}
+\column{0.26\textwidth}
+{\latoblack\fontsize{11}{12.5}\selectfont NUMERICAL DRIFT EXISTS.\par THE DECISION DOES NOT MOVE.\par}
 \vspace{0.3cm}
-\heronum[13]{\fTimeCluster\ on an A100}{all \fTestClips\ clips; \fTimeLaptop\ on a laptop RTX 4060; peak GPU memory \fPeakGpu\ GB}\par
-\vspace{0.3cm}
-{\fontsize{7}{8.5}\selectfont\color{graytext}Second selected submission byte-identical. Primary reproduced 403/405 after the skeleton ensemble was pruned to fit 100 MB; the two decoder near-ties are disclosed, not fitted (backup 8).\par}
+\heronum[24]{0 / \fTestClips}{predictions changed on \nGpus\ GPU generations; posteriors drift up to \nMaxDrift}
 \end{columns}
+\vspace{0.35cm}
+\centering\okbadge{NETWORK OFF}\quad\okbadge{READ-ONLY DATA}\quad\okbadge{HOSTILE TESTS}\quad\okbadge{CLEAN ROOM $\times$2}\par
+\vspace{0.15cm}
+{\fontsize{7}{8.5}\selectfont\color{graytext}second selected submission byte-identical; primary reproduced 403/405 after the skeleton ensemble was pruned to fit 100 MB, the two decoder near-ties disclosed, not fitted (backup B8)\par}
 \talk{The package is one command: no arguments beyond the data directory and the output path, no network, the data mounted read-only. We verified it from the actual uploaded archives in a clean room, twice, with the working repository moved aside. Then we ran the same container on five GPU generations. Posteriors drift by up to two in a thousand, the way half-precision arithmetic does; the argmax changes on zero of 405 clips and the CSV is byte-identical every time. That is the claim: not bitwise determinism, but a decision that does not move.}{Numerical drift exists; the decision does not move, on five GPU generations, from the uploaded archives.}{Your primary submission reproduces 403 of 405, not 405.}{Yes, and we say so. The skeleton ensemble was pruned from 48 to 20 members after that submission to meet the size rule; two decoder near-ties flip. About 900 coefficient settings were tried and none closer, so we ship the principled coefficients and disclose the two rows rather than fit to the target file. The second submission is byte-identical.}
 \end{frame}
 
@@ -183,13 +187,12 @@ Scored on accuracy, on those new people, on reproducibility and on efficiency: c
   \node[anchor=north west, inner sep=0] at ([xshift=0.8cm, yshift=-1.95cm]current page.north west) {\latoblack\fontsize{30}{30}\selectfont\color{bluelight}ONE DECISION.};
   \node[anchor=north west, inner sep=0] at ([xshift=0.8cm, yshift=-3.55cm]current page.north west) {%
     \begin{tabular}{@{}l@{\hspace{1.0cm}}l@{\hspace{1.0cm}}l@{\hspace{1.0cm}}l@{}}
-      {\latoblack\fontsize{20}{20}\selectfont\color{white}\nTotalMB\,MB} & {\latoblack\fontsize{20}{20}\selectfont\color{white}\fClasses} & {\latoblack\fontsize{20}{20}\selectfont\color{white}UNSEEN} & {\latoblack\fontsize{20}{20}\selectfont\color{white}\fPrivate}\\[1pt]
-      {\fontsize{7.5}{8}\selectfont\color{graylight}\bfseries ONE FILE} & {\fontsize{7.5}{8}\selectfont\color{graylight}\bfseries ACTIVITIES} & {\fontsize{7.5}{8}\selectfont\color{graylight}\bfseries PEOPLE} & {\fontsize{7.5}{8}\selectfont\color{graylight}\bfseries PRIVATE, \fRank th OF \fTeams}\\
+      {\latoblack\fontsize{24}{24}\selectfont\color{white}\fClasses} & {\latoblack\fontsize{24}{24}\selectfont\color{white}\nTotalMB\,MB} & {\latoblack\fontsize{24}{24}\selectfont\color{white}\fPrivate} & {\latoblack\fontsize{24}{24}\selectfont\color{white}UNSEEN}\\[2pt]
+      {\fontsize{8}{9}\selectfont\color{graylight}\bfseries ACTIVITIES} & {\fontsize{8}{9}\selectfont\color{graylight}\bfseries ONE FILE} & {\fontsize{8}{9}\selectfont\color{graylight}\bfseries PRIVATE, \fRank th OF \fTeams} & {\fontsize{8}{9}\selectfont\color{graylight}\bfseries PEOPLE}\\
     \end{tabular}};
-  \node[anchor=north west, inner sep=0] at ([xshift=0.8cm, yshift=-5.35cm]current page.north west) {\begin{tabular}{@{}l@{}}\latoblack\fontsize{15}{17}\selectfont\color{white}THE NEXT GAIN IS MORE SUBJECTS,\\\latoblack\fontsize{15}{17}\selectfont\color{white}NOT MORE MODEL.\end{tabular}};
-  \node[anchor=north west, inner sep=0] at ([xshift=0.8cm, yshift=-6.75cm]current page.north west) {\begin{tabular}{@{}l@{}}\fontsize{8.5}{11}\selectfont\color{graylight}We froze the competitive solution, reproduced it, stress-tested it,\\\fontsize{8.5}{11}\selectfont\color{graylight}and measured what actually mattered.\end{tabular}};
-  \node[anchor=south east, inner sep=0] at ([xshift=-0.8cm, yshift=0.55cm]current page.south east) {\latoblack\fontsize{12}{12}\selectfont\color{white}Team AGX};
-  \node[anchor=south east, inner sep=0] at ([xshift=-0.8cm, yshift=0.25cm]current page.south east) {\fontsize{6.5}{7}\selectfont\color{graylight}Atharv, BITS Pilani, K K Birla Goa Campus\quad$\cdot$\quad CUHK-X Challenge 2026, Small Model Track};
+  \node[anchor=north west, inner sep=0] at ([xshift=0.8cm, yshift=-5.35cm]current page.north west) {\begin{tabular}{@{}l@{}}\latoblack\fontsize{17}{19}\selectfont\color{white}THE NEXT GAIN IS MORE SUBJECTS,\\\latoblack\fontsize{17}{19}\selectfont\color{white}NOT MORE MODEL.\end{tabular}};
+  \node[anchor=south east, inner sep=0] at ([xshift=-0.8cm, yshift=0.75cm]current page.south east) {\latoblack\fontsize{14}{14}\selectfont\color{white}Team AGX};
+  \node[anchor=south east, inner sep=0] at ([xshift=-0.8cm, yshift=0.35cm]current page.south east) {\fontsize{7.5}{8}\selectfont\color{graylight}CUHK-X Challenge 2026\quad$\cdot$\quad Small Model Track\quad$\cdot$\quad Atharv, BITS Pilani, K K Birla Goa Campus};
   \node[anchor=south west, inner sep=0] at ([xshift=0.8cm, yshift=0.4cm]current page.south west) {\begin{tikzpicture}[x=0.55cm, y=0.55cm]\foreach \c/\i in {blue/0, bluelight/1, orange/2, teal/3, seagreen/4}{\fill[\c] (0, 2.0-0.5*\i) circle (0.11); \draw[\c, line width=1.8pt] (0.12, 2.0-0.5*\i) .. controls (1.3, 2.0-0.5*\i) and (1.6, 1.0) .. (2.6, 1.0);}\draw[white, line width=2.6pt] (2.6, 1.0) -- (4.2, 1.0);\draw[white, line width=2.6pt, -{Triangle[length=2.4mm, width=2.4mm]}] (4.2, 1.0) -- (5.0, 1.0);\end{tikzpicture}};
 \end{tikzpicture}
 \talk{Five sensors, one decision. Ninety-six megabytes, forty activities, people the model has never seen, 0.877 private. The residual error we are left with is per-subject and correlated: twin recordings of the same person share the identical wrong label 68 percent of the time, and no lever that assumes independent evidence reaches it. So the next gain is more subjects, not more model. We froze the competitive solution, reproduced it, stress-tested it, and measured what actually mattered. Thank you.}{Complementary small specialists plus structure beat model size, and the limits are measured too.}{What would you do with a month?}{Subject diversity in representation learning, tested the same way: paired folds, a two-standard-error bar, and a per-subject delta, because a frozen-feature probe saturates at six subjects and any gain must come through the representation.}
@@ -230,6 +233,19 @@ person (body) & \wPerson\\ wrist (hands) & \wWrist\\ thermal (heat) & \wThermal\
 \talk{The full pattern table behind slide 3: 646 clips right for everyone, 301 wrong for everyone, 288 right for exactly one member; and the leave-one-out bars, person minus 48 down to the forest minus 11.}{Every member is load-bearing and the union is far larger than any member.}{Why not more members?}{Adding members to the video slot is a measured graveyard: four person folds and one person plus one wrist both reach the same public score; the budget is better spent on a new view than on a fifth copy of an old one.}
 \end{frame}
 
+\begin{frame}{B3b \ THE SKELETON / IMU ENSEMBLE}
+\takeaway{What the posture specialist reads: the tracked skeleton and the five inertial units of the same clip.}
+\centering\sensorvisual[12.2cm]{s12_ensemble.pdf}
+\vspace{0.05cm}
+\begin{columns}[T]
+\column{0.2\textwidth}\heronumc[20]{20}{MEMBERS}
+\column{0.2\textwidth}\heronumc[20]{5}{FAMILIES $\times$ 4 FOLDS}
+\column{0.2\textwidth}\heronumc[20]{\nSkelMB\ MB}{INT8, ONE TENSOR SET}
+\column{0.36\textwidth}{\fontsize{7.5}{9}\selectfont\color{graytext}adaptive-graph ST-GCN and ST-GCN on joints; a temporal CNN on joint, velocity and bone features; two temporal CNNs on the inertial units (rotation-invariant features; gravity-aligned world frame, no absolute orientation)\par}
+\end{columns}
+\talk{The posture specialist is not one model but twenty: five families, each trained on four subject-grouped folds, on the skeleton track and the inertial units you see here. Stored at int8 it is 18.9 megabytes, a fifth of the budget.}{Twenty small models on the skeleton and inertial streams, 18.9 MB.}{Why an ensemble here and single models for video?}{The skeleton members are small, so twenty of them cost 19 MB, and their fold diversity is what makes the ensemble's posterior calibrated enough to fuse; a video member is 21.6 MB each, so there the budget buys views, not seeds.}
+\end{frame}
+
 \begin{frame}{B4 \ THE FULL EXPERIMENT LANDSCAPE}
 \takeaway{Report Fig. 9: every lever on one axis at the level it was measured (circle = member points, diamond = system clips / 27), with the adoption band.}
 \centering\includegraphics[width=11.2cm]{fig08_landscape.pdf}
@@ -267,12 +283,14 @@ person (body) & \wPerson\\ wrist (hands) & \wWrist\\ thermal (heat) & \wThermal\
 
 \begin{frame}{B8 \ LIMITATIONS AND DISCLOSURE}
 \begin{columns}[T]
-\column{0.58\textwidth}\includegraphics[width=\linewidth]{fig11_errors.pdf}
-\column{0.40\textwidth}
-{\fontsize{8.5}{11}\selectfont
-\textbf{The residual is subject-correlated.} 214 of 591 fused errors sit in a (subject, true, predicted) cell seen three or more times; 52 of 56 such cells are one-directional; twin recordings share the identical wrong label 68\,\% of the time. No lever that assumes independent evidence reaches it.\\[5pt]
-\textbf{More model: measured, no gain. More subjects:} the direction the evidence points to, not a quantified prediction (a frozen-feature probe saturates at six subjects).\\[5pt]
-\textbf{Primary submission: 403/405.} The skeleton ensemble was pruned 48 $\rightarrow$ 20 after that submission to meet 100 MB; two decoder near-ties flip (margins 0.012 and 0.006). About 900 coefficient settings tried, none closer. We ship the principled coefficients and disclose the rows; the second submission is byte-identical.\\[5pt]
+\column{0.56\textwidth}\includegraphics[width=\linewidth]{fig11_errors.pdf}
+\vspace{0.2cm}
+{\fontsize{7.5}{9}\selectfont\color{graytext}Report Fig. 10: 214 of 591 fused errors sit in a (subject, true, predicted) cell seen three or more times; 52 of 56 such cells are one-directional.\par}
+\column{0.42\textwidth}
+{\fontsize{8}{10}\selectfont
+\textbf{The residual is subject-correlated.} Twin recordings share the identical wrong label 68\,\% of the time; no lever that assumes independent evidence reaches it.\\[4pt]
+\textbf{More model: measured, no gain. More subjects:} the direction the evidence points to, not a quantified prediction (a frozen-feature probe saturates at six subjects).\\[4pt]
+\textbf{Primary submission: 403/405.} The skeleton ensemble was pruned 48 $\rightarrow$ 20 after that submission to meet 100 MB; two decoder near-ties flip (margins 0.012 and 0.006). About 900 coefficient settings tried, none closer. We ship the principled coefficients and disclose the rows; the second submission is byte-identical.\\[4pt]
 \textbf{Decoder dependence:} needs the recording key; neutral without it.\par}
 \end{columns}
 \talk{Where the errors are and why they are hard: they cluster by subject and by confusable object classes, read versus turn pages, sweep versus mop. The disclosure on the primary submission is here in full.}{The limits are measured and disclosed, not hidden.}{Why not fit the two rows?}{Because that would be fitting to the target file; the honour declaration and the verification guide both rule it out, and the two rows are worth less than the credibility of the package.}

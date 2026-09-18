@@ -64,6 +64,7 @@
 \newcommand{\okbadge}[1]{\tikz[baseline=(b.base)]\node[draw=green, line width=0.8pt, text=green, rounded corners=6pt, inner xsep=6pt, inner ysep=3pt, font=\fontsize{8}{9}\selectfont\bfseries] (b) {#1};}
 % verification matrix cells (gen/verification.tex emits \vrow lines)
 \newcommand{\verificationcell}[2]{\cellcolor{#1}{\color{ink}\bfseries #2}}
+\newcommand{\vrowc}[4]{\textbf{#1} & #2 & \verificationcell{band}{#3} & \verificationcell{band}{\color{green}#4}\\}
 \newcommand{\vrow}[5]{\textbf{#1} & {\color{graytext}#2} & #3 & \verificationcell{band}{#4} & \verificationcell{band}{\color{green}#5}\\}
 % \processstream: five specialists -> fusion -> context -> one decision, as a TikZ line (text slides)
 \newcommand{\processstream}{\begin{tikzpicture}[x=1cm, y=1cm]
