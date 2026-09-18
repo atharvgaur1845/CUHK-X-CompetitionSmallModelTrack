@@ -44,6 +44,11 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 > 13 core + 9 backup slides, every page a single final state (no overlays), figures `s01..s11` from
 > `make_slide_figures.py` (same JSON tables + real clip frames), numbers injected from `gen/numbers.tex`, notes in the
 > `\talk` blocks -> `SPEAKER_NOTES.md` / `slides_notes.pdf`, audit `SLIDE_AUDIT.md`. Build: `bash docs/slides/build.sh`.
+> **Final testing phase (2026-09-18 18:27 UTC):** every line of the three organiser PDFs checked against the uploaded
+> archives (`docs/RULES_COMPLIANCE.md`): all PASS; both submissions re-run offline from the pushed image
+> (`docs/verification_logs/final_clean_0918/`: second byte-identical, primary 403/405 as disclosed, 293 s / 304 s).
+> Two cosmetic inconsistencies in the frozen files (signed-PDF filename in manifest.yaml; affiliation "Independent") are
+> best stated in the form's notes field before it closes; do not re-upload.
 > **Report v2.3 (2026-09-18, formatting):** bold skim-path through the text (method, results, limits readable from the bold alone; reading guide under the findings strip), 12/10.5 pt bold left headings with fixed equal gaps, blue clickable section/figure/table links + PDF bookmarks, centred Abstract heading, author line + small email line, widow/orphan control, Figs. 9 and 10 on a float page so Sec. VIII starts with its body; poster header centred with larger question + italic subtitle. Still 9 pages.
 > **Report v2.2 (2026-09-18):** 9 pages; page 1 is the one-page poster (`docs/poster/make_poster.py` ->
 > `poster.pdf`, placed with `pdfpages`), the paper (cover with graphical abstract, abstract, findings strip)
