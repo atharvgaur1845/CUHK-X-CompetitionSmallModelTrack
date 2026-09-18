@@ -39,8 +39,11 @@ first) → `research/RULES_VERIFIED.md` → `research/BELIEFS.md`.
 > EXP id. Figure numbers are the shipped-stage recomputation (LOO -48/-25/-23/-12/-11, unique rescues
 > 61/52/68/73/34, oracle 2399), not the earlier-stage EXP-140/113 values. LOSO comparison is the paired
 > 16-subject one (sd 6.4 -> 5.4, spread 23 -> 21; the 18-subject person sd 6.9 / spread 28 is stated in the
-> caption). No em dashes. Slides: user builds them from `docs/slides/SLIDE_CONTENT.md` + `docs/slides/figures/`
-> (PNG 300 dpi + SVG of every report figure); `docs/slides/slides.tex` is the old draft and is superseded.
+> caption). No em dashes.
+> **Deck v3 (2026-09-18):** `docs/slides/slides.tex` + `style.tex` (custom 16:9 Beamer, poster identity, Lato via LuaLaTeX,
+> pdflatex/Helvetica fallback until `texlive-luatex` is installed), 13 core + 8 backup slides, figures `s01..s11` from
+> `make_slide_figures.py` (same JSON tables + real clip frames), numbers injected from `gen/numbers.tex`, notes in the
+> `\talk` blocks -> `SPEAKER_NOTES.md` / `slides_notes.pdf`, audit `SLIDE_AUDIT.md`. Build: `bash docs/slides/build.sh`.
 > **Report v2.2 (2026-09-18):** 9 pages; page 1 is the one-page poster (`docs/poster/make_poster.py` ->
 > `poster.pdf`, placed with `pdfpages`), the paper (cover with graphical abstract, abstract, findings strip)
 > starts on page 2. Poster is print style: white, black bold Liberation Serif (the paper's face), no grey

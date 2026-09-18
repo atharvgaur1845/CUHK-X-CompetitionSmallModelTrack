@@ -19,11 +19,9 @@ Bold (the paper's Helvetica) for labels. Black type on white; colour only where 
     python3 make_poster.py -> poster.pdf (8 x 10 in), poster.png (300 dpi), poster_social.png (1080 x 1350)
 """
 from __future__ import annotations
-import glob, json, sys
+import sys
 from pathlib import Path
 import numpy as np
-import pandas as pd
-from PIL import Image
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -43,28 +41,9 @@ BLACK = "#111111"
 plt.rcParams.update({"font.family": SANS, "font.weight": "bold", "text.color": BLACK, "pdf.fonttype": 42, "figure.dpi": 150,
                      "mathtext.fontset": "custom", "mathtext.rm": f"{SANS}:bold", "mathtext.it": f"{SANS}:bold:italic", "mathtext.bf": f"{SANS}:bold"})
 MIN = 7.5
-FRAME, TH_FRAME = 18, 40
 COL = {"ir": st.BLUE, "thermal": st.ORANGE, "skeleton": st.TEAL, "imu": st.TEAL_LIGHT, "radar": st.PURPLE}
 
-# ------------------------------------------------------------------ real clip assets
-def load_clip():
-    s = D["samples"]["abstract_clip"]; B = Path(s["base"]); a, u, t = s["activity"], s["user"], s["trial"]
-    ir = sorted(glob.glob(f"{B}/IR/{a}/{u}/{t}/*.png")); dp = sorted(glob.glob(f"{B}/Depth_Color/{a}/{u}/{t}/*.png"))
-    th = sorted(glob.glob(f"{B}/Thermal/{a}/{u}/{t}/*.jpg")); sk = sorted(glob.glob(f"{B}/Skeleton/{a}/{u}/{t}/predictions/*.json"))
-    raw = np.asarray(Image.open(ir[FRAME]).convert("L")).astype(float)
-    lo, hi = np.percentile(raw, [1, 99.5]); ir_disp = np.clip((raw - lo) / (hi - lo), 0, 1)
-    A = {"ir_raw": raw, "ir": ir_disp, "depth": np.asarray(Image.open(dp[FRAME]).convert("RGB")),
-         "thermal": np.asarray(Image.open(th[TH_FRAME]).convert("RGB")), "n_ir": len(ir), "n_th": len(th),
-         "skel": np.array(json.load(open(sk[FRAME]))[0]["keypoints"]), "bones": D["samples"]["h36m_bones"], "clip": f"{a}/{u}/{t}"}
-    dev = {}
-    for f in glob.glob(f"{B}/IMU/{a}/{u}/{t}/*.csv"):
-        df = pd.read_csv(f); name = df.iloc[:, 1].str[:4]
-        acc = np.sqrt((df.iloc[:, 2:5].astype(float) ** 2).sum(axis=1)).to_numpy()
-        for dn in name.unique(): dev[dn] = acc[(name == dn).to_numpy()]
-    A["imu"] = dev
-    A["radar"] = pd.read_csv(glob.glob(f"{B}/Radar/{a}/{u}/{t}/*.csv")[0])
-    return A
-
+from clip_assets import load_clip, FRAME, TH_FRAME   # real data of the jumping-jacks clip (shared with the slides)
 
 A = load_clip(); m = D["members"]; r = D["resolution"]
 

@@ -92,3 +92,12 @@ docs/slides/*.nav
 docs/slides/*.snm
 docs/slides/*.toc
 docs/slides/*.out
+
+# LaTeX build products (deck and report); the PDFs themselves are tracked
+*.aux
+*.log
+*.nav
+*.out
+*.snm
+*.toc
+docs/slides/render/
